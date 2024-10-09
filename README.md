@@ -23,12 +23,13 @@ to run the one in the appropriate path for your application).]
 
 
 
-## Tool Configuration
+## Snowflake Tool Configuration
 
 See CubeQuickstart.ipynb for a complete walkthrough of configuration and usage.
 
 ```python
 
+# Cortex Search Service Config
 search_config = {
     "service_name":"SEC_SEARCH_SERVICE",
     "service_topic":"Snowflake's business,product offerings,and performance",
@@ -37,6 +38,7 @@ search_config = {
     "snowpark_connection": snowpark
 }
 
+# Cortex Analyst Config
 analyst_config = {
     "semantic_model":"sp500_semantic_model.yaml",
     "stage":"SEMANTICS",
