@@ -3,9 +3,9 @@
 Cortex Cube is a multi-agent framework that offers native support for Snowflake tools. Instead of requiring users or developers to choose between RAG with Cortex Search or Text2SQL with Cortex Analyst, let the Cube route the work to the appropriate tool based on the user's request.
 
 CortexCube can be configured to work with 3 types of tools:
-- Cortex Search Tool: For unstructured data analysis, which requires a standard RAG access pattern.
-- Cortex Analyst Tool: For supporting structured data analysis, which requires a Text2SQL access pattern.
-- Python Tool: For supporting custom user operations (using 3rd Party API's), which requires calling arbitray python.
+- **Cortex Search Tool**: For unstructured data analysis, which requires a standard RAG access pattern.
+- **Cortex Analyst Tool**: For supporting structured data analysis, which requires a Text2SQL access pattern.
+- **Python Tool**: For supporting custom user operations (using 3rd Party API's), which requires calling arbitray python.
 
 This notebook walks through how to configure and run a system with all 3 types of tools. The demo is designed to illustrate how the agent can answer questions that require a divserse combination of tools (RAG,Text2SQL, Python, or a combination).
 
