@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "cortex-cube"
+version = "0.1.0"
+description = "Multi-agent framework for Snowflake"
+authors = ["alejandro <alejandro.herrera@snowflake.com>"]
+readme = "README.md"
+packages = [{include = "CortexCube"}]
+include = ["README.md"]
+
+[tool.poetry.dependencies]
+python =">=3.9,<3.9.7 || >3.9.7,<3.12"
+snowflake-snowpark-python = "^1.22.1"
+dspy-ai = "^2.5.3"
+langchain = "^0.3.2"
+asyncio = "^3.4.3"
+aiohttp = "^3.10.9"
+pydantic = "^2.9.2"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^4.0.1"
+ruff = "^0.6.9"
+
+
+[tool.poetry.group.app.dependencies]
+streamlit = "^1.39.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
