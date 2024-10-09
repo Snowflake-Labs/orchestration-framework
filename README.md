@@ -13,12 +13,12 @@ This notebook walks through how to configure and run a system with all 3 types o
 
 Note that Cortex Cube does not configure the underlying Cortex Search or Cortex Analyst services for the user. Those services must be configured before initializing Cortex Cube.
 
-> [!NOTE] Authentication for Mac Users
-> Mac users have reported SSL Certificate authentication issues for Snowflake's Cortex REST API, which impacts Cortex Cube. We've found that
-> python enviornments on Mac don't always have access to the requisite certificates to succesfully hit the REST endpoints.
-> To resolve this, cd into your Python directory and run ./Install\ Certificates.command. Alternatively, using  Finder lookup the "Install  
-> Certificates.command" and double click to run the file in your relevant Python directory. (If multiple results show up on Finder, make sure 
-> to run the one in the appropriate path for your application).
+[!NOTE] Authentication for Mac Users
+Mac users have reported SSL Certificate authentication issues for Snowflake's Cortex REST API, which impacts Cortex Cube. We've found that
+python enviornments on Mac don't always have access to the requisite certificates to succesfully hit the REST endpoints.
+To resolve this, cd into your Python directory and run ./Install\ Certificates.command. Alternatively, using  Finder lookup the "Install  
+Certificates.command" and double click to run the file in your relevant Python directory. (If multiple results show up on Finder, make sure 
+to run the one in the appropriate path for your application).
 
 
 ### Tool Configuration
