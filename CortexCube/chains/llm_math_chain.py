@@ -27,7 +27,7 @@ _PROMPT_TEMPLATE = """Translate a math problem into a expression that can be exe
 You MUST follow the following guidelines:
  - Do not use "where(...)" expressions in your code since it is not supported.
  - Do not use "fmax(...)" expression in your code since it is not supported. Use "max(...)" instead.
- - You MUST never introduce a new variable in any mathmatical expression. The mathematical expression MUST ONLY contain numbers and operations. For instance gazelle_max_speed * 0.12 is NEVER allowed and you must find the numerical value of the gazelle's max speed from the given context.
+ - You MUST never introduce a new variable in any mathematical expression. The mathematical expression MUST ONLY contain numbers and operations. For instance gazelle_max_speed * 0.12 is NEVER allowed and you must find the numerical value of the gazelle's max speed from the given context.
 
 Begin.
 
