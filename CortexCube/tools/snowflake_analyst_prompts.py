@@ -1,4 +1,4 @@
-from CortexCube.cube.constants import END_OF_PLAN, JOINNER_FINISH,JOINNER_REPLAN
+from CortexCube.cube.constants import END_OF_PLAN, JOINNER_FINISH, JOINNER_REPLAN
 
 
 PLANNER_PROMPT = (
@@ -19,7 +19,7 @@ PLANNER_PROMPT = (
     "Question: What is the Revenue of the competitors mentioned in Snowflake's annual report?\n"
     "Thought: I first nneed to identify which companies are considered Snowflake's competitors.\n"
     '1. cortexsearch("Snowflake competitors mentioned in the annual report")\n'
-    "Thought: Now that I know the copmetitors, I can look up their financials in my database, if they're in the S&P500.\n"
+    "Thought: Now that I know the competitors, I can look up their financials in my database, if they're in the S&P500.\n"
     '2. cortexanalyst("What is the Revenue of Amazon, Microsoft, and Google?")\n'
     "Thought: I can answer the question now.\n"
     f"3. join(){END_OF_PLAN}\n")
