@@ -60,7 +60,6 @@ class CortexSearchTool(Tool):
             search_attributes, sample_vals = self._get_sample_values(snowpark_session=self.session,cortex_search_service=self.service_name)
             raw_filter =  self.filter_generator(query=query,attributes=str(search_attributes),sample_values=str(sample_vals))['answer']
             filter = json.loads(raw_filter)
-            print(filter,raw_filter,type(filter))
         else:
             filter = None
 
