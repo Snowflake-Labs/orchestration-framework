@@ -26,7 +26,6 @@ from langchain.utils.input import get_color_mapping
 
 from CortexCube.chains.chain import Chain
 from CortexCube.tools.base import BaseTool
-from utils.logger_utils import log
 
 logger = logging.getLogger(__name__)
 
