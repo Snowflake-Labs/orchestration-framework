@@ -47,8 +47,8 @@ analyst_config = {
     "snowpark_connection": snowpark
 }
 
-annual_reports = CortexSearchTool(config = search_config,k=5)
-sp500 = CortexAnalystTool(config = analyst_config)
+annual_reports = CortexSearchTool(**search_config)
+sp500 = CortexAnalystTool(**analyst_config)
 snowflake_tools = [annual_reports,sp500]
 ```
 
@@ -56,7 +56,7 @@ snowflake_tools = [annual_reports,sp500]
 ````python
 
 # Config + Initialize Cortex Cube
-analyst = CortexCube(tools=snowflake_tools)
+analyst = CortexCube(snowpark_session=snowpark,tools=snowflake_tools)
 
 # Run Cortex Cube
 answer = await analyst.acall("What is the average price for toothbrushes?")
