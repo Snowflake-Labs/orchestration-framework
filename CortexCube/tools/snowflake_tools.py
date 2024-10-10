@@ -21,6 +21,17 @@ class CortexSearchTool(Tool):
     filter_generator: object = None
 
     def __init__(self, config, k=5):
+        """Parameters
+
+        ----------
+        config (dict): Config for initializing the Cortex Search service must include the following params:
+            service_name (str): name of the Cortex Search Service to utilize
+            service_topic (str): description of content indexed by Cortex Search.
+            data_description (str): description of the source data that has been indexed.
+            retrieval_columns (list): list of columns to include in Cortex Search results.
+            auto_filter (bool): automatically generate filter based on user's query or not.
+            snowpark_connection (object): snowpark connection object
+        """
 
         tool_description = self._prepare_search_description(
             service_topic=config["service_topic"],
@@ -258,7 +269,25 @@ class CortexAnalystTool(Tool):
     CONN: object = None
     name: str = ""
 
+    analyst_config = {
+    "semantic_model":"sp500_semantic_model.yaml",
+    "stage":"SEMANTICS",
+    "service_topic":"S&P500 company and stock metrics",
+    "data_description": "a table with stock and financial metrics about S&P500 companies ",
+    "snowpark_connection": snowpark
+}
+
     def __init__(self, config) -> None:
+        """Parameters
+
+        ----------
+        config (dict): Config for initializing the Cortex Search service must include the following params:
+            semantic_model (str): yaml file name containing semantic model for Cortex Analyst
+            stage (str): name of stage containing semantic model yaml.
+            service_topic (str): topic of the data in the tables (i.e S&P500 company financials).
+            data_description (str): description of the source data that has been indexed (i.e a table with stock and financial metrics about S&P500 companies).
+            snowpark_connection (object): snowpark connection object
+        """
 
         tool_description = self._prepare_analyst_description(
             connection=config["snowpark_connection"],

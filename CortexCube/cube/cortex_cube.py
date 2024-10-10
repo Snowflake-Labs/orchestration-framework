@@ -73,9 +73,8 @@ class CubeAgent:
 
 
 class CortexCube(Chain,extra="allow"):
-    """LLMCompiler Engine."""
+    """Cortex Cube Multi Agent Class"""
 
-    """The step container to use."""
     input_key: str = "input"
     output_key: str = "output"
 
@@ -93,15 +92,16 @@ class CortexCube(Chain,extra="allow"):
         planner_stream: bool = False,
         **kwargs,
     ) -> None:
-        """
+        """Parameters
+
+        ----------
         Args:
             tools: List of tools to use.
-            max_replans: Maximum number of replans to do.
-            benchmark: Whether to collect benchmark stats.
+            max_replans: Maximum number of replans to do. Defaults to 2.
 
         Planner Args:
-            planner_llm: LLM to use for planning.
-            planner_example_prompt: Example prompt for planning.
+            planner_llm: Name of Snowflake Cortex LLM to use for planning.
+            planner_example_prompt: Example prompt for planning. Defaults to SNOWFLAKE_PLANNER_PROMPT.
             planner_example_prompt_replan: Example prompt for replanning.
                 Assign this if you want to use different example prompt for replanning.
                 If not assigned, default to `planner_example_prompt`.
@@ -109,7 +109,7 @@ class CortexCube(Chain,extra="allow"):
             planner_stream: Whether to stream the planning.
 
         Agent Args:
-            agent_llm: LLM to use for agent.
+            agent_llm: Name of Snowflake Cortex LLM to use for planning.
             joinner_prompt: Prompt to use for joinner.
             joinner_prompt_final: Prompt to use for joinner at the final replanning iter.
                 If not assigned, default to `joinner_prompt`.
