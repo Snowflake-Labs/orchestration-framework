@@ -31,12 +31,9 @@ connection_parameters = {
     "database": os.getenv('SNOWFLAKE_DATABASE'),
     "schema": os.getenv('SNOWFLAKE_SCHEMA')}
 
-os.environ["SNOWFLAKE_ACCOUNT"] = connection_parameters["account"]
+
 os.environ["NEWS_API_TOKEN"] = os.getenv("NEWS_API_TOKEN")
-
 snowpark = Session.builder.configs(connection_parameters).create()
-os.environ["SNOWFLAKE_API_KEY"] = snowpark.connection.rest.token
-
 
 class NewsTool:
 
@@ -63,10 +60,8 @@ news_api_func = NewsTool(token=os.getenv("NEWS_API_TOKEN"), limit=3).search
 if 'prompt_history' not in st.session_state:
     st.session_state['prompt_history'] = {}
 
-if 'CONN' not in st.session_state or st.session_state.CONN is None:
+if 'snowpark' not in st.session_state or st.session_state.snowpark is None:
 
-    st.session_state.CONN = snowflake.connector.connect(
-        **connection_parameters)
     st.session_state.snowpark = Session.builder.configs(
         connection_parameters).create()
 
@@ -87,9 +82,8 @@ if 'CONN' not in st.session_state or st.session_state.CONN is None:
     }
 
     # Tools Config
-    st.session_state.annual_reports = CortexSearchTool(
-        config=search_config, k=5)
-    st.session_state.sp500 = CortexAnalystTool(config=analyst_config)
+    st.session_state.annual_reports = CortexSearchTool(**search_config)
+    st.session_state.sp500 = CortexAnalystTool(**analyst_config)
     st.session_state.news_search = PythonTool(
         python_func=news_api_func, tool_description=tool_desc, output_description=output)
     st.session_state.snowflake_tools = [
@@ -98,8 +92,7 @@ if 'CONN' not in st.session_state or st.session_state.CONN is None:
 
 if 'analyst' not in st.session_state:
 
-    st.session_state.analyst = CortexCube(
-        tools=st.session_state.snowflake_tools)
+    st.session_state.analyst = CortexCube(snowpark_session=st.session_state.snowpark,tools=st.session_state.snowflake_tools)
 
 
 def create_prompt(prompt_key: str):
