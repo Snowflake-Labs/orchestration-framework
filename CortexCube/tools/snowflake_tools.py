@@ -269,14 +269,6 @@ class CortexAnalystTool(Tool):
     CONN: object = None
     name: str = ""
 
-    analyst_config = {
-    "semantic_model":"sp500_semantic_model.yaml",
-    "stage":"SEMANTICS",
-    "service_topic":"S&P500 company and stock metrics",
-    "data_description": "a table with stock and financial metrics about S&P500 companies ",
-    "snowpark_connection": snowpark
-}
-
     def __init__(self, config) -> None:
         """Parameters
 
