@@ -6,7 +6,6 @@ import logging
 import warnings
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
-from langchain.callbacks.base import BaseCallbackManager
 from langchain.callbacks.manager import (
     AsyncCallbackManager,
     AsyncCallbackManagerForChainRun,
@@ -15,7 +14,6 @@ from langchain.callbacks.manager import (
     Callbacks,
 )
 from langchain.load.dump import dumpd
-from langchain.load.serializable import Serializable
 from langchain.prompts.prompt import PromptTemplate
 from langchain.pydantic_v1 import Extra, Field
 from langchain.schema import (
