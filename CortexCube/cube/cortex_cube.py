@@ -96,6 +96,7 @@ class CortexCube(Chain,extra="allow"):
 
         ----------
         Args:
+            snowpark_sesison: authenticated snowflake snowpark connection object
             tools: List of tools to use.
             max_replans: Maximum number of replans to do. Defaults to 2.
 
