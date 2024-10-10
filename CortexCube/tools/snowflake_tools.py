@@ -20,36 +20,36 @@ class CortexSearchTool(Tool):
     auto_filter: bool = False
     filter_generator: object = None
 
-    def __init__(self, config, k=5):
+    def __init__(self, service_name,service_topic,data_description,retrieval_columns,snowpark_connection,auto_filter=False, k=5):
         """Parameters
 
         ----------
-        config (dict): Config for initializing the Cortex Search service must include the following params:
-            service_name (str): name of the Cortex Search Service to utilize
-            service_topic (str): description of content indexed by Cortex Search.
-            data_description (str): description of the source data that has been indexed.
-            retrieval_columns (list): list of columns to include in Cortex Search results.
-            auto_filter (bool): automatically generate filter based on user's query or not.
-            snowpark_connection (object): snowpark connection object
+        service_name (str): name of the Cortex Search Service to utilize
+        service_topic (str): description of content indexed by Cortex Search.
+        data_description (str): description of the source data that has been indexed.
+        retrieval_columns (list): list of columns to include in Cortex Search results.
+        snowpark_connection (object): snowpark connection object
+        auto_filter (bool): automatically generate filter based on user's query or not.
+        k: number of records to include in results
         """
 
         tool_description = self._prepare_search_description(
-            service_topic=config["service_topic"],
-            data_source_description=config["data_description"],
+            service_topic=service_topic,
+            data_source_description=data_description,
         )
         super().__init__(
             name="cortexsearch", description=tool_description, func=self.asearch
         )
-        self.auto_filter = config["auto_filter"]
-        self.session = config["snowpark_connection"]
+        self.auto_filter = auto_filter
+        self.session = snowpark_connection
         if self.auto_filter:
             self.filter_generator = SmartSearch()
             lm = dspy.Snowflake(session=self.session, model="mixtral-8x7b")
             dspy.settings.configure(lm=lm)
 
         self.k = k
-        self.retrieval_columns = config["retrieval_columns"]
-        self.service_name = config["service_name"]
+        self.retrieval_columns = retrieval_columns
+        self.service_name = service_name
         print(f"Cortex Search Tool successfully initialized")
 
     def __call__(self, question) -> Any:
@@ -269,30 +269,29 @@ class CortexAnalystTool(Tool):
     CONN: object = None
     name: str = ""
 
-    def __init__(self, config) -> None:
+    def __init__(self, semantic_model,stage,service_topic,data_description,snowpark_connection) -> None:
         """Parameters
 
         ----------
-        config (dict): Config for initializing the Cortex Search service must include the following params:
-            semantic_model (str): yaml file name containing semantic model for Cortex Analyst
-            stage (str): name of stage containing semantic model yaml.
-            service_topic (str): topic of the data in the tables (i.e S&P500 company financials).
-            data_description (str): description of the source data that has been indexed (i.e a table with stock and financial metrics about S&P500 companies).
-            snowpark_connection (object): snowpark connection object
+        semantic_model (str): yaml file name containing semantic model for Cortex Analyst
+        stage (str): name of stage containing semantic model yaml.
+        service_topic (str): topic of the data in the tables (i.e S&P500 company financials).
+        data_description (str): description of the source data that has been indexed (i.e a table with stock and financial metrics about S&P500 companies).
+        snowpark_connection (object): snowpark connection object
         """
 
         tool_description = self._prepare_analyst_description(
-            connection=config["snowpark_connection"],
-            service_topic=config["service_topic"],
-            data_source_description=config["data_description"],
+            connection=snowpark_connection,
+            service_topic=service_topic,
+            data_source_description=data_description,
         )
-        tool_name = f"""{config["snowpark_connection"].get_current_schema().replace('"',"")}_cortexanalyst"""
+        tool_name = f"""{snowpark_connection.get_current_schema().replace('"',"")}_cortexanalyst"""
         super().__init__(
             name=tool_name, func=self.asearch, description=tool_description
         )
-        self.CONN = config["snowpark_connection"]
-        self.FILE = config["semantic_model"]
-        self.STAGE = config["stage"]
+        self.CONN = snowpark_connection
+        self.FILE = semantic_model
+        self.STAGE = stage
 
         print(f"Cortex Analyst Tool succesfully initialized")
 
