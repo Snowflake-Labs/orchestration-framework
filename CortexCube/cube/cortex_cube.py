@@ -16,8 +16,9 @@ from CortexCube.tools.base import StructuredTool, Tool
 class CubeAgent:
     """Self defined agent for LLM Compiler."""
 
-    def __init__(self, llm) -> None:
+    def __init__(self, session,llm) -> None:
         self.llm = llm
+        self.session = session
     
     async def arun(self, prompt: str) -> str:
         """Run the LLM."""
@@ -34,9 +35,9 @@ class CubeAgent:
         headers = {
         "Accept": "text/stream",
         "Content-Type": "application/json",
-        "Authorization": f'Snowflake Token="{os.getenv("SNOWFLAKE_API_KEY")}"'}
+        "Authorization": f'Snowflake Token="{self.session.connection.rest.token}"'}
 
-        url = f"""https://{os.getenv("SNOWFLAKE_ACCOUNT")}.snowflakecomputing.com/api/v2/cortex/inference:complete"""
+        url = f"""https://{self.session.get_current_account().replace('"',"")}.snowflakecomputing.com/api/v2/cortex/inference:complete"""
         data = {"model": self.llm, "messages": [{"content": prompt}]}
 
         return headers,url,data
@@ -59,11 +60,9 @@ class CubeAgent:
                 json_list.append(json_dict)
 
         completion = ""
-        model = ""
         choices = {}
         for chunk in json_list:
 
-            model = chunk["model"]
             choices = chunk["choices"][0]
 
             if "content" in choices["delta"].keys():
@@ -80,6 +79,7 @@ class CortexCube(Chain,extra="allow"):
 
     def __init__(
         self,
+        snowpark_session:object,
         tools: list[Union[Tool, StructuredTool]],
         planner_llm: str = "mistral-large2", #replace basellm
         agent_llm: str = "mistral-large2", #replace basellm
@@ -123,6 +123,7 @@ class CortexCube(Chain,extra="allow"):
             planner_example_prompt_replan = planner_example_prompt
 
         self.planner = Planner(
+            session=snowpark_session,
             llm=planner_llm,
             example_prompt=planner_example_prompt,
             example_prompt_replan=planner_example_prompt_replan,
@@ -130,7 +131,7 @@ class CortexCube(Chain,extra="allow"):
             stop=planner_stop,
         )
 
-        self.agent = CubeAgent(agent_llm)
+        self.agent = CubeAgent(session=snowpark_session,llm=agent_llm)
         self.joinner_prompt = joinner_prompt
         self.joinner_prompt_final = joinner_prompt_final or joinner_prompt
         self.planner_stream = planner_stream

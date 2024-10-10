@@ -198,6 +198,7 @@ class LLMCompilerCallback(AsyncCallbackHandler):
 class Planner:
     def __init__(
         self,
+        session:object,
         llm: str, # point to dspy
         example_prompt: str,
         example_prompt_replan: str,
@@ -205,6 +206,7 @@ class Planner:
         stop: Optional[list[str]],
     ):
         self.llm = llm
+        self.session = session
         # different system prompt is needed when replanning
         # since they have different guidelines, and also examples provided by the user
         self.system_prompt = generate_llm_compiler_prompt(
@@ -251,7 +253,7 @@ class Planner:
         headers = {
         "Accept": "text/stream",
         "Content-Type": "application/json",
-        "Authorization": f'Snowflake Token="{os.getenv("SNOWFLAKE_API_KEY")}"'}
+        "Authorization": f'Snowflake Token="{self.session.connection.rest.token}"'}
 
         url = f"""https://{os.getenv("SNOWFLAKE_ACCOUNT")}.snowflakecomputing.com/api/v2/cortex/inference:complete"""
         data = {"model": self.llm, "messages": [{"content": prompt}]}
@@ -276,23 +278,15 @@ class Planner:
                 json_list.append(json_dict)
 
         completion = ""
-        model = ""
         choices = {}
         for chunk in json_list:
 
-            model = chunk["model"]
             choices = chunk["choices"][0]
 
             if "content" in choices["delta"].keys():
                 completion += choices["delta"]["content"]
 
-        processed_response = {
-            "model": model,
-            "completion": completion,
-            "stop_reason": choices["finish_reason"],
-        }
-
-        return processed_response['completion']
+        return completion
 
 
     async def plan(
