@@ -304,7 +304,7 @@ class CortexAnalystTool(Tool):
         self.FILE = semantic_model
         self.STAGE = stage
 
-        print(f"Cortex Analyst Tool succesfully initialized")
+        print(f"Cortex Analyst Tool successfully initialized")
 
     def __call__(self, prompt) -> Any:
 
