@@ -197,7 +197,7 @@ class CortexCube(Chain,extra="allow"):
         else:
             if replan_index != 1:
                 print("....replanning...")
-                return "Replan will be required"
+                return "Replan required. Consider rephrasing your question."
             else:
                 return None
 

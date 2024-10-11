@@ -17,7 +17,6 @@ class SnowflakeError(Exception):
             self.message
         )  # Call the base class const
 
-
 class CortexSearchTool(Tool):
     """Cortex Search tool for use with SnowflakeCortexCube"""
 
