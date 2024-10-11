@@ -309,17 +309,7 @@ class CortexAnalystTool(Tool):
 
     def __call__(self, prompt) -> Any:
 
-        for _ in range(3):
-            current_prompt = prompt
-            response = self._process_message(prompt=current_prompt)
-
-            if response == "Invalid Query":
-                rephrase_prompt = dspy.ChainOfThought(PromptRephrase)
-                current_prompt = rephrase_prompt(user_prompt=prompt)["rephrased_prompt"]
-            else:
-                break
-
-        return response
+        return self.asearch(query=prompt)
 
     async def asearch(self, query):
         print("Running Cortex Analyst tool.....")
@@ -333,17 +323,23 @@ class CortexAnalystTool(Tool):
             ) as session:
                 async with session.post(url=url, json=data) as response:
                     response_text = await response.text()
-                    resp = json.loads(response_text)["message"]["content"]
+                    json_response = json.loads(response_text)
+                    print(json_response)
 
-            if resp == "Invalid Query":
-                rephrase_prompt = dspy.ChainOfThought(PromptRephrase)
-                current_query = rephrase_prompt(user_prompt=current_query)[
-                    "rephrased_prompt"
-                ]
-            else:
-                break
+            try:
+                query_response = self._process_message(json_response["message"]["content"])
 
-        query_response = self._process_message(resp)
+                if query_response == "Invalid Query":
+                    rephrase_prompt = dspy.ChainOfThought(PromptRephrase)
+                    current_query = rephrase_prompt(user_prompt=current_query)[
+                        "rephrased_prompt"
+                    ]
+                else:
+                    break
+
+            except:
+                raise SnowflakeError(status_code=json_response["code"],message=json_response["message"])
+
 
         return query_response
 
