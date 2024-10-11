@@ -9,6 +9,14 @@ import re
 import json
 import inspect
 
+class SnowflakeError(Exception):
+    def __init__(self, status_code, message):
+        self.status_code = status_code
+        self.message = message
+        super().__init__(
+            self.message
+        )  # Call the base class const
+
 
 class CortexSearchTool(Tool):
     """Cortex Search tool for use with SnowflakeCortexCube"""
@@ -65,8 +73,12 @@ class CortexSearchTool(Tool):
         ) as session:
             async with session.post(url=url, json=data) as response:
                 response_text = await response.text()
-
-                return json.loads(response_text)["results"]
+                response_json = json.loads(response_text)
+                
+                try:
+                    return response_json["results"]
+                except:
+                    raise SnowflakeError(status_code=response_json["code"],message=response_json["message"])
 
     def _prepare_request(self, query):
 

@@ -255,7 +255,7 @@ class Planner:
         "Content-Type": "application/json",
         "Authorization": f'Snowflake Token="{self.session.connection.rest.token}"'}
 
-        url = f"""https://{os.getenv("SNOWFLAKE_ACCOUNT")}.snowflakecomputing.com/api/v2/cortex/inference:complete"""
+        url = f"""https://{self.session.get_current_account().replace('"',"")}.snowflakecomputing.com/api/v2/cortex/inference:complete"""
         data = {"model": self.llm, "messages": [{"content": prompt}]}
 
         return headers,url,data
