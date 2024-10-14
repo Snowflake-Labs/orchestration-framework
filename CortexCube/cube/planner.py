@@ -22,7 +22,6 @@ from CortexCube.tools.base import StructuredTool, Tool
 import aiohttp
 import ssl
 import json
-import os
 
 
 ssl_context = ssl.create_default_context()

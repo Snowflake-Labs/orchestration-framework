@@ -1,5 +1,4 @@
 from dotenv import load_dotenv
-import snowflake
 from snowflake.snowpark import Session
 
 import streamlit as st
