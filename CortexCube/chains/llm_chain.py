@@ -72,7 +72,7 @@ class LLMChain(Chain):
         arbitrary_types_allowed = True
 
     @property
-    def input_keys(self) -> List[str]:
+    def input_keys(self) -> list[str]:
         """Will be whatever keys the prompt expects.
 
         :meta private:
@@ -80,7 +80,7 @@ class LLMChain(Chain):
         return self.prompt.input_variables
 
     @property
-    def output_keys(self) -> List[str]:
+    def output_keys(self) -> list[str]:
         """Will always return text key.
 
         :meta private:
@@ -92,16 +92,16 @@ class LLMChain(Chain):
 
     def _call(
         self,
-        inputs: Dict[str, Any],
-        run_manager: Optional[CallbackManagerForChainRun] = None,
-    ) -> Dict[str, str]:
+        inputs: dict[str, Any],
+        run_manager: CallbackManagerForChainRun | None = None,
+    ) -> dict[str, str]:
         response = self.generate([inputs], run_manager=run_manager)
         return self.create_outputs(response)[0]
 
     def generate(
         self,
-        input_list: List[Dict[str, Any]],
-        run_manager: Optional[CallbackManagerForChainRun] = None,
+        input_list: list[dict[str, Any]],
+        run_manager: CallbackManagerForChainRun | None = None,
     ) -> LLMResult:
         """Generate LLM result from inputs."""
         prompts, stop = self.prep_prompts(input_list, run_manager=run_manager)
@@ -135,8 +135,8 @@ class LLMChain(Chain):
 
     async def agenerate(
         self,
-        input_list: List[Dict[str, Any]],
-        run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
+        input_list: list[dict[str, Any]],
+        run_manager: AsyncCallbackManagerForChainRun | None = None,
     ) -> LLMResult:
         """Generate LLM result from inputs."""
         prompts, stop = await self.aprep_prompts(input_list, run_manager=run_manager)
@@ -169,9 +169,9 @@ class LLMChain(Chain):
 
     def prep_prompts(
         self,
-        input_list: List[Dict[str, Any]],
-        run_manager: Optional[CallbackManagerForChainRun] = None,
-    ) -> Tuple[List[PromptValue], Optional[List[str]]]:
+        input_list: list[dict[str, Any]],
+        run_manager: CallbackManagerForChainRun | None = None,
+    ) -> tuple[list[PromptValue], list[str] | None]:
         """Prepare prompts from inputs."""
         stop = None
         if len(input_list) == 0:
@@ -195,9 +195,9 @@ class LLMChain(Chain):
 
     async def aprep_prompts(
         self,
-        input_list: List[Dict[str, Any]],
-        run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
-    ) -> Tuple[List[PromptValue], Optional[List[str]]]:
+        input_list: list[dict[str, Any]],
+        run_manager: AsyncCallbackManagerForChainRun | None = None,
+    ) -> tuple[list[PromptValue], list[str] | None]:
         """Prepare prompts from inputs."""
         stop = None
         if len(input_list) == 0:
@@ -220,8 +220,8 @@ class LLMChain(Chain):
         return prompts, stop
 
     def apply(
-        self, input_list: List[Dict[str, Any]], callbacks: Callbacks = None
-    ) -> List[Dict[str, str]]:
+        self, input_list: list[dict[str, Any]], callbacks: Callbacks = None
+    ) -> list[dict[str, str]]:
         """Utilize the LLM generate method for speed gains."""
         callback_manager = CallbackManager.configure(
             callbacks, self.callbacks, self.verbose
@@ -240,8 +240,8 @@ class LLMChain(Chain):
         return outputs
 
     async def aapply(
-        self, input_list: List[Dict[str, Any]], callbacks: Callbacks = None
-    ) -> List[Dict[str, str]]:
+        self, input_list: list[dict[str, Any]], callbacks: Callbacks = None
+    ) -> list[dict[str, str]]:
         """Utilize the LLM generate method for speed gains."""
         callback_manager = AsyncCallbackManager.configure(
             callbacks, self.callbacks, self.verbose
@@ -263,7 +263,7 @@ class LLMChain(Chain):
     def _run_output_key(self) -> str:
         return self.output_key
 
-    def create_outputs(self, llm_result: LLMResult) -> List[Dict[str, Any]]:
+    def create_outputs(self, llm_result: LLMResult) -> list[dict[str, Any]]:
         """Create outputs from response."""
         result = [
             # Get the text of the top generated string.
@@ -279,9 +279,9 @@ class LLMChain(Chain):
 
     async def _acall(
         self,
-        inputs: Dict[str, Any],
-        run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
-    ) -> Dict[str, str]:
+        inputs: dict[str, Any],
+        run_manager: AsyncCallbackManagerForChainRun | None = None,
+    ) -> dict[str, str]:
         response = await self.agenerate([inputs], run_manager=run_manager)
         return self.create_outputs(response)[0]
 
@@ -321,7 +321,7 @@ class LLMChain(Chain):
 
     def predict_and_parse(
         self, callbacks: Callbacks = None, **kwargs: Any
-    ) -> Union[str, List[str], Dict[str, Any]]:
+    ) -> str | list[str] | dict[str, Any]:
         """Call predict and then parse the results."""
         warnings.warn(
             "The predict_and_parse method is deprecated, "
@@ -335,7 +335,7 @@ class LLMChain(Chain):
 
     async def apredict_and_parse(
         self, callbacks: Callbacks = None, **kwargs: Any
-    ) -> Union[str, List[str], Dict[str, str]]:
+    ) -> str | list[str] | dict[str, str]:
         """Call apredict and then parse the results."""
         warnings.warn(
             "The apredict_and_parse method is deprecated, "
@@ -348,8 +348,8 @@ class LLMChain(Chain):
             return result
 
     def apply_and_parse(
-        self, input_list: List[Dict[str, Any]], callbacks: Callbacks = None
-    ) -> Sequence[Union[str, List[str], Dict[str, str]]]:
+        self, input_list: list[dict[str, Any]], callbacks: Callbacks = None
+    ) -> Sequence[str | list[str] | dict[str, str]]:
         """Call apply and then parse the results."""
         warnings.warn(
             "The apply_and_parse method is deprecated, "
@@ -359,8 +359,8 @@ class LLMChain(Chain):
         return self._parse_generation(result)
 
     def _parse_generation(
-        self, generation: List[Dict[str, str]]
-    ) -> Sequence[Union[str, List[str], Dict[str, str]]]:
+        self, generation: list[dict[str, str]]
+    ) -> Sequence[str | list[str] | dict[str, str]]:
         if self.prompt.output_parser is not None:
             return [
                 self.prompt.output_parser.parse(res[self.output_key])
@@ -370,8 +370,8 @@ class LLMChain(Chain):
             return generation
 
     async def aapply_and_parse(
-        self, input_list: List[Dict[str, Any]], callbacks: Callbacks = None
-    ) -> Sequence[Union[str, List[str], Dict[str, str]]]:
+        self, input_list: list[dict[str, Any]], callbacks: Callbacks = None
+    ) -> Sequence[str | list[str] | dict[str, str]]:
         """Call apply and then parse the results."""
         warnings.warn(
             "The aapply_and_parse method is deprecated, "

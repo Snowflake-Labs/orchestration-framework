@@ -29,7 +29,7 @@ class SchemaAnnotationError(TypeError):
 
 def _create_subset_model(
     name: str, model: BaseModel, field_names: list
-) -> Type[BaseModel]:
+) -> type[BaseModel]:
     """Create a pydantic model with only a subset of model's fields."""
     fields = {}
     for field_name in field_names:
@@ -39,7 +39,7 @@ def _create_subset_model(
 
 
 def _get_filtered_args(
-    inferred_model: Type[BaseModel],
+    inferred_model: type[BaseModel],
     func: Callable,
 ) -> dict:
     """Get the arguments from a function's signature."""
@@ -58,7 +58,7 @@ class _SchemaConfig:
 def create_schema_from_function(
     model_name: str,
     func: Callable,
-) -> Type[BaseModel]:
+) -> type[BaseModel]:
     """Create a pydantic schema from a function's signature.
     Args:
         model_name: Name to assign to the generated pydandic schema
@@ -96,18 +96,18 @@ class Tool(BaseTool):
     """Tool that takes in function or coroutine directly."""
 
     description: str = ""
-    func: Optional[Callable[..., str]]
+    func: Callable[..., str] | None
     """The function to run when the tool is called."""
-    coroutine: Optional[Callable[..., Awaitable[str]]] = None
+    coroutine: Callable[..., Awaitable[str]] | None = None
     """The asynchronous version of the function."""
-    stringify_rule: Optional[Callable[..., str]] = None
+    stringify_rule: Callable[..., str] | None = None
 
     # --- Runnable ---
 
     async def ainvoke(
         self,
-        input: Union[str, Dict],
-        config: Optional[RunnableConfig] = None,
+        input: str | dict,
+        config: RunnableConfig | None = None,
         **kwargs: Any,
     ) -> Any:
         if not self.coroutine:
@@ -129,7 +129,7 @@ class Tool(BaseTool):
         # assume it takes a single string input.
         return {"tool_input": {"type": "string"}}
 
-    def _to_args_and_kwargs(self, tool_input: Union[str, Dict]) -> Tuple[Tuple, Dict]:
+    def _to_args_and_kwargs(self, tool_input: str | dict) -> tuple[tuple, dict]:
         """Convert tool input to pydantic model."""
         args, kwargs = super()._to_args_and_kwargs(tool_input)
         # For backwards compatibility. The tool must be run with a single input
@@ -144,7 +144,7 @@ class Tool(BaseTool):
     def _run(
         self,
         *args: Any,
-        run_manager: Optional[CallbackManagerForToolRun] = None,
+        run_manager: CallbackManagerForToolRun | None = None,
         **kwargs: Any,
     ) -> Any:
         """Use the tool."""
@@ -164,7 +164,7 @@ class Tool(BaseTool):
     async def _arun(
         self,
         *args: Any,
-        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
         **kwargs: Any,
     ) -> Any:
         """Use the tool asynchronously."""
@@ -188,24 +188,24 @@ class Tool(BaseTool):
 
     # TODO: this is for backwards compatibility, remove in future
     def __init__(
-        self, name: str, func: Optional[Callable], description: str, **kwargs: Any
+        self, name: str, func: Callable | None, description: str, **kwargs: Any
     ) -> None:
         """Initialize tool."""
-        super(Tool, self).__init__(
+        super().__init__(
             name=name, func=func, description=description, **kwargs
         )
 
     @classmethod
     def from_function(
         cls,
-        func: Optional[Callable],
+        func: Callable | None,
         name: str,  # We keep these required to support backwards compatibility
         description: str,
         return_direct: bool = False,
-        args_schema: Optional[Type[BaseModel]] = None,
-        coroutine: Optional[
+        args_schema: type[BaseModel] | None = None,
+        coroutine: None | (
             Callable[..., Awaitable[Any]]
-        ] = None,  # This is last for compatibility, but should be after func
+        ) = None,  # This is last for compatibility, but should be after func
         **kwargs: Any,
     ) -> Tool:
         """Initialize tool from a function."""
@@ -226,20 +226,20 @@ class StructuredTool(BaseTool):
     """Tool that can operate on any number of inputs."""
 
     description: str = ""
-    args_schema: Type[BaseModel] = Field(..., description="The tool schema.")
+    args_schema: type[BaseModel] = Field(..., description="The tool schema.")
     """The input arguments' schema."""
-    func: Optional[Callable[..., Any]]
+    func: Callable[..., Any] | None
     """The function to run when the tool is called."""
-    coroutine: Optional[Callable[..., Awaitable[Any]]] = None
+    coroutine: Callable[..., Awaitable[Any]] | None = None
     """The asynchronous version of the function."""
-    stringify_rule: Optional[Callable[..., str]] = None
+    stringify_rule: Callable[..., str] | None = None
 
     # --- Runnable ---
 
     async def ainvoke(
         self,
-        input: Union[str, Dict],
-        config: Optional[RunnableConfig] = None,
+        input: str | dict,
+        config: RunnableConfig | None = None,
         **kwargs: Any,
     ) -> Any:
         if not self.coroutine:
@@ -260,7 +260,7 @@ class StructuredTool(BaseTool):
     def _run(
         self,
         *args: Any,
-        run_manager: Optional[CallbackManagerForToolRun] = None,
+        run_manager: CallbackManagerForToolRun | None = None,
         **kwargs: Any,
     ) -> Any:
         """Use the tool."""
@@ -280,7 +280,7 @@ class StructuredTool(BaseTool):
     async def _arun(
         self,
         *args: Any,
-        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
         **kwargs: Any,
     ) -> str:
         """Use the tool asynchronously."""
@@ -307,12 +307,12 @@ class StructuredTool(BaseTool):
     @classmethod
     def from_function(
         cls,
-        func: Optional[Callable] = None,
-        coroutine: Optional[Callable[..., Awaitable[Any]]] = None,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
+        func: Callable | None = None,
+        coroutine: Callable[..., Awaitable[Any]] | None = None,
+        name: str | None = None,
+        description: str | None = None,
         return_direct: bool = False,
-        args_schema: Optional[Type[BaseModel]] = None,
+        args_schema: type[BaseModel] | None = None,
         infer_schema: bool = True,
         **kwargs: Any,
     ) -> StructuredTool:
@@ -376,9 +376,9 @@ class StructuredTool(BaseTool):
 
 
 def tool(
-    *args: Union[str, Callable],
+    *args: str | Callable,
     return_direct: bool = False,
-    args_schema: Optional[Type[BaseModel]] = None,
+    args_schema: type[BaseModel] | None = None,
     infer_schema: bool = True,
 ) -> Callable:
     """Make tools out of functions, can be used with or without arguments.

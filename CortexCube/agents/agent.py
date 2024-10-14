@@ -33,7 +33,7 @@ class AgentOutputParser(BaseOutputParser):
     """Base class for parsing agent output into agent action/finish."""
 
     @abstractmethod
-    def parse(self, text: str) -> Union[AgentAction, AgentFinish]:
+    def parse(self, text: str) -> AgentAction | AgentFinish:
         """Parse text into agent action/finish."""
 
 
@@ -50,14 +50,14 @@ class Agent(BaseSingleActionAgent):
 
     llm_chain: LLMChain
     output_parser: AgentOutputParser
-    allowed_tools: Optional[List[str]] = None
+    allowed_tools: list[str] | None = None
 
     @property
     def _agent_type(self) -> str:
         """Return Identifier of agent type."""
         raise NotImplementedError
 
-    def dict(self, **kwargs: Any) -> Dict:
+    def dict(self, **kwargs: Any) -> dict:
         """Return dictionary representation of agent."""
         _dict = super().dict()
         _type = self._agent_type
@@ -68,11 +68,11 @@ class Agent(BaseSingleActionAgent):
         del _dict["output_parser"]
         return _dict
 
-    def get_allowed_tools(self) -> Optional[List[str]]:
+    def get_allowed_tools(self) -> list[str] | None:
         return self.allowed_tools
 
     @property
-    def return_values(self) -> List[str]:
+    def return_values(self) -> list[str]:
         return ["output"]
 
     def _fix_text(self, text: str) -> str:
@@ -80,15 +80,15 @@ class Agent(BaseSingleActionAgent):
         raise ValueError("fix_text not implemented for this agent.")
 
     @property
-    def _stop(self) -> List[str]:
+    def _stop(self) -> list[str]:
         return [
             f"\n{self.observation_prefix.rstrip()}",
             f"\n\t{self.observation_prefix.rstrip()}",
         ]
 
     def _construct_scratchpad(
-        self, intermediate_steps: List[Tuple[AgentAction, str]]
-    ) -> Union[str, List[BaseMessage]]:
+        self, intermediate_steps: list[tuple[AgentAction, str]]
+    ) -> str | list[BaseMessage]:
         """Construct the scratchpad that lets the agent continue its thought process."""
         thoughts = ""
         for action, observation in intermediate_steps:
@@ -98,10 +98,10 @@ class Agent(BaseSingleActionAgent):
 
     def plan(
         self,
-        intermediate_steps: List[Tuple[AgentAction, str]],
+        intermediate_steps: list[tuple[AgentAction, str]],
         callbacks: Callbacks = None,
         **kwargs: Any,
-    ) -> Union[AgentAction, AgentFinish]:
+    ) -> AgentAction | AgentFinish:
         """Given input, decided what to do.
 
         Args:
@@ -126,10 +126,10 @@ class Agent(BaseSingleActionAgent):
 
     async def aplan(
         self,
-        intermediate_steps: List[Tuple[AgentAction, str]],
+        intermediate_steps: list[tuple[AgentAction, str]],
         callbacks: Callbacks = None,
         **kwargs: Any,
-    ) -> Union[AgentAction, AgentFinish]:
+    ) -> AgentAction | AgentFinish:
         """Given input, decided what to do.
 
         Args:
@@ -159,8 +159,8 @@ class Agent(BaseSingleActionAgent):
         return agent_output
 
     def get_full_inputs(
-        self, intermediate_steps: List[Tuple[AgentAction, str]], **kwargs: Any
-    ) -> Dict[str, Any]:
+        self, intermediate_steps: list[tuple[AgentAction, str]], **kwargs: Any
+    ) -> dict[str, Any]:
         """Create the full inputs for the LLMChain from intermediate steps."""
         thoughts = self._construct_scratchpad(intermediate_steps)
         new_inputs = {"agent_scratchpad": thoughts, "stop": self._stop}
@@ -168,7 +168,7 @@ class Agent(BaseSingleActionAgent):
         return full_inputs
 
     @property
-    def input_keys(self) -> List[str]:
+    def input_keys(self) -> list[str]:
         """Return the input keys.
 
         :meta private:
@@ -176,7 +176,7 @@ class Agent(BaseSingleActionAgent):
         return list(set(self.llm_chain.input_keys) - {"agent_scratchpad"})
 
     @root_validator()
-    def validate_prompt(cls, values: Dict) -> Dict:
+    def validate_prompt(cls, values: dict) -> dict:
         """Validate that prompt matches format."""
         prompt = values["llm_chain"].prompt
         if "agent_scratchpad" not in prompt.input_variables:
@@ -219,8 +219,8 @@ class Agent(BaseSingleActionAgent):
         llm: BaseLanguageModel,
         tools: Sequence[BaseTool],
         prompt: BasePromptTemplate,
-        callback_manager: Optional[BaseCallbackManager] = None,
-        output_parser: Optional[AgentOutputParser] = None,
+        callback_manager: BaseCallbackManager | None = None,
+        output_parser: AgentOutputParser | None = None,
         **kwargs: Any,
     ) -> Agent:
         """Construct an agent from an LLM and tools."""
@@ -242,7 +242,7 @@ class Agent(BaseSingleActionAgent):
     def return_stopped_response(
         self,
         early_stopping_method: str,
-        intermediate_steps: List[Tuple[AgentAction, str]],
+        intermediate_steps: list[tuple[AgentAction, str]],
         **kwargs: Any,
     ) -> AgentFinish:
         """Return response when agent has been stopped due to max iterations."""
@@ -281,13 +281,13 @@ class Agent(BaseSingleActionAgent):
                 f"got {early_stopping_method}"
             )
 
-    def tool_run_logging_kwargs(self) -> Dict:
+    def tool_run_logging_kwargs(self) -> dict:
         return {
             "llm_prefix": self.llm_prefix,
             "observation_prefix": self.observation_prefix,
         }
 
-    def save(self, file_path: Union[Path, str]) -> None:
+    def save(self, file_path: Path | str) -> None:
         """Save the agent.
 
         Args:

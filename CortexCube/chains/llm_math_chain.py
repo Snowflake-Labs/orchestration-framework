@@ -143,7 +143,7 @@ class LLMMathChain(Chain):
     """
 
     llm_chain: LLMChain
-    llm: Optional[BaseLanguageModel] = None
+    llm: BaseLanguageModel | None = None
     """[Deprecated] LLM wrapper to use."""
     prompt: BasePromptTemplate = PROMPT
     """[Deprecated] Prompt to use to translate to python if necessary."""
@@ -157,7 +157,7 @@ class LLMMathChain(Chain):
         arbitrary_types_allowed = True
 
     @root_validator(pre=True)
-    def raise_deprecation(cls, values: Dict) -> Dict:
+    def raise_deprecation(cls, values: dict) -> dict:
         if "llm" in values:
             warnings.warn(
                 "Directly instantiating an LLMMathChain with an llm is deprecated. "
@@ -170,14 +170,14 @@ class LLMMathChain(Chain):
         return values
 
     @property
-    def input_keys(self) -> List[str]:
+    def input_keys(self) -> list[str]:
         """Expect input key.
         :meta private:
         """
         return [self.input_key]
 
     @property
-    def output_keys(self) -> List[str]:
+    def output_keys(self) -> list[str]:
         """Expect output key.
         :meta private:
         """
@@ -213,7 +213,7 @@ class LLMMathChain(Chain):
 
     def _process_llm_result(
         self, llm_output: str, run_manager: CallbackManagerForChainRun
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         run_manager.on_text(llm_output, color="green", verbose=self.verbose)
         llm_output = llm_output.strip()
         text_match = re.search(r"^```text(.*?)```", llm_output, re.DOTALL)
@@ -235,7 +235,7 @@ class LLMMathChain(Chain):
         self,
         llm_output: str,
         run_manager: AsyncCallbackManagerForChainRun,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         await run_manager.on_text(llm_output, color="green", verbose=self.verbose)
         llm_output = llm_output.strip()
         text_match = re.search(r"^```text(.*?)```", llm_output, re.DOTALL)
@@ -255,9 +255,9 @@ class LLMMathChain(Chain):
 
     def _call(
         self,
-        inputs: Dict[str, str],
-        run_manager: Optional[CallbackManagerForChainRun] = None,
-    ) -> Dict[str, str]:
+        inputs: dict[str, str],
+        run_manager: CallbackManagerForChainRun | None = None,
+    ) -> dict[str, str]:
         _run_manager = run_manager or CallbackManagerForChainRun.get_noop_manager()
         _run_manager.on_text(inputs[self.input_key])
         llm_output = self.llm_chain.predict(
@@ -269,9 +269,9 @@ class LLMMathChain(Chain):
 
     async def _acall(
         self,
-        inputs: Dict[str, str],
-        run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
-    ) -> Dict[str, str]:
+        inputs: dict[str, str],
+        run_manager: AsyncCallbackManagerForChainRun | None = None,
+    ) -> dict[str, str]:
         _run_manager = run_manager or AsyncCallbackManagerForChainRun.get_noop_manager()
         await _run_manager.on_text(inputs[self.input_key])
         llm_output = await self.llm_chain.apredict(

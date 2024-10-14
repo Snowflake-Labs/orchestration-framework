@@ -347,4 +347,3 @@ class CortexCube(Chain,extra="allow"):
         #     log("Reached max replan limit.")
         return {self.output_key: answer}
     
-    

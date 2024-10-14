@@ -17,7 +17,7 @@ def _default_stringify_rule_for_arguments(args):
 
 
 def _replace_arg_mask_with_real_value(
-    args, dependencies: List[int], tasks: Dict[str, Task]
+    args, dependencies: list[int], tasks: dict[str, Task]
 ):
     if isinstance(args, (list, tuple)):
         return type(args)(
@@ -45,9 +45,9 @@ class Task:
     tool: Callable
     args: Collection[Any]
     dependencies: Collection[int]
-    stringify_rule: Optional[Callable] = None
-    thought: Optional[str] = None
-    observation: Optional[str] = None
+    stringify_rule: Callable | None = None
+    thought: str | None = None
+    observation: str | None = None
     is_join: bool = False
 
     async def __call__(self) -> Any:
@@ -80,8 +80,8 @@ class Task:
 
 
 class TaskFetchingUnit:
-    tasks: Dict[str, Task]
-    tasks_done: Dict[str, asyncio.Event]
+    tasks: dict[str, Task]
+    tasks_done: dict[str, asyncio.Event]
     remaining_tasks: set[str]
 
     def __init__(self):
@@ -134,7 +134,7 @@ class TaskFetchingUnit:
 
             await asyncio.sleep(SCHEDULING_INTERVAL)
 
-    async def aschedule(self, task_queue: asyncio.Queue[Optional[Task]], func):
+    async def aschedule(self, task_queue: asyncio.Queue[Task | None], func):
         """Asynchronously listen to task_queue and schedule tasks as they arrive."""
         no_more_tasks = False  # Flag to check if all tasks are received
 

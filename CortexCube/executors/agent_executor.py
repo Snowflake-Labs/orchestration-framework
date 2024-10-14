@@ -41,14 +41,14 @@ class ExceptionTool(BaseTool):
     def _run(
         self,
         query: str,
-        run_manager: Optional[CallbackManagerForToolRun] = None,
+        run_manager: CallbackManagerForToolRun | None = None,
     ) -> str:
         return query
 
     async def _arun(
         self,
         query: str,
-        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+        run_manager: AsyncCallbackManagerForToolRun | None = None,
     ) -> str:
         return query
 
@@ -56,7 +56,7 @@ class ExceptionTool(BaseTool):
 class AgentExecutor(Chain):
     """Agent that is using tools."""
 
-    agent: Union[BaseSingleActionAgent, BaseMultiActionAgent]
+    agent: BaseSingleActionAgent | BaseMultiActionAgent
     """The agent to run for creating a plan and determining actions
     to take at each step of the execution loop."""
     tools: Sequence[BaseTool]
@@ -64,12 +64,12 @@ class AgentExecutor(Chain):
     return_intermediate_steps: bool = False
     """Whether to return the agent's trajectory of intermediate steps
     at the end in addition to the final output."""
-    max_iterations: Optional[int] = 15
+    max_iterations: int | None = 15
     """The maximum number of steps to take before ending the execution
     loop.
 
     Setting to 'None' could lead to an infinite loop."""
-    max_execution_time: Optional[float] = None
+    max_execution_time: float | None = None
     """The maximum amount of wall clock time to spend in the execution
     loop.
     """
@@ -83,7 +83,7 @@ class AgentExecutor(Chain):
     `"generate"` calls the agent's LLM Chain one final time to generate
         a final answer based on the previous steps.
     """
-    handle_parsing_errors: Union[bool, str, Callable[[OutputParserException], str]] = (
+    handle_parsing_errors: bool | str | Callable[[OutputParserException], str] = (
         False
     )
     """How to handle errors raised by the agent's output parser.
@@ -95,14 +95,14 @@ s
      as an argument, and the result of that function will be passed to the agent
       as an observation.
     """
-    trim_intermediate_steps: Union[
-        int, Callable[[List[Tuple[AgentAction, str]]], List[Tuple[AgentAction, str]]]
-    ] = -1
+    trim_intermediate_steps: (
+        int | Callable[[list[tuple[AgentAction, str]]], list[tuple[AgentAction, str]]]
+    ) = -1
 
     @classmethod
     def from_agent_and_tools(
         cls,
-        agent: Union[BaseSingleActionAgent, BaseMultiActionAgent],
+        agent: BaseSingleActionAgent | BaseMultiActionAgent,
         tools: Sequence[BaseTool],
         callbacks: Callbacks = None,
         **kwargs: Any,
@@ -116,13 +116,13 @@ s
         )
 
     @root_validator()
-    def validate_tools(cls, values: Dict) -> Dict:
+    def validate_tools(cls, values: dict) -> dict:
         """Validate that tools are compatible with agent."""
         agent = values["agent"]
         tools = values["tools"]
         allowed_tools = agent.get_allowed_tools()
         if allowed_tools is not None:
-            if set(allowed_tools) != set([tool.name for tool in tools]):
+            if set(allowed_tools) != {tool.name for tool in tools}:
                 raise ValueError(
                     f"Allowed tools ({allowed_tools}) different than "
                     f"provided tools ({[tool.name for tool in tools]})"
@@ -130,7 +130,7 @@ s
         return values
 
     @root_validator()
-    def validate_return_direct_tool(cls, values: Dict) -> Dict:
+    def validate_return_direct_tool(cls, values: dict) -> dict:
         """Validate that tools are compatible with agent."""
         agent = values["agent"]
         tools = values["tools"]
@@ -143,7 +143,7 @@ s
                     )
         return values
 
-    def save(self, file_path: Union[Path, str]) -> None:
+    def save(self, file_path: Path | str) -> None:
         """Raise error - saving not supported for Agent Executors."""
         raise ValueError(
             "Saving not supported for agent executors. "
@@ -151,7 +151,7 @@ s
             "`.save_agent(...)`"
         )
 
-    def save_agent(self, file_path: Union[Path, str]) -> None:
+    def save_agent(self, file_path: Path | str) -> None:
         """Save the underlying agent."""
         return self.agent.save(file_path)
 
@@ -174,7 +174,7 @@ s
         )
 
     @property
-    def input_keys(self) -> List[str]:
+    def input_keys(self) -> list[str]:
         """Return the input keys.
 
         :meta private:
@@ -182,7 +182,7 @@ s
         return self.agent.input_keys
 
     @property
-    def output_keys(self) -> List[str]:
+    def output_keys(self) -> list[str]:
         """Return the singular output key.
 
         :meta private:
@@ -211,8 +211,8 @@ s
         self,
         output: AgentFinish,
         intermediate_steps: list,
-        run_manager: Optional[CallbackManagerForChainRun] = None,
-    ) -> Dict[str, Any]:
+        run_manager: CallbackManagerForChainRun | None = None,
+    ) -> dict[str, Any]:
         if run_manager:
             run_manager.on_agent_finish(output, color="green", verbose=self.verbose)
         final_output = output.return_values
@@ -224,8 +224,8 @@ s
         self,
         output: AgentFinish,
         intermediate_steps: list,
-        run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
-    ) -> Dict[str, Any]:
+        run_manager: AsyncCallbackManagerForChainRun | None = None,
+    ) -> dict[str, Any]:
         if run_manager:
             await run_manager.on_agent_finish(
                 output, color="green", verbose=self.verbose
@@ -237,12 +237,12 @@ s
 
     def _take_next_step(
         self,
-        name_to_tool_map: Dict[str, BaseTool],
-        color_mapping: Dict[str, str],
-        inputs: Dict[str, str],
-        intermediate_steps: List[Tuple[AgentAction, str]],
-        run_manager: Optional[CallbackManagerForChainRun] = None,
-    ) -> Union[AgentFinish, List[Tuple[AgentAction, str]]]:
+        name_to_tool_map: dict[str, BaseTool],
+        color_mapping: dict[str, str],
+        inputs: dict[str, str],
+        intermediate_steps: list[tuple[AgentAction, str]],
+        run_manager: CallbackManagerForChainRun | None = None,
+    ) -> AgentFinish | list[tuple[AgentAction, str]]:
         """Take a single step in the thought-action-observation loop.
 
         Override this to take control of how the agent makes and acts on choices.
@@ -291,7 +291,7 @@ s
         # If the tool chosen is the finishing tool, then we end and return.
         if isinstance(output, AgentFinish):
             return output
-        actions: List[AgentAction]
+        actions: list[AgentAction]
         if isinstance(output, AgentAction):
             actions = [output]
         else:
@@ -333,12 +333,12 @@ s
 
     async def _atake_next_step(
         self,
-        name_to_tool_map: Dict[str, BaseTool],
-        color_mapping: Dict[str, str],
-        inputs: Dict[str, str],
-        intermediate_steps: List[Tuple[AgentAction, str]],
-        run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
-    ) -> Union[AgentFinish, List[Tuple[AgentAction, str]]]:
+        name_to_tool_map: dict[str, BaseTool],
+        color_mapping: dict[str, str],
+        inputs: dict[str, str],
+        intermediate_steps: list[tuple[AgentAction, str]],
+        run_manager: AsyncCallbackManagerForChainRun | None = None,
+    ) -> AgentFinish | list[tuple[AgentAction, str]]:
         """Take a single step in the thought-action-observation loop.
 
         Override this to take control of how the agent makes and acts on choices.
@@ -385,7 +385,7 @@ s
         # If the tool chosen is the finishing tool, then we end and return.
         if isinstance(output, AgentFinish):
             return output
-        actions: List[AgentAction]
+        actions: list[AgentAction]
         if isinstance(output, AgentAction):
             actions = [output]
         else:
@@ -393,7 +393,7 @@ s
 
         async def _aperform_agent_action(
             agent_action: AgentAction,
-        ) -> Tuple[AgentAction, str]:
+        ) -> tuple[AgentAction, str]:
             if run_manager:
                 await run_manager.on_agent_action(
                     agent_action, verbose=self.verbose, color="green"
@@ -437,9 +437,9 @@ s
 
     def _call(
         self,
-        inputs: Dict[str, str],
-        run_manager: Optional[CallbackManagerForChainRun] = None,
-    ) -> Dict[str, Any]:
+        inputs: dict[str, str],
+        run_manager: CallbackManagerForChainRun | None = None,
+    ) -> dict[str, Any]:
         """Run text through and get agent response."""
         # Construct a mapping of tool name to tool for easy lookup
         name_to_tool_map = {tool.name: tool for tool in self.tools}
@@ -447,7 +447,7 @@ s
         color_mapping = get_color_mapping(
             [tool.name for tool in self.tools], excluded_colors=["green", "red"]
         )
-        intermediate_steps: List[Tuple[AgentAction, str]] = []
+        intermediate_steps: list[tuple[AgentAction, str]] = []
         # Let's start tracking the number of iterations and time elapsed
         iterations = 0
         time_elapsed = 0.0
@@ -485,9 +485,9 @@ s
 
     async def _acall(
         self,
-        inputs: Dict[str, str],
-        run_manager: Optional[AsyncCallbackManagerForChainRun] = None,
-    ) -> Dict[str, str]:
+        inputs: dict[str, str],
+        run_manager: AsyncCallbackManagerForChainRun | None = None,
+    ) -> dict[str, str]:
         """Run text through and get agent response."""
         # Construct a mapping of tool name to tool for easy lookup
         name_to_tool_map = {tool.name: tool for tool in self.tools}
@@ -495,7 +495,7 @@ s
         color_mapping = get_color_mapping(
             [tool.name for tool in self.tools], excluded_colors=["green"]
         )
-        intermediate_steps: List[Tuple[AgentAction, str]] = []
+        intermediate_steps: list[tuple[AgentAction, str]] = []
         # Let's start tracking the number of iterations and time elapsed
         iterations = 0
         time_elapsed = 0.0
@@ -545,8 +545,8 @@ s
                 )
 
     def _get_tool_return(
-        self, next_step_output: Tuple[AgentAction, str]
-    ) -> Optional[AgentFinish]:
+        self, next_step_output: tuple[AgentAction, str]
+    ) -> AgentFinish | None:
         """Check if the tool is a returning tool."""
         agent_action, observation = next_step_output
         name_to_tool_map = {tool.name: tool for tool in self.tools}
@@ -560,8 +560,8 @@ s
         return None
 
     def _prepare_intermediate_steps(
-        self, intermediate_steps: List[Tuple[AgentAction, str]]
-    ) -> List[Tuple[AgentAction, str]]:
+        self, intermediate_steps: list[tuple[AgentAction, str]]
+    ) -> list[tuple[AgentAction, str]]:
         if (
             isinstance(self.trim_intermediate_steps, int)
             and self.trim_intermediate_steps > 0
