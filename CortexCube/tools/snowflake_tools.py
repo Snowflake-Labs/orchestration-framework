@@ -323,7 +323,6 @@ class CortexAnalystTool(Tool):
                 async with session.post(url=url, json=data) as response:
                     response_text = await response.text()
                     json_response = json.loads(response_text)
-                    print(json_response)
 
             try:
                 query_response = self._process_message(json_response["message"]["content"])
