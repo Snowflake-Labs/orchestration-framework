@@ -4,6 +4,7 @@ import aiohttp
 import os
 import json
 import re
+import threading
 
 from CortexCube.chains.chain import Chain
 from CortexCube.tools.snowflake_analyst_prompts import PLANNER_PROMPT as SNOWFLAKE_PLANNER_PROMPT,OUTPUT_PROMPT
@@ -260,12 +261,26 @@ class CortexCube(Chain,extra="allow"):
             # If final, we don't need to replan
             is_replan = False
         return thought, answer, is_replan
+    
+    def _call(self, inputs):
+        return self.__call__(inputs)
 
-    # TO DO - make synch wrapper
-    def _call(
-        self,
-        inputs: Dict[str, Any]):
-        raise NotImplementedError("LLMCompiler is async only.")
+    def __call__(self, input:str):
+        """Calls Cortex Cube multi-agent system.
+        
+        Params:
+            input (str): user's natural language request
+        """
+        result = []
+        thread = threading.Thread(target=self.run_async, args=(input, result))
+        thread.start()
+        thread.join()
+        return result[0]['output']
+
+    def run_async(self, input, result):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result.append(loop.run_until_complete(self.acall(input)))
 
     async def acall(
         self,
