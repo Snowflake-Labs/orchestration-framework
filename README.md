@@ -59,7 +59,6 @@ snowflake_tools = [annual_reports,sp500]
 analyst = CortexCube(snowpark_session=snowpark,tools=snowflake_tools)
 
 # Run Cortex Cube
-answer = await analyst.acall("What is the average price for toothbrushes?")
-print(answer['output])
-
+answer = analyst("What is the average price for toothbrushes?")
+print(answer)
 ````
