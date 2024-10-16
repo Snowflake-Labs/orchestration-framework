@@ -19,6 +19,7 @@ pydantic = "^2.9.2"
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.1"
 ruff = "^0.6.9"
+pytest = "^8.3.3"
 
 
 [tool.poetry.group.app.dependencies]
