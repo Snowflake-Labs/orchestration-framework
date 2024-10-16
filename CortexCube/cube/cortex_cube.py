@@ -1,13 +1,12 @@
 import asyncio
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
 import aiohttp
-import os
 import json
 import re
 import threading
 
 from CortexCube.chains.chain import Chain
-from CortexCube.tools.snowflake_analyst_prompts import PLANNER_PROMPT as SNOWFLAKE_PLANNER_PROMPT,OUTPUT_PROMPT
+from CortexCube.tools.snowflake_prompts import PLANNER_PROMPT as SNOWFLAKE_PLANNER_PROMPT,OUTPUT_PROMPT
 from CortexCube.cube.constants import END_OF_PLAN
 from CortexCube.cube.constants import JOINNER_REPLAN
 from CortexCube.cube.planner import Planner
