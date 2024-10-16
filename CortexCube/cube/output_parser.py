@@ -22,7 +22,7 @@ def default_dependency_rule(idx, args: str):
     return idx in numbers
 
 
-class LLMCompilerPlanParser():
+class CubePlanParser():
     """Planning output parser."""
 
     def __init__(self, tools: Sequence[Union[Tool, StructuredTool]], **kwargs):
