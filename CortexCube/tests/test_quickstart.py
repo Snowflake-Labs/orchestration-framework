@@ -37,12 +37,12 @@ def test_search_tool(session, question, answer):
     [
         pytest.param(
             "What is the market cap of Apple, Inc?",
-            "       MARKETCAP\n0  3019131060224",
+            "{'MARKETCAP': [3019131060224]}",
             id="apple_market_cap",
         ),
         pytest.param(
             "What is the market cap of Tesla?",
-            "      MARKETCAP\n0  566019162112",
+            "{'MARKETCAP': [566019162112]}",
             id="tesla_market_cap",
         ),
     ],
