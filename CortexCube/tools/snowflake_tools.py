@@ -361,8 +361,14 @@ class CortexAnalystTool(Tool):
         # If Valid SQL is present in Cortex Analyst Response execute the query
         if "sql" == response[1]["type"]:
             sql_query = response[1]["statement"]
-            query_response = self.CONN.sql(sql_query).to_pandas()
-            return str(query_response)
+            
+            table = (
+                self.CONN.connection.cursor()
+                .execute(sql_query)
+                .fetch_arrow_all()
+            )
+            
+            return str(table.to_pydict())
         else:
             return "Invalid Query"
 
