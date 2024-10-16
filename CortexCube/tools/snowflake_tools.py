@@ -119,9 +119,6 @@ class CortexSearchTool(Tool):
 
         return base_description
 
-    def _generate_search_filter(self, cortex_search_service, query, columns, k):
-        """Cortex Search Query with automatic metadata filter generation."""
-        self._get_s
 
     def _get_search_attributes(self, snowpark_session, search_service_name):
         df = snowpark_session.sql("SHOW CORTEX SEARCH SERVICES")
