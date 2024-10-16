@@ -1,4 +1,3 @@
 END_OF_PLAN = "<END_OF_PLAN>"
-
 JOINNER_FINISH = "Finish"
 JOINNER_REPLAN = "Replan"

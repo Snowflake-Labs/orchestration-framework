@@ -1,4 +1,4 @@
-"""LLM Compiler Planner"""
+"""Cortex Cube Planner"""
 
 import asyncio
 import re
@@ -12,7 +12,7 @@ from CortexCube.cube.constants import END_OF_PLAN
 from CortexCube.cube.output_parser import (
     ACTION_PATTERN,
     THOUGHT_PATTERN,
-    LLMCompilerPlanParser,
+    CubePlanParser,
     instantiate_task,
 )
 from CortexCube.cube.task_fetching_unit import Task
@@ -20,14 +20,7 @@ from CortexCube.tools.base import StructuredTool, Tool
 
 #from litellm import acompletion
 import aiohttp
-import ssl
 import json
-import os
-
-
-ssl_context = ssl.create_default_context()
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE
 
 
 JOIN_DESCRIPTION = (
@@ -40,7 +33,7 @@ JOIN_DESCRIPTION = (
 )
 
 
-def generate_llm_compiler_prompt(
+def generate_cube_prompt(
     tools: Sequence[Union[Tool, StructuredTool]],
     example_prompt=str,
     is_replan: bool = False,
@@ -150,7 +143,7 @@ class StreamingGraphParser:
         return self._match_buffer_and_generate_task("")
 
 
-class LLMCompilerCallback(AsyncCallbackHandler):
+class CubeCallback(AsyncCallbackHandler):
     _queue: asyncio.Queue[Optional[Task]]
     _parser: StreamingGraphParser
     _tools: Sequence[Union[Tool, StructuredTool]]
@@ -207,20 +200,18 @@ class Planner:
     ):
         self.llm = llm
         self.session = session
-        # different system prompt is needed when replanning
-        # since they have different guidelines, and also examples provided by the user
-        self.system_prompt = generate_llm_compiler_prompt(
+        self.system_prompt = generate_cube_prompt(
             tools=tools,
             example_prompt=example_prompt,
             is_replan=False,
         )
-        self.system_prompt_replan = generate_llm_compiler_prompt(
+        self.system_prompt_replan = generate_cube_prompt(
             tools=tools,
             example_prompt=example_prompt_replan,
             is_replan=True,
         )
         self.tools = tools
-        self.output_parser = LLMCompilerPlanParser(tools=tools)
+        self.output_parser = CubePlanParser(tools=tools)
         self.stop = stop
 
     async def run_llm(
@@ -239,10 +230,9 @@ class Planner:
             human_prompt = f"Question: {inputs['input']}"
 
         message = system_prompt + "\n\n" + human_prompt
-        #response = await self.llm.apredict(message)  # type: ignore
         headers,url,data =self._prepare_llm_request(prompt=message)
 
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_context),headers=headers,) as session:
+        async with aiohttp.ClientSession(headers=headers,) as session:
             async with session.post(url=url,json=data) as response:
                 response_text = await response.text()
                 snowflake_response = self._parse_snowflake_response(response_text)
