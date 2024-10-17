@@ -22,7 +22,7 @@ def default_dependency_rule(idx, args: str):
     return idx in numbers
 
 
-class CubePlanParser():
+class CubePlanParser:
     """Planning output parser."""
 
     def __init__(self, tools: Sequence[Union[Tool, StructuredTool]], **kwargs):
@@ -70,7 +70,7 @@ def _parse_llm_compiler_action_args(args: str) -> list[Any]:
         return ()
     try:
         args = ast.literal_eval(args)
-    except:
+    except ValueError:
         args = args
     if not isinstance(args, list) and not isinstance(args, tuple):
         args = (args,)
