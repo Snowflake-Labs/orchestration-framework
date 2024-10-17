@@ -50,7 +50,7 @@ def test_search_tool(session, question, answer):
 def test_analyst_tool(session, question, answer):
     analyst_config = {
         "semantic_model": "sp500_semantic_model.yaml",
-        "stage": "SEMANTICS",
+        "stage": "ANALYST",
         "service_topic": "S&P500 company and stock metrics",
         "data_description": "a table with stock and financial metrics about S&P500 companies ",
         "snowpark_connection": session,
@@ -71,7 +71,7 @@ def test_cube_agent(session):
     }
     analyst_config = {
         "semantic_model": "sp500_semantic_model.yaml",
-        "stage": "SEMANTICS",
+        "stage": "ANALYST",
         "service_topic": "S&P500 company and stock metrics",
         "data_description": "a table with stock and financial metrics about S&P500 companies ",
         "snowpark_connection": session,

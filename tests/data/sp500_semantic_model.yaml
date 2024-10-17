@@ -1,0 +1,418 @@
+name: sp500 semantic model
+tables:
+  - name: SP500
+    description: 'SP500 company stocks and related metrics' # <FILL-OUT>
+    base_table:
+      database: CUBE_TESTING
+      schema: PUBLIC
+      table: SP500
+    filters:
+      - name: '  ' # <FILL-OUT>
+        synonyms:
+          - '  ' # <FILL-OUT>
+        description: '  ' # <FILL-OUT>
+        expr: SP500 # <FILL-OUT>
+    dimensions:
+      - name: EXCHANGE
+        synonyms:
+          - '' # <FILL-OUT>
+        description: '' # <FILL-OUT>
+        expr: EXCHANGE
+        data_type: TEXT
+        sample_values:
+          - NMS
+          - NYQ
+          - BTS
+          - NGM
+      - name: SYMBOL
+        synonyms:
+          - 'ticker' # <FILL-OUT>
+        description: 'unique code representing a company' # <FILL-OUT>
+        expr: SYMBOL
+        data_type: TEXT
+        sample_values:
+          - MSFT
+          - AAPL
+          - NVDA
+          - GOOGL
+          - GOOG
+          - BRK-B
+          - LLY
+          - AVGO
+          - JPM
+          - V
+      - name: SHORTNAME
+        synonyms:
+          - 'Company' # <FILL-OUT>
+        description: '  ' # <FILL-OUT>
+        expr: SHORTNAME
+        data_type: TEXT
+        sample_values:
+          - Microsoft Corporation
+          - Apple Inc.
+          - NVIDIA Corporation
+          - Alphabet Inc.
+          - Amazon.com, Inc.
+          - Meta Platforms, Inc.
+          - Berkshire Hathaway Inc. New
+          - Eli Lilly and Company
+          - Broadcom Inc.
+          - JP Morgan Chase & Co.
+      - name: LONGNAME
+        synonyms:
+          - '  ' # <FILL-OUT>
+        description: '  ' # <FILL-OUT>
+        expr: LONGNAME
+        data_type: TEXT
+        sample_values:
+          - Microsoft Corporation
+          - Apple Inc.
+          - NVIDIA Corporation
+          - Alphabet Inc.
+          - Amazon.com, Inc.
+          - Meta Platforms, Inc.
+          - Berkshire Hathaway Inc.
+          - Eli Lilly and Company
+          - Broadcom Inc.
+          - Tesla, Inc.
+      - name: SECTOR
+        synonyms:
+          - 'industry'
+          - 'market'
+          - 'vertical' # <FILL-OUT>
+        description: '  ' # <FILL-OUT>
+        expr: SECTOR
+        data_type: TEXT
+        sample_values:
+          - Technology
+          - Communication Services
+          - Consumer Cyclical
+          - Financial Services
+          - Consumer Defensive
+          - Energy
+          - Basic Materials
+          - Industrials
+          - Utilities
+          - Real Estate
+      - name: INDUSTRY
+        synonyms:
+          - '  ' # <FILL-OUT>
+        description: '  ' # <FILL-OUT>
+        expr: INDUSTRY
+        data_type: TEXT
+        sample_values:
+          - Software - Infrastructure
+          - Consumer Electronics
+          - Semiconductors
+          - Internet Content & Information
+          - Internet Retail
+          - Insurance - Diversified
+          - Drug Manufacturers - General
+          - Banks - Diversified
+          - Credit Services
+          - Auto Manufacturers
+      - name: CITY
+        synonyms:
+          - '  ' # <FILL-OUT>
+        description: '  ' # <FILL-OUT>
+        expr: CITY
+        data_type: TEXT
+        sample_values:
+          - Redmond
+          - Cupertino
+          - Santa Clara
+          - Mountain View
+          - Seattle
+          - Menlo Park
+          - Omaha
+          - Indianapolis
+          - Palo Alto
+          - San Francisco
+      - name: STATE
+        synonyms:
+          - '  ' # <FILL-OUT>
+        description: '  ' # <FILL-OUT>
+        expr: STATE
+        data_type: TEXT
+        sample_values:
+          - WA
+          - CA
+          - NE
+          - IN
+          - NY
+          - TX
+          - AR
+          - MN
+          - OH
+          - NJ
+      - name: COUNTRY
+        synonyms:
+          - '  ' # <FILL-OUT>
+        description: '  ' # <FILL-OUT>
+        expr: COUNTRY
+        data_type: TEXT
+        sample_values:
+          - United States
+          - United Kingdom
+          - Ireland
+          - Switzerland
+          - Netherlands
+          - Canada
+          - Bermuda
+      - name: LONGBUSINESSSUMMARY
+        synonyms:
+          - 'Business description' # <FILL-OUT>
+        description: 'Description of the business and core activites' # <FILL-OUT>
+        expr: LONGBUSINESSSUMMARY
+        data_type: TEXT
+        sample_values:
+          - Microsoft Corporation develops and supports software, services, devices
+            and solutions worldwide. The Productivity and Business Processes segment
+            offers office, exchange, SharePoint, Microsoft Teams, office 365 Security
+            and Compliance, Microsoft viva, and Microsoft 365 copilot; and office
+            consumer services, such as Microsoft 365 consumer subscriptions, Office
+            licensed on-premises, and other office services. This segment also provides
+            LinkedIn; and dynamics business solutions, including Dynamics 365, a set
+            of intelligent, cloud-based applications across ERP, CRM, power apps,
+            and power automate; and on-premises ERP and CRM applications. The Intelligent
+            Cloud segment offers server products and cloud services, such as azure
+            and other cloud services; SQL and windows server, visual studio, system
+            center, and related client access licenses, as well as nuance and GitHub;
+            and enterprise services including enterprise support services, industry
+            solutions, and nuance professional services. The More Personal Computing
+            segment offers Windows, including windows OEM licensing and other non-volume
+            licensing of the Windows operating system; Windows commercial comprising
+            volume licensing of the Windows operating system, windows cloud services,
+            and other Windows commercial offerings; patent licensing; and windows
+            Internet of Things; and devices, such as surface, HoloLens, and PC accessories.
+            Additionally, this segment provides gaming, which includes Xbox hardware
+            and content, and first- and third-party content; Xbox game pass and other
+            subscriptions, cloud gaming, advertising, third-party disc royalties,
+            and other cloud services; and search and news advertising, which includes
+            Bing, Microsoft News and Edge, and third-party affiliates. The company
+            sells its products through OEMs, distributors, and resellers; and directly
+            through digital marketplaces, online, and retail stores. The company was
+            founded in 1975 and is headquartered in Redmond, Washington.
+          - Apple Inc. designs, manufactures, and markets smartphones, personal computers,
+            tablets, wearables, and accessories worldwide. The company offers iPhone,
+            a line of smartphones; Mac, a line of personal computers; iPad, a line
+            of multi-purpose tablets; and wearables, home, and accessories comprising
+            AirPods, Apple TV, Apple Watch, Beats products, and HomePod. It also provides
+            AppleCare support and cloud services; and operates various platforms,
+            including the App Store that allow customers to discover and download
+            applications and digital content, such as books, music, video, games,
+            and podcasts. In addition, the company offers various services, such as
+            Apple Arcade, a game subscription service; Apple Fitness+, a personalized
+            fitness service; Apple Music, which offers users a curated listening experience
+            with on-demand radio stations; Apple News+, a subscription news and magazine
+            service; Apple TV+, which offers exclusive original content; Apple Card,
+            a co-branded credit card; and Apple Pay, a cashless payment service, as
+            well as licenses its intellectual property. The company serves consumers,
+            and small and mid-sized businesses; and the education, enterprise, and
+            government markets. It distributes third-party applications for its products
+            through the App Store. The company also sells its products through its
+            retail and online stores, and direct sales force; and third-party cellular
+            network carriers, wholesalers, retailers, and resellers. Apple Inc. was
+            founded in 1976 and is headquartered in Cupertino, California.
+          - NVIDIA Corporation provides graphics and compute and networking solutions
+            in the United States, Taiwan, China, Hong Kong, and internationally. The
+            Graphics segment offers GeForce GPUs for gaming and PCs, the GeForce NOW
+            game streaming service and related infrastructure, and solutions for gaming
+            platforms; Quadro/NVIDIA RTX GPUs for enterprise workstation graphics;
+            virtual GPU or vGPU software for cloud-based visual and virtual computing;
+            automotive platforms for infotainment systems; and Omniverse software
+            for building and operating metaverse and 3D internet applications. The
+            Compute & Networking segment comprises Data Center computing platforms
+            and end-to-end networking platforms, including Quantum for InfiniBand
+            and Spectrum for Ethernet; NVIDIA DRIVE automated-driving platform and
+            automotive development agreements; Jetson robotics and other embedded
+            platforms; NVIDIA AI Enterprise and other software; and DGX Cloud software
+            and services. The company's products are used in gaming, professional
+            visualization, data center, and automotive markets. It sells its products
+            to original equipment manufacturers, original device manufacturers, system
+            integrators and distributors, independent software vendors, cloud service
+            providers, consumer internet companies, add-in board manufacturers, distributors,
+            automotive manufacturers and tier-1 automotive suppliers, and other ecosystem
+            participants. NVIDIA Corporation was incorporated in 1993 and is headquartered
+            in Santa Clara, California.
+          - Alphabet Inc. offers various products and platforms in the United States,
+            Europe, the Middle East, Africa, the Asia-Pacific, Canada, and Latin America.
+            It operates through Google Services, Google Cloud, and Other Bets segments.
+            The Google Services segment provides products and services, including
+            ads, Android, Chrome, devices, Gmail, Google Drive, Google Maps, Google
+            Photos, Google Play, Search, and YouTube. It is also involved in the sale
+            of apps and in-app purchases and digital content in the Google Play and
+            YouTube; and devices, as well as in the provision of YouTube consumer
+            subscription services. The Google Cloud segment offers infrastructure,
+            cybersecurity, databases, analytics, AI, and other services; Google Workspace
+            that include cloud-based communication and collaboration tools for enterprises,
+            such as Gmail, Docs, Drive, Calendar, and Meet; and other services for
+            enterprise customers. The Other Bets segment sells healthcare-related
+            and internet services. The company was incorporated in 1998 and is headquartered
+            in Mountain View, California.
+          - "Amazon.com, Inc. engages in the retail sale of consumer products, advertising,
+            and subscriptions service through online and physical stores in North
+            America and internationally. The company operates through three segments:
+            North America, International, and Amazon Web Services (AWS). It also manufactures
+            and sells electronic devices, including Kindle, Fire tablets, Fire TVs,
+            Echo, Ring, Blink, and eero; and develops and produces media content.
+            In addition, the company offers programs that enable sellers to sell their
+            products in its stores; and programs that allow authors, independent publishers,
+            musicians, filmmakers, Twitch streamers, skill and app developers, and
+            others to publish and sell content. Further, it provides compute, storage,
+            database, analytics, machine learning, and other services, as well as
+            advertising services through programs, such as sponsored ads, display,
+            and video advertising. Additionally, the company offers Amazon Prime,
+            a membership program. The company's products offered through its stores
+            include merchandise and content purchased for resale and products offered
+            by third-party sellers. It serves consumers, sellers, developers, enterprises,
+            content creators, advertisers, and employees. Amazon.com, Inc. was incorporated
+            in 1994 and is headquartered in Seattle, Washington."
+          - Berkshire Hathaway Inc., through its subsidiaries, engages in the insurance,
+            freight rail transportation, and utility businesses worldwide. The company
+            provides property, casualty, life, accident, and health insurance and
+            reinsurance; and operates railroad systems in North America. It also generates,
+            transmits, stores, and distributes electricity from natural gas, coal,
+            wind, solar, hydroelectric, nuclear, and geothermal sources; operates
+            natural gas distribution and storage facilities, interstate pipelines,
+            liquefied natural gas facilities, and compressor and meter stations; and
+            holds interest in coal mining assets. In addition, the company manufactures
+            boxed chocolates and other confectionery products; specialty chemicals,
+            metal cutting tools, and components for aerospace and power generation
+            applications; flooring products; insulation, roofing, and engineered products;
+            building and engineered components; paints and coatings; and bricks and
+            masonry products, as well as offers manufactured and site-built home construction,
+            and related lending and financial services. Further, it provides recreational
+            vehicles, apparel and footwear products, jewelry, and custom picture framing
+            products, as well as alkaline batteries; castings, forgings, fasteners/fastener
+            systems, aerostructures, and precision components; and cobalt, nickel,
+            and titanium alloys. Additionally, the company distributes televisions
+            and information; franchises and services quick service restaurants; distributes
+            electronic components; and offers logistics services, grocery and foodservice
+            distribution services, and professional aviation training and shared aircraft
+            ownership programs. It also retails automobiles; furniture, bedding, and
+            accessories; household appliances, electronics, and computers; jewelry,
+            watches, crystal, china, stemware, flatware, gifts, and collectibles;
+            kitchenware; and motorcycle clothing and equipment. The company was incorporated
+            in 1998 and is headquartered in Omaha, Nebraska.
+          - Meta Platforms, Inc. engages in the development of products that enable
+            people to connect and share with friends and family through mobile devices,
+            personal computers, virtual reality headsets, and wearables worldwide.
+            It operates in two segments, Family of Apps and Reality Labs. The Family
+            of Apps segment offers Facebook, which enables people to share, discuss,
+            discover, and connect with interests; Instagram, a community for sharing
+            photos, videos, and private messages, as well as feed, stories, reels,
+            video, live, and shops; Messenger, a messaging application for people
+            to connect with friends, family, communities, and businesses across platforms
+            and devices through text, audio, and video calls; and WhatsApp, a messaging
+            application that is used by people and businesses to communicate and transact
+            privately. The Reality Labs segment provides augmented and virtual reality
+            related products comprising consumer hardware, software, and content that
+            help people feel connected, anytime, and anywhere. The company was formerly
+            known as Facebook, Inc. and changed its name to Meta Platforms, Inc. in
+            October 2021. The company was incorporated in 2004 and is headquartered
+            in Menlo Park, California
+    measures:
+      - name: CURRENTPRICE
+        synonyms:
+          - 'stock price' # <FILL-OUT>
+        description: 'stock price of the company in dollars' # <FILL-OUT>
+        expr: CURRENTPRICE
+        data_type: NUMBER
+        sample_values:
+          - '423.850'
+          - '196.890'
+          - '1208.880'
+          - '174.460'
+          - '175.950'
+          - '184.300'
+          - '492.960'
+          - '413.720'
+          - '1406.640'
+          - '199.950'
+      - name: MARKETCAP
+        synonyms:
+          - 'market cap'
+          - 'market capitalization' # <FILL-OUT>
+        description: '  ' # <FILL-OUT>
+        expr: MARKETCAP
+        data_type: NUMBER
+        sample_values:
+          - '3150184448000'
+          - '3019131060224'
+          - '2164343439360'
+          - '1917936336896'
+          - '1250407743488'
+          - '807834746880'
+          - '651866537984'
+          - '574190387200'
+          - '892609101824'
+          - '418131542016'
+      - name: EBITDA
+        synonyms:
+          - 'earnings' # <FILL-OUT>
+        description: 'Earnings Before Interest Tax Depreciation and Amortization' # <FILL-OUT>
+        expr: EBITDA
+        data_type: NUMBER
+        sample_values:
+          - '125981999104'
+          - '129629003776'
+          - '109723000832'
+          - '96609001472'
+          - '68446998528'
+          - '107046002688'
+          - '13373700096'
+          - '20404000768'
+          - None
+          - '23942000640'
+      - name: REVENUEGROWTH
+        synonyms:
+          - '  ' # <FILL-OUT>
+        description: 'revenue growth' # <FILL-OUT>
+        expr: REVENUEGROWTH
+        data_type: NUMBER
+        sample_values:
+          - '0.170'
+          - '-0.043'
+          - '2.621'
+          - '0.154'
+          - '0.125'
+          - '0.273'
+          - '0.052'
+          - '0.164'
+          - '0.111'
+          - '0.104'
+      - name: FULLTIMEEMPLOYEES
+        synonyms:
+          - 'headcount' # <FILL-OUT>
+        description: 'count of full time employees' # <FILL-OUT>
+        expr: FULLTIMEEMPLOYEES
+        data_type: NUMBER
+        sample_values:
+          - '221000'
+          - '150000'
+          - '29600'
+          - '180895'
+          - '1525000'
+          - '69329'
+          - '43000'
+          - '20000'
+          - '311921'
+          - '140473'
+      - name: WEIGHT
+        synonyms:
+          - '  ' # <FILL-OUT>
+        description: '  ' # <FILL-OUT>
+        expr: WEIGHT
+        data_type: NUMBER
+        sample_values:
+          - '0.06320640423611351000'
+          - '0.06057690315736208000'
+          - '0.05966414208788364000'
+          - '0.04342629218357378600'
+          - '0.04342614491060061000'
+          - '0.03848214649334063000'
+          - '0.02508861896802465000'
+          - '0.01790962168914940800'
+          - '0.01620867933612366000'
+          - '0.01307927855906060000'
