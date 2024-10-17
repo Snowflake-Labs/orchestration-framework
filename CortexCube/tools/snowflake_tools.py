@@ -40,12 +40,13 @@ class CortexSearchTool(Tool):
         k: number of records to include in results
         """
 
-        tool_description = self._prepare_search_description(
+        tool_name = service_name.lower() + "_cortexsearch"
+        tool_description = self._prepare_search_description(name=tool_name,
             service_topic=service_topic,
             data_source_description=data_description,
         )
         super().__init__(
-            name="cortexsearch", description=tool_description, func=self.asearch
+            name=tool_name, description=tool_description, func=self.asearch
         )
         self.auto_filter = auto_filter
         self.session = snowpark_connection
@@ -111,9 +112,9 @@ class CortexSearchTool(Tool):
 
         return headers, url, data
 
-    def _prepare_search_description(self, service_topic, data_source_description):
+    def _prepare_search_description(self, name,service_topic, data_source_description):
 
-        base_description = f""""cortexsearch(query: str) -> list:\n
+        base_description = f""""{name}(query: str) -> list:\n
                  - Executes a search for relevant information about {service_topic}.\n
                  - Returns a list of relevant passages from {data_source_description}.\n"""
 
