@@ -7,7 +7,7 @@ CortexCube can be configured to work with 3 types of tools:
 - **Cortex Analyst Tool**: For supporting structured data analysis, which requires a Text2SQL access pattern.
 - **Python Tool**: For supporting custom user operations (using 3rd Party API's), which requires calling arbitrary python.
 
-This notebook walks through how to configure and run a system with all 3 types of tools. The demo is designed to illustrate how the agent can answer questions that require a divserse combination of tools (RAG,Text2SQL, Python, or a combination).
+See the Cube Quickstart notebook for a walkthrough of how to configure and run a system with all 3 types of tools. The demo is designed to illustrate how the agent can answer questions that require a divserse combination of tools (RAG,Text2SQL, Python, or a combination).
 
 ## Requirements
 
@@ -60,5 +60,9 @@ analyst = CortexCube(snowpark_session=snowpark,tools=snowflake_tools)
 
 # Run Cortex Cube
 answer = analyst("What is the average price for toothbrushes?")
+print(answer)
+
+# Async Execution of Cortex Cube
+answer = await analyst.acall("What is the average price for toothbrushes?")
 print(answer)
 ````
