@@ -418,7 +418,6 @@ class PythonTool(Tool):
         async def async_func(*args, **kwargs):
             loop = asyncio.get_event_loop()
             return await loop.run_in_executor(None, sync_func, *args, **kwargs)
-            #eturn loop.run_in_executor(None, sync_func, *args, **kwargs)
 
         return async_func
 
