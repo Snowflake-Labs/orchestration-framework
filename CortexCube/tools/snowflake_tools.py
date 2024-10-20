@@ -9,6 +9,8 @@ import re
 import json
 import inspect
 
+from CortexCube.tools.logger import logger as log
+
 class SnowflakeError(Exception):
     def __init__(self, message):
         #self.status_code = status_code
@@ -58,7 +60,7 @@ class CortexSearchTool(Tool):
         self.k = k
         self.retrieval_columns = retrieval_columns
         self.service_name = service_name
-        print(f"Cortex Search Tool successfully initialized")
+        log.log(f"Cortex Search Tool successfully initialized")
 
     def __call__(self, question) -> Any:
 
@@ -66,7 +68,7 @@ class CortexSearchTool(Tool):
 
     async def asearch(self, query):
 
-        print("Running Cortex Search tool.....")
+        #print("Running Cortex Search tool.....")
         headers, url, data = self._prepare_request(query=query)
         async with aiohttp.ClientSession(
             headers=headers,
@@ -302,14 +304,14 @@ class CortexAnalystTool(Tool):
         self.FILE = semantic_model
         self.STAGE = stage
 
-        print(f"Cortex Analyst Tool succesfully initialized")
+        log.log(f"Cortex Analyst Tool succesfully initialized")
 
     def __call__(self, prompt) -> Any:
 
         return self.asearch(query=prompt)
 
     async def asearch(self, query):
-        print("Running Cortex Analyst tool.....")
+        #print("Running Cortex Analyst tool.....")
 
         for _ in range(3):
             current_query = query
@@ -412,7 +414,7 @@ class PythonTool(Tool):
             name=python_func.__name__, func=python_callable, description=desc
         )
         self.python_callable = python_func
-        print("Python Tool successfully initialized")
+        log.log("Python Tool successfully initialized")
 
     def asyncify(self, sync_func):
         async def async_func(*args, **kwargs):
