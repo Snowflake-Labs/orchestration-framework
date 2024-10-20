@@ -12,7 +12,9 @@ from CortexCube.cube.constants import JOINNER_REPLAN
 from CortexCube.cube.planner import Planner
 from CortexCube.cube.task_fetching_unit import Task, TaskFetchingUnit
 from CortexCube.tools.base import StructuredTool, Tool
-from CortexCube.tools.logger import logger as log
+import logging
+from CortexCube.tools.logger import cube_logger 
+
 
 
 class CubeAgent:
@@ -140,7 +142,7 @@ class CortexCube(Chain,extra="allow"):
         # callbacks
         self.planner_callback = None
         self.executor_callback = None
-        log.log("Cortex Cube successfully initialized")
+        cube_logger.log(logging.INFO,"Cortex Cube successfully initialized")
 
 
     @property
@@ -253,8 +255,8 @@ class CortexCube(Chain,extra="allow"):
         
         response = await self.agent.arun(prompt)
         raw_answer = cast(str, response)
-        log.log("Question: \n", input_query, block=True)
-        log.log("Raw Answer: \n", raw_answer, block=True)
+        cube_logger.log(logging.DEBUG,"Question: \n", input_query, block=True)
+        cube_logger.log(logging.DEBUG,"Raw Answer: \n", raw_answer, block=True)
         thought, answer, is_replan = self._parse_joinner_output(raw_answer)
         if is_final:
             # If final, we don't need to replan

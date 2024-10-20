@@ -9,7 +9,9 @@ import re
 import json
 import inspect
 
-from CortexCube.tools.logger import logger as log
+import logging
+from CortexCube.tools.logger import cube_logger
+
 
 class SnowflakeError(Exception):
     def __init__(self, message):
@@ -60,7 +62,7 @@ class CortexSearchTool(Tool):
         self.k = k
         self.retrieval_columns = retrieval_columns
         self.service_name = service_name
-        log.log(f"Cortex Search Tool successfully initialized")
+        cube_logger.log(logging.INFO,f"Cortex Search Tool successfully initialized")
 
     def __call__(self, question) -> Any:
 
@@ -68,7 +70,7 @@ class CortexSearchTool(Tool):
 
     async def asearch(self, query):
 
-        #print("Running Cortex Search tool.....")
+        cube_logger.log(logging.DEBUG,f"Cortex Search Query:{query}")
         headers, url, data = self._prepare_request(query=query)
         async with aiohttp.ClientSession(
             headers=headers,
@@ -76,7 +78,7 @@ class CortexSearchTool(Tool):
             async with session.post(url=url, json=data) as response:
                 response_text = await response.text()
                 response_json = json.loads(response_text)
-                
+                cube_logger.log(logging.DEBUG,f"Cortex Search Response:{response_json}")
                 try:
                     return response_json["results"]
                 except:
@@ -304,14 +306,15 @@ class CortexAnalystTool(Tool):
         self.FILE = semantic_model
         self.STAGE = stage
 
-        log.log(f"Cortex Analyst Tool succesfully initialized")
+        cube_logger.log(logging.INFO,f"Cortex Analyst Tool succesfully initialized")
 
     def __call__(self, prompt) -> Any:
 
         return self.asearch(query=prompt)
 
     async def asearch(self, query):
-        #print("Running Cortex Analyst tool.....")
+        
+        cube_logger.log(logging.DEBUG,f"Cortex Analyst Prompt:{query}")
 
         for _ in range(3):
             current_query = query
@@ -340,7 +343,7 @@ class CortexAnalystTool(Tool):
             except:
                 raise SnowflakeError(message=json_response["message"])
 
-
+        cube_logger.log(logging.DEBUG,f"Cortex Analyst Response:{query_response}")
         return query_response
 
     def _prepare_analyst_request(self, prompt):
@@ -366,7 +369,7 @@ class CortexAnalystTool(Tool):
         # If Valid SQL is present in Cortex Analyst Response execute the query
         if "sql" == response[1]["type"]:
             sql_query = response[1]["statement"]
-            
+            cube_logger.log(logging.DEBUG,f"Cortex Analyst SQL Query:{sql_query}")
             table = (
                 self.CONN.connection.cursor()
                 .execute(sql_query)
@@ -414,7 +417,7 @@ class PythonTool(Tool):
             name=python_func.__name__, func=python_callable, description=desc
         )
         self.python_callable = python_func
-        log.log("Python Tool successfully initialized")
+        cube_logger.log(logging.INFO,"Python Tool successfully initialized")
 
     def asyncify(self, sync_func):
         async def async_func(*args, **kwargs):

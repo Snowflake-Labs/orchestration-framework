@@ -9,8 +9,6 @@ import logging
 # Global variable to toggle logging
 LOG_ENABLED = True
 
-
-import logging
 import pprint
 
 LOG_ENABLED = True
@@ -26,28 +24,33 @@ class Logger:
 
     def init(self):
         self.logger = logging.getLogger('CortexCubeLogger')
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
 
         if not self.logger.handlers:
             self.file_handler = logging.FileHandler('logs.log', mode='a')
-            self.file_handler.setLevel(logging.INFO)
-
+            self.file_handler.setLevel(logging.DEBUG)  # Log all levels
+            
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             self.file_handler.setFormatter(formatter)
 
             self.logger.addHandler(self.file_handler)
 
-    def log(self, *args, block=False, **kwargs):
+    def log(self, level, *args, block=False, **kwargs):
         if LOG_ENABLED:
             if block:
-                self.logger.info("=" * 80)
+                self.logger.log(level, "=" * 80)
             for arg in args:
                 if isinstance(arg, dict):
-                    self.logger.info(pprint.pformat(arg, **kwargs))
+                    message = pprint.pformat(arg, **kwargs)
                 else:
-                    self.logger.info(str(arg, **kwargs))
+                    message = str(arg, **kwargs)
+                self.logger.log(level, message)
+            if block:
+                self.logger.log(level, "=" * 80)
 
-logger = Logger()
+cube_logger = Logger()
 
-def log(*args, block=False, **kwargs):
-    logger.log(*args, block=block, **kwargs)
+# The updated log function
+
+def log(level, *args, block=False, **kwargs):
+    cube_logger.log(level, *args, block=block, **kwargs)
