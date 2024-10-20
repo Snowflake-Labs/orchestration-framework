@@ -1,17 +1,17 @@
-import json
-import time
-from collections import defaultdict
 import pprint
-
 import numpy as np
 import logging
+import os
 
 # Global variable to toggle logging
-LOG_ENABLED = True
+logging_enabled = os.getenv('LOG_ENABLED')
+if logging_enabled is None:
+    LOG_ENABLED = True
 
-import pprint
+logging_level = os.getenv('LOGGING_LEVEL')
+if logging_level is None:
+    logging_level = 'INFO'
 
-LOG_ENABLED = True
 
 class Logger:
     _instance = None
@@ -24,11 +24,11 @@ class Logger:
 
     def init(self):
         self.logger = logging.getLogger('CortexCubeLogger')
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging_level)
 
         if not self.logger.handlers:
             self.file_handler = logging.FileHandler('logs.log', mode='a')
-            self.file_handler.setLevel(logging.DEBUG)  # Log all levels
+            self.file_handler.setLevel(logging_level)  # Log all levels
             
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             self.file_handler.setFormatter(formatter)
