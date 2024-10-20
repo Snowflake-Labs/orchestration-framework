@@ -12,6 +12,7 @@ logging_level = os.getenv('LOGGING_LEVEL')
 if logging_level is None:
     logging_level = 'INFO'
 
+logging.basicConfig(level=logging.WARNING)
 
 class Logger:
     _instance = None

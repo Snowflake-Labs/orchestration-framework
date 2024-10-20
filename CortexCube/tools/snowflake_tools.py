@@ -369,7 +369,7 @@ class CortexAnalystTool(Tool):
         # If Valid SQL is present in Cortex Analyst Response execute the query
         if "sql" == response[1]["type"]:
             sql_query = response[1]["statement"]
-            cube_logger.log(logging.DEBUG,f"Cortex Analyst SQL Query:{sql_query}")
+            #cube_logger.log(logging.DEBUG,f"Cortex Analyst SQL Query:{sql_query}")
             table = (
                 self.CONN.connection.cursor()
                 .execute(sql_query)
