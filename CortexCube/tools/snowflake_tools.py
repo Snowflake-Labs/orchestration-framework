@@ -10,8 +10,8 @@ import json
 import inspect
 
 class SnowflakeError(Exception):
-    def __init__(self, status_code, message):
-        self.status_code = status_code
+    def __init__(self, message):
+        #self.status_code = status_code
         self.message = message
         super().__init__(
             self.message
@@ -78,7 +78,7 @@ class CortexSearchTool(Tool):
                 try:
                     return response_json["results"]
                 except:
-                    raise SnowflakeError(status_code=response_json["code"],message=response_json["message"])
+                    raise SnowflakeError(message=response_json["message"])
 
     def _prepare_request(self, query):
 
@@ -326,6 +326,8 @@ class CortexAnalystTool(Tool):
                 query_response = self._process_message(json_response["message"]["content"])
 
                 if query_response == "Invalid Query":
+                    lm = dspy.Snowflake(session=self.CONN, model="llama3.2-1b")
+                    dspy.settings.configure(lm=lm)
                     rephrase_prompt = dspy.ChainOfThought(PromptRephrase)
                     current_query = rephrase_prompt(user_prompt=current_query)[
                         "rephrased_prompt"
@@ -334,7 +336,7 @@ class CortexAnalystTool(Tool):
                     break
 
             except:
-                raise SnowflakeError(status_code=json_response["code"],message=json_response["message"])
+                raise SnowflakeError(message=json_response["message"])
 
 
         return query_response
@@ -416,6 +418,7 @@ class PythonTool(Tool):
         async def async_func(*args, **kwargs):
             loop = asyncio.get_event_loop()
             return await loop.run_in_executor(None, sync_func, *args, **kwargs)
+            #eturn loop.run_in_executor(None, sync_func, *args, **kwargs)
 
         return async_func
 
