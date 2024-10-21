@@ -3,8 +3,9 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from typing import Any, Callable, Collection, Dict, List, Optional
+import logging
+from CortexCube.tools.logger import cube_logger
 
-# from src.utils.logger_utils import log
 
 SCHEDULING_INTERVAL = 0.01  # seconds
 
@@ -51,9 +52,9 @@ class Task:
     is_join: bool = False
 
     async def __call__(self) -> Any:
-        # log("running task")
+        cube_logger.log(logging.INFO,f"running {self.name} task")
         x = await self.tool(*self.args)
-        # log("done task")
+        cube_logger.log(logging.DEBUG,"task completed")
         return x
 
     def get_thought_action_observation(

@@ -12,6 +12,9 @@ from CortexCube.cube.constants import JOINNER_REPLAN
 from CortexCube.cube.planner import Planner
 from CortexCube.cube.task_fetching_unit import Task, TaskFetchingUnit
 from CortexCube.tools.base import StructuredTool, Tool
+import logging
+from CortexCube.tools.logger import cube_logger 
+
 
 class CubeAgent:
     """Self defined agent for LLM Compiler."""
@@ -118,9 +121,6 @@ class CortexCube(Chain,extra="allow"):
         super().__init__(name="compiler",**kwargs)
 
         if not planner_example_prompt_replan:
-            # log(
-            #     "Replan example prompt not specified, using the same prompt as the planner."
-            # )
             planner_example_prompt_replan = planner_example_prompt
 
         self.planner = Planner(
@@ -141,6 +141,7 @@ class CortexCube(Chain,extra="allow"):
         # callbacks
         self.planner_callback = None
         self.executor_callback = None
+        cube_logger.log(logging.INFO,"Cortex Cube successfully initialized")
 
 
     @property
@@ -250,11 +251,11 @@ class CortexCube(Chain,extra="allow"):
             f"{agent_scratchpad}\n"  # T-A-O
             # "---\n"
         )
-        #log("Joining prompt:\n", prompt, block=True)
+        
         response = await self.agent.arun(prompt)
         raw_answer = cast(str, response)
-        # log("Question: \n", input_query, block=True)
-        # log("Raw Answer: \n", raw_answer, block=True)
+        cube_logger.log(logging.DEBUG,"Question: \n", input_query, block=True)
+        cube_logger.log(logging.DEBUG,"Raw Answer: \n", raw_answer, block=True)
         thought, answer, is_replan = self._parse_joinner_output(raw_answer)
         if is_final:
             # If final, we don't need to replan
@@ -314,14 +315,11 @@ class CortexCube(Chain,extra="allow"):
                 tasks = await self.planner.plan(
                     inputs=inputs,
                     is_replan=not is_first_iter,
-                    # callbacks=run_manager.get_child() if run_manager else None,
                     callbacks=(
                         [self.planner_callback] if self.planner_callback else None
                     ),
                 )
-                # log("Graph of tasks: ", tasks, block=True)
-                # if self.benchmark:
-                #     self.planner_callback.additional_fields["num_tasks"] = len(tasks)
+                
                 task_fetching_unit.set_tasks(tasks)
                 await task_fetching_unit.schedule()
             tasks = task_fetching_unit.tasks
@@ -339,14 +337,12 @@ class CortexCube(Chain,extra="allow"):
             )
             agent_scratchpad = agent_scratchpad.strip()
 
-            # log("Agent scratchpad:\n", agent_scratchpad, block=True)
             joinner_thought, answer, is_replan = await self.join(
                 input,
                 agent_scratchpad=agent_scratchpad,
                 is_final=is_final_iter,
             )
             if not is_replan:
-                # log("Break out of replan loop.")
                 break
 
             # Collect contexts for the subsequent replanner
@@ -355,10 +351,8 @@ class CortexCube(Chain,extra="allow"):
             )
             contexts.append(context)
             formatted_contexts = self._format_contexts(contexts)
-            # log("Contexts:\n", formatted_contexts, block=True)
             inputs["context"] = formatted_contexts
-        # if is_final_iter:
-        #     log("Reached max replan limit.")
+
         return {self.output_key: answer}
     
     
