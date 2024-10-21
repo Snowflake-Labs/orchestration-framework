@@ -2,7 +2,6 @@ from dotenv import load_dotenv
 from snowflake.snowpark import Session
 
 import streamlit as st
-import contextlib
 import io
 import json
 import asyncio
@@ -45,7 +44,6 @@ class NewsTool:
 
     def news_search(self, news_query: str) -> str:
 
-        print("Running News Search tool....")
         news_request = f"""https://api.thenewsapi.com/v1/news/all?api_token={self.api_token}&search={news_query}&language=en&limit={self.limit}"""
         response = requests.get(news_request)
         json_response = json.loads(response.content)['data']
@@ -102,37 +100,10 @@ def create_prompt(prompt_key: str):
             prompt=st.session_state[prompt_key], response='waiting')
         st.session_state['prompt_history'][str(uuid.uuid4())] = prompt_record
 
-
-class StreamlitOutputRedirector:
-    def __init__(self, placeholder):
-        self.buffer = io.StringIO()
-        self.placeholder = placeholder
-
-    def write(self, text):
-        self.buffer.write(text)
-        self.placeholder.code(self.buffer.getvalue())
-
-    def flush(self):
-        pass
-
-    def get_output(self):
-        return self.buffer.getvalue()
-
-
 source_list = []
 
-
-@contextlib.contextmanager
-def redirect_stdout_to_streamlit(placeholder):
-    redirector = StreamlitOutputRedirector(placeholder)
-    old_stdout = sys.stdout
-    sys.stdout = redirector
-    try:
-        yield redirector
-    finally:
-        sys.stdout = old_stdout
-
 import logging
+
 class StreamlitLogHandler(logging.Handler):
     def __init__(self):
         super().__init__()
@@ -196,7 +167,6 @@ def process_message(prompt_id: str):
     prompt = st.session_state['prompt_history'][prompt_id].get('prompt')
     message_queue = queue.Queue()
     analyst = st.session_state.analyst
-    tool_info_container = st.empty()
     log_container = st.empty()
     log_handler = setup_logging()
 
@@ -216,7 +186,7 @@ def process_message(prompt_id: str):
             if isinstance(response, dict) and 'output' in response:
                 final_response = f"{response['output']}"
                 st.session_state['prompt_history'][prompt_id]['response'] = final_response
-                #log_container.code(parse_log_message(log_handler.get_logs()))
+                log_container.code(parse_log_message(log_handler.get_logs()))
                 log_container.empty()
                 yield final_response
                 break
@@ -227,8 +197,9 @@ def process_message(prompt_id: str):
             log_output= parse_log_message(log_handler.get_logs())
             if log_output is not None:
                 log_container.code(log_output)
-            with st.spinner("Awaiting Response..."):
-                pass
+            # with st.spinner("Awaiting Response..."):
+            #     pass
+    st.rerun()
 
 def extract_tool_name(statement):
     start = statement.find('Running') + len('Running') + 1
@@ -284,7 +255,7 @@ for id in st.session_state.prompt_history:
                         response_container.markdown(response)
         else:
             # Display the final response
-            st.write(st.session_state['prompt_history'][id]['response'], unsafe_allow_html=True)
+            st.markdown(st.session_state['prompt_history'][id]['response'], unsafe_allow_html=True)
 
 st.chat_input("Ask Anything", on_submit=create_prompt,
               key='chat_input', args=['chat_input'])
