@@ -4,9 +4,9 @@ import logging
 import os
 
 # Global variable to toggle logging
-logging_enabled = os.getenv('LOG_ENABLED')
+logging_enabled = os.getenv('LOGGING_ENABLED')
 if logging_enabled is None:
-    LOG_ENABLED = True
+    LOGGING_ENABLED = True
 
 logging_level = os.getenv('LOGGING_LEVEL')
 if logging_level is None:
@@ -37,7 +37,7 @@ class Logger:
             self.logger.addHandler(self.file_handler)
 
     def log(self, level, *args, block=False, **kwargs):
-        if LOG_ENABLED:
+        if LOGGING_ENABLED:
             if block:
                 self.logger.log(level, "=" * 80)
             for arg in args:

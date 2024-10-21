@@ -16,10 +16,6 @@ import logging
 from CortexCube.tools.logger import cube_logger 
 
 
-logging.basicConfig(level=logging.INFO)
-
-
-
 class CubeAgent:
     """Self defined agent for LLM Compiler."""
 
