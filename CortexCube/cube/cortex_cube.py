@@ -44,7 +44,12 @@ class CubeAgent:
         "Content-Type": "application/json",
         "Authorization": f'Snowflake Token="{self.session.connection.rest.token}"'}
 
-        url = f"""https://{self.session.get_current_account().replace('"',"")}.snowflakecomputing.com/api/v2/cortex/inference:complete"""
+        user_account = self.session.get_current_account().replace('"',"")
+
+        if "_" in user_account:
+            user_account = user_account.replace("_","-")
+
+        url = f"""https://{user_account}.snowflakecomputing.com/api/v2/cortex/inference:complete"""
         data = {"model": self.llm, "messages": [{"content": prompt}]}
 
         return headers,url,data
