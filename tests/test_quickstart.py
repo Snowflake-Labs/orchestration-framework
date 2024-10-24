@@ -1,6 +1,9 @@
-from CortexCube import CortexCube, CortexSearchTool, CortexAnalystTool, PythonTool
-import pytest
 import asyncio
+import json
+
+import pytest
+
+from CortexCube import CortexAnalystTool, CortexCube, CortexSearchTool, PythonTool
 
 
 @pytest.mark.parametrize(
@@ -61,7 +64,38 @@ def test_analyst_tool(session, question, answer):
     assert response == answer
 
 
-def test_cube_agent(session):
+def test_python_tool():
+    def get_news(_) -> dict:
+        with open("tests/data/response.json") as f:
+            d = json.load(f)
+        return d
+
+    python_config = {
+        "tool_description": "searches for relevant news based on user query",
+        "output_description": "relevant articles",
+        "python_func": get_news,
+    }
+    news_search = PythonTool(**python_config)
+    response = asyncio.run(news_search("When is Apple releasing a new chip?"))
+    assert get_news(None) == response
+
+
+@pytest.mark.parametrize(
+    "question, answer_contains",
+    [
+        pytest.param(
+            "What is the market cap of Apple?",
+            "$3,019,131,060,224",
+            id="market_cap",
+        ),
+        pytest.param(
+            "When is Apple releasing a new chip?",
+            "May 7",
+            id="product_revenue",
+        ),
+    ],
+)
+def test_cube_agent(session, question, answer_contains):
     search_config = {
         "service_name": "SEC_SEARCH_SERVICE",
         "service_topic": "Snowflake's business,product offerings,and performance",
@@ -76,8 +110,22 @@ def test_cube_agent(session):
         "data_description": "a table with stock and financial metrics about S&P500 companies ",
         "snowpark_connection": session,
     }
+
+    def get_news(_) -> dict:
+        with open("tests/data/response.json") as f:
+            d = json.load(f)
+        return d
+
+    python_config = {
+        "tool_description": "searches for relevant news based on user query",
+        "output_description": "relevant articles",
+        "python_func": get_news,
+    }
     annual_reports = CortexSearchTool(**search_config)
     sp500 = CortexAnalystTool(**analyst_config)
-    agent = CortexCube(snowpark_session=session, tools=[annual_reports, sp500])
-    response = agent("What is the market cap of Apple?")
-    assert "$3,019,131,060,224" in response
+    news_search = PythonTool(**python_config)
+    agent = CortexCube(
+        snowpark_session=session, tools=[annual_reports, sp500, news_search]
+    )
+    response = agent(question)
+    assert answer_contains in response
