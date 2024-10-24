@@ -62,7 +62,7 @@ class CubeAgent:
                 if obj.startswith("data: "):
                     obj = obj[6:]
                 # Load the JSON object into a Python dictionary
-                json_dict = json.loads(str(obj))
+                json_dict = json.loads(obj,strict=False)
                 # Append the JSON dictionary to the list
                 json_list.append(json_dict)
 
