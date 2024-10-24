@@ -26,10 +26,14 @@ class CubeAgent:
     async def arun(self, prompt: str) -> str:
         """Run the LLM."""
         headers,url,data =self._prepare_llm_request(prompt=prompt)
+        cube_logger.log(logging.DEBUG,"Cortex Request Headers\n", headers, block=True)
+        cube_logger.log(logging.DEBUG,"Cortex Request URL\n", url, block=True)
+        cube_logger.log(logging.DEBUG,"Cortex Request Data\n", data, block=True)
 
         async with aiohttp.ClientSession(headers=headers,) as session:
             async with session.post(url=url,json=data) as response:
                 response_text = await response.text()
+                cube_logger.log(logging.DEBUG,"Cortex Request Response\n", response.content, block=True)
                 snowflake_response = self._parse_snowflake_response(response_text)
                 return snowflake_response
 
@@ -58,7 +62,7 @@ class CubeAgent:
                 if obj.startswith("data: "):
                     obj = obj[6:]
                 # Load the JSON object into a Python dictionary
-                json_dict = json.loads(str(obj))
+                json_dict = json.loads(obj,strict=False)
                 # Append the JSON dictionary to the list
                 json_list.append(json_dict)
 
