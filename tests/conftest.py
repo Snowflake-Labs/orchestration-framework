@@ -1,10 +1,10 @@
 import os
-from dotenv import load_dotenv
-from snowflake.snowpark import Session
 from collections import deque
 from pathlib import Path
 
 import pytest
+from dotenv import load_dotenv
+from snowflake.snowpark import Session
 
 
 class TestConf:
@@ -24,7 +24,7 @@ class TestConf:
         print(len(scripts))
         con = self.session.connection
         for script in scripts:
-            with open(script, "r") as f:
+            with open(script) as f:
                 deque(con.execute_stream(f), maxlen=0)
         self.session.use_schema("CUBE_TESTING.PUBLIC")
 
