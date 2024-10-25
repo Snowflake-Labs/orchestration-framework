@@ -17,6 +17,7 @@ from CortexCube.tools.snowflake_prompts import OUTPUT_PROMPT
 from CortexCube.tools.snowflake_prompts import (
     PLANNER_PROMPT as SNOWFLAKE_PLANNER_PROMPT,
 )
+from CortexCube.tools.utils import CortexEndpointBuilder
 
 
 class CubeAgent:
@@ -54,12 +55,8 @@ class CubeAgent:
             "Authorization": f'Snowflake Token="{self.session.connection.rest.token}"',
         }
 
-        user_account = self.session.get_current_account().replace('"', "")
-
-        if "_" in user_account:
-            user_account = user_account.replace("_", "-")
-
-        url = f"""https://{user_account}.snowflakecomputing.com/api/v2/cortex/inference:complete"""
+        eb = CortexEndpointBuilder(self.session)
+        url = eb.get_complete_endpoint()
         data = {"model": self.llm, "messages": [{"content": prompt}]}
 
         return headers, url, data
