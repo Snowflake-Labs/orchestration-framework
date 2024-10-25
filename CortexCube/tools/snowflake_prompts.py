@@ -1,6 +1,5 @@
 from CortexCube.cube.constants import END_OF_PLAN, JOINNER_FINISH, JOINNER_REPLAN
 
-
 PLANNER_PROMPT = (
     "Question: Give me a summary of the financials of Snowflake's competitors\n"
     "Thought: I need to identify which companies are considered Snowflake's competitors.\n"

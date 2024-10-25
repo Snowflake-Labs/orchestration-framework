@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import yaml
+from chains.llm_chain import LLMChain
 from langchain.agents.agent import AgentOutputParser, BaseSingleActionAgent
 from langchain.agents.agent_types import AgentType
 from langchain.callbacks.base import BaseCallbackManager
@@ -23,8 +24,6 @@ from langchain.schema import (
 from langchain.schema.language_model import BaseLanguageModel
 from langchain.schema.messages import BaseMessage
 from langchain.tools import BaseTool
-
-from chains.llm_chain import LLMChain
 
 logger = logging.getLogger(__name__)
 

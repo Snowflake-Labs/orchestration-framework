@@ -12,15 +12,9 @@ from langchain.callbacks.manager import (
     AsyncCallbackManagerForToolRun,
     CallbackManagerForToolRun,
 )
-from pydantic import (
-    BaseModel,
-    Extra,
-    Field,
-    create_model,
-    validate_arguments,
-)
 from langchain.schema.runnable import RunnableConfig
 from langchain.tools import BaseTool
+from pydantic import BaseModel, Extra, Field, create_model, validate_arguments
 
 
 class SchemaAnnotationError(TypeError):
