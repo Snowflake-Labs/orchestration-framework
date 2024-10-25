@@ -52,9 +52,9 @@ class Task:
     is_join: bool = False
 
     async def __call__(self) -> Any:
-        cube_logger.log(logging.INFO,f"running {self.name} task")
+        cube_logger.log(logging.INFO, f"running {self.name} task")
         x = await self.tool(*self.args)
-        cube_logger.log(logging.DEBUG,"task completed")
+        cube_logger.log(logging.DEBUG, "task completed")
         return x
 
     def get_thought_action_observation(

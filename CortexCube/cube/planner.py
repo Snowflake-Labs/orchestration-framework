@@ -6,7 +6,7 @@ import re
 from typing import Any, Optional, Sequence, Union
 from uuid import UUID
 
-#from litellm import acompletion
+# from litellm import acompletion
 import aiohttp
 from langchain.callbacks.base import AsyncCallbackHandler
 
@@ -185,12 +185,11 @@ class CubeCallback(AsyncCallbackHandler):
         await self._queue.put(None)
 
 
-
 class Planner:
     def __init__(
         self,
-        session:object,
-        llm: str, # point to dspy
+        session: object,
+        llm: str,  # point to dspy
         example_prompt: str,
         example_prompt_replan: str,
         tools: Sequence[Union[Tool, StructuredTool]],
@@ -216,7 +215,6 @@ class Planner:
         self,
         inputs: dict[str, Any],
         is_replan: bool = False,
-
     ) -> str:
         """Run the LLM."""
         if is_replan:
@@ -228,28 +226,29 @@ class Planner:
             human_prompt = f"Question: {inputs['input']}"
 
         message = system_prompt + "\n\n" + human_prompt
-        headers,url,data =self._prepare_llm_request(prompt=message)
+        headers, url, data = self._prepare_llm_request(prompt=message)
 
-        async with aiohttp.ClientSession(headers=headers,) as session:
-            async with session.post(url=url,json=data) as response:
+        async with aiohttp.ClientSession(
+            headers=headers,
+        ) as session:
+            async with session.post(url=url, json=data) as response:
                 response_text = await response.text()
                 snowflake_response = self._parse_snowflake_response(response_text)
                 return snowflake_response
 
-    def _prepare_llm_request(self,prompt):
-
+    def _prepare_llm_request(self, prompt):
         headers = {
-        "Accept": "text/stream",
-        "Content-Type": "application/json",
-        "Authorization": f'Snowflake Token="{self.session.connection.rest.token}"'}
+            "Accept": "text/stream",
+            "Content-Type": "application/json",
+            "Authorization": f'Snowflake Token="{self.session.connection.rest.token}"',
+        }
 
         url = f"""https://{self.session.get_current_account().replace('"',"")}.snowflakecomputing.com/api/v2/cortex/inference:complete"""
         data = {"model": self.llm, "messages": [{"content": prompt}]}
 
-        return headers,url,data
+        return headers, url, data
 
     def _parse_snowflake_response(self, data_str):
-
         json_objects = data_str.split("\ndata: ")
         json_list = []
 
@@ -268,7 +267,6 @@ class Planner:
         completion = ""
         choices = {}
         for chunk in json_list:
-
             choices = chunk["choices"][0]
 
             if "content" in choices["delta"].keys():
@@ -276,12 +274,10 @@ class Planner:
 
         return completion
 
-
-    async def plan(
-        self, inputs: dict, is_replan: bool, **kwargs: Any
-    ):
+    async def plan(self, inputs: dict, is_replan: bool, **kwargs: Any):
         llm_response = await self.run_llm(
-            inputs=inputs, is_replan=is_replan,
+            inputs=inputs,
+            is_replan=is_replan,
         )
         llm_response = llm_response + "\n"
         plan_response = self.output_parser.parse(llm_response)

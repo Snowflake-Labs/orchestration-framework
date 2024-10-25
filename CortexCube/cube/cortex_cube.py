@@ -22,43 +22,49 @@ from CortexCube.tools.snowflake_prompts import (
 class CubeAgent:
     """Self defined agent for LLM Compiler."""
 
-    def __init__(self, session,llm) -> None:
+    def __init__(self, session, llm) -> None:
         self.llm = llm
         self.session = session
 
     async def arun(self, prompt: str) -> str:
         """Run the LLM."""
-        headers,url,data =self._prepare_llm_request(prompt=prompt)
-        cube_logger.log(logging.DEBUG,"Cortex Request Headers\n", headers, block=True)
-        cube_logger.log(logging.DEBUG,"Cortex Request URL\n", url, block=True)
-        cube_logger.log(logging.DEBUG,"Cortex Request Data\n", data, block=True)
+        headers, url, data = self._prepare_llm_request(prompt=prompt)
+        cube_logger.log(logging.DEBUG, "Cortex Request Headers\n", headers, block=True)
+        cube_logger.log(logging.DEBUG, "Cortex Request URL\n", url, block=True)
+        cube_logger.log(logging.DEBUG, "Cortex Request Data\n", data, block=True)
 
-        async with aiohttp.ClientSession(headers=headers,) as session:
-            async with session.post(url=url,json=data) as response:
+        async with aiohttp.ClientSession(
+            headers=headers,
+        ) as session:
+            async with session.post(url=url, json=data) as response:
                 response_text = await response.text()
-                cube_logger.log(logging.DEBUG,"Cortex Request Response\n", response.content, block=True)
+                cube_logger.log(
+                    logging.DEBUG,
+                    "Cortex Request Response\n",
+                    response.content,
+                    block=True,
+                )
                 snowflake_response = self._parse_snowflake_response(response_text)
                 return snowflake_response
 
-    def _prepare_llm_request(self,prompt):
-
+    def _prepare_llm_request(self, prompt):
         headers = {
-        "Accept": "text/stream",
-        "Content-Type": "application/json",
-        "Authorization": f'Snowflake Token="{self.session.connection.rest.token}"'}
+            "Accept": "text/stream",
+            "Content-Type": "application/json",
+            "Authorization": f'Snowflake Token="{self.session.connection.rest.token}"',
+        }
 
-        user_account = self.session.get_current_account().replace('"',"")
+        user_account = self.session.get_current_account().replace('"', "")
 
         if "_" in user_account:
-            user_account = user_account.replace("_","-")
+            user_account = user_account.replace("_", "-")
 
         url = f"""https://{user_account}.snowflakecomputing.com/api/v2/cortex/inference:complete"""
         data = {"model": self.llm, "messages": [{"content": prompt}]}
 
-        return headers,url,data
+        return headers, url, data
 
     def _parse_snowflake_response(self, data_str):
-
         json_objects = data_str.split("\ndata: ")
         json_list = []
 
@@ -70,14 +76,13 @@ class CubeAgent:
                 if obj.startswith("data: "):
                     obj = obj[6:]
                 # Load the JSON object into a Python dictionary
-                json_dict = json.loads(obj,strict=False)
+                json_dict = json.loads(obj, strict=False)
                 # Append the JSON dictionary to the list
                 json_list.append(json_dict)
 
         completion = ""
         choices = {}
         for chunk in json_list:
-
             choices = chunk["choices"][0]
 
             if "content" in choices["delta"].keys():
@@ -86,7 +91,7 @@ class CubeAgent:
         return completion
 
 
-class CortexCube(Chain,extra="allow"):
+class CortexCube(Chain, extra="allow"):
     """Cortex Cube Multi Agent Class"""
 
     input_key: str = "input"
@@ -94,10 +99,10 @@ class CortexCube(Chain,extra="allow"):
 
     def __init__(
         self,
-        snowpark_session:object,
+        snowpark_session: object,
         tools: list[Union[Tool, StructuredTool]],
-        planner_llm: str = "mistral-large2", #replace basellm
-        agent_llm: str = "mistral-large2", #replace basellm
+        planner_llm: str = "mistral-large2",  # replace basellm
+        agent_llm: str = "mistral-large2",  # replace basellm
         planner_example_prompt: str = SNOWFLAKE_PLANNER_PROMPT,
         planner_example_prompt_replan: Optional[str] = None,
         planner_stop: Optional[list[str]] = [END_OF_PLAN],
@@ -130,7 +135,7 @@ class CortexCube(Chain,extra="allow"):
             joinner_prompt_final: Prompt to use for joinner at the final replanning iter.
                 If not assigned, default to `joinner_prompt`.
         """
-        super().__init__(name="compiler",**kwargs)
+        super().__init__(name="compiler", **kwargs)
 
         if not planner_example_prompt_replan:
             planner_example_prompt_replan = planner_example_prompt
@@ -144,7 +149,7 @@ class CortexCube(Chain,extra="allow"):
             stop=planner_stop,
         )
 
-        self.agent = CubeAgent(session=snowpark_session,llm=agent_llm)
+        self.agent = CubeAgent(session=snowpark_session, llm=agent_llm)
         self.joinner_prompt = joinner_prompt
         self.joinner_prompt_final = joinner_prompt_final or joinner_prompt
         self.planner_stream = planner_stream
@@ -153,8 +158,7 @@ class CortexCube(Chain,extra="allow"):
         # callbacks
         self.planner_callback = None
         self.executor_callback = None
-        cube_logger.log(logging.INFO,"Cortex Cube successfully initialized")
-
+        cube_logger.log(logging.INFO, "Cortex Cube successfully initialized")
 
     @property
     def input_keys(self) -> List[str]:
@@ -163,7 +167,6 @@ class CortexCube(Chain,extra="allow"):
     @property
     def output_keys(self) -> List[str]:
         return [self.output_key]
-
 
     def _parse_joinner_output(self, raw_answer: str) -> str:
         """We expect the joinner output format to be:
@@ -178,7 +181,7 @@ class CortexCube(Chain,extra="allow"):
         """
 
         # Extracting the Thought
-        thought_pattern = r'Thought: (.*?)\n\n'
+        thought_pattern = r"Thought: (.*?)\n\n"
         thought_match = re.search(thought_pattern, raw_answer)
         thought = thought_match.group(1) if thought_match else None
 
@@ -188,16 +191,16 @@ class CortexCube(Chain,extra="allow"):
 
         return thought, answer, is_replan
 
-    def _extract_answer(self,raw_answer):
-        start_index = raw_answer.find('Action: Finish(')
-        replan_index = raw_answer.find('Replan')
+    def _extract_answer(self, raw_answer):
+        start_index = raw_answer.find("Action: Finish(")
+        replan_index = raw_answer.find("Replan")
         if start_index != -1:
-            start_index += len('Action: Finish(')
+            start_index += len("Action: Finish(")
             parentheses_count = 1
             for i, char in enumerate(raw_answer[start_index:], start_index):
-                if char == '(':
+                if char == "(":
                     parentheses_count += 1
-                elif char == ')':
+                elif char == ")":
                     parentheses_count -= 1
                     if parentheses_count == 0:
                         end_index = i
@@ -266,8 +269,8 @@ class CortexCube(Chain,extra="allow"):
 
         response = await self.agent.arun(prompt)
         raw_answer = cast(str, response)
-        cube_logger.log(logging.DEBUG,"Question: \n", input_query, block=True)
-        cube_logger.log(logging.DEBUG,"Raw Answer: \n", raw_answer, block=True)
+        cube_logger.log(logging.DEBUG, "Question: \n", input_query, block=True)
+        cube_logger.log(logging.DEBUG, "Raw Answer: \n", raw_answer, block=True)
         thought, answer, is_replan = self._parse_joinner_output(raw_answer)
         if is_final:
             # If final, we don't need to replan
@@ -277,7 +280,7 @@ class CortexCube(Chain,extra="allow"):
     def _call(self, inputs):
         return self.__call__(inputs)
 
-    def __call__(self, input:str):
+    def __call__(self, input: str):
         """Calls Cortex Cube multi-agent system.
 
         Params:
@@ -287,7 +290,7 @@ class CortexCube(Chain,extra="allow"):
         thread = threading.Thread(target=self.run_async, args=(input, result))
         thread.start()
         thread.join()
-        return result[0]['output']
+        return result[0]["output"]
 
     def run_async(self, input, result):
         loop = asyncio.new_event_loop()
@@ -296,13 +299,13 @@ class CortexCube(Chain,extra="allow"):
 
     async def acall(
         self,
-        input:str
-        #inputs: Dict[str, Any]
+        input: str,
+        # inputs: Dict[str, Any]
     ) -> Dict[str, Any]:
         contexts = []
         joinner_thought = ""
         agent_scratchpad = ""
-        inputs = {'input':input}
+        inputs = {"input": input}
         for i in range(self.max_replans):
             is_first_iter = i == 0
             is_final_iter = i == self.max_replans - 1

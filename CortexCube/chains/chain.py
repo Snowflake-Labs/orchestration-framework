@@ -27,7 +27,7 @@ from langchain.load.serializable import Serializable
 from langchain.schema import RUN_KEY, BaseMemory, RunInfo
 from langchain.schema.runnable import Runnable, RunnableConfig
 
-#from langchain.pydantic_v1 import Field, root_validator, validator
+# from langchain.pydantic_v1 import Field, root_validator, validator
 from pydantic import Field, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
@@ -141,7 +141,7 @@ class Chain(Serializable, Runnable[Dict[str, Any], Dict[str, Any]], ABC):
     def _chain_type(self) -> str:
         raise NotImplementedError("Saving not supported for this chain type.")
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     def raise_callback_manager_deprecation(cls, values: Dict) -> Dict:
         """Raise deprecation warning if callback_manager is used."""
         if values.get("callback_manager") is not None:
@@ -158,7 +158,7 @@ class Chain(Serializable, Runnable[Dict[str, Any], Dict[str, Any]], ABC):
             values["callbacks"] = values.pop("callback_manager", None)
         return values
 
-    @field_validator("verbose", mode='before')
+    @field_validator("verbose", mode="before")
     def set_verbose(cls, verbose: Optional[bool]) -> bool:
         """Set the chain verbosity.
 
@@ -346,8 +346,8 @@ class Chain(Serializable, Runnable[Dict[str, Any], Dict[str, Any]], ABC):
                 `Chain.output_keys`.
         """
         inputs = self.prep_inputs(inputs)
-        print("CALLBACKS",callbacks)
-        print("SLEF CALLBACKS",self.callbacks)
+        print("CALLBACKS", callbacks)
+        print("SLEF CALLBACKS", self.callbacks)
         callback_manager = AsyncCallbackManager.configure(
             callbacks,
             self.callbacks,

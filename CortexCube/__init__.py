@@ -5,4 +5,4 @@ from CortexCube.tools.snowflake_tools import (
     PythonTool,
 )
 
-__all__ = ["CortexCube","CortexAnalystTool","CortexSearchTool","PythonTool"]
+__all__ = ["CortexCube", "CortexAnalystTool", "CortexSearchTool", "PythonTool"]
