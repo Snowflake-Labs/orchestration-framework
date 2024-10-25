@@ -75,11 +75,9 @@ class CortexSearchTool(Tool):
         cube_logger.log(logging.INFO, f"Cortex Search Tool successfully initialized")
 
     def __call__(self, question) -> Any:
-
         return self.asearch(question)
 
     async def asearch(self, query):
-
         cube_logger.log(logging.DEBUG, f"Cortex Search Query:{query}")
         headers, url, data = self._prepare_request(query=query)
         async with aiohttp.ClientSession(
@@ -97,7 +95,6 @@ class CortexSearchTool(Tool):
                     raise SnowflakeError(message=response_json["message"])
 
     def _prepare_request(self, query):
-
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -129,7 +126,6 @@ class CortexSearchTool(Tool):
         return headers, url, data
 
     def _prepare_search_description(self, name, service_topic, data_source_description):
-
         base_description = f""""{name}(query: str) -> list:\n
                  - Executes a search for relevant information about {service_topic}.\n
                  - Returns a list of relevant passages from {data_source_description}.\n"""
@@ -327,11 +323,9 @@ class CortexAnalystTool(Tool):
         cube_logger.log(logging.INFO, f"Cortex Analyst Tool succesfully initialized")
 
     def __call__(self, prompt) -> Any:
-
         return self.asearch(query=prompt)
 
     async def asearch(self, query):
-
         cube_logger.log(logging.DEBUG, f"Cortex Analyst Prompt:{query}")
 
         for _ in range(3):
@@ -367,7 +361,6 @@ class CortexAnalystTool(Tool):
         return query_response
 
     def _prepare_analyst_request(self, prompt):
-
         data = {
             "messages": [
                 {"role": "user", "content": [{"type": "text", "text": prompt}]}
@@ -385,7 +378,6 @@ class CortexAnalystTool(Tool):
         return url, headers, data
 
     def _process_message(self, response):
-
         # If Valid SQL is present in Cortex Analyst Response execute the query
         if "sql" == response[1]["type"]:
             sql_query = response[1]["statement"]
@@ -399,7 +391,6 @@ class CortexAnalystTool(Tool):
     def _prepare_analyst_description(
         self, connection, service_topic, data_source_description
     ):
-
         base_analyst_description = f"""cortexanalyst(prompt: str) -> str:\n
                   - takes a user's question about {service_topic } and queries {data_source_description}\n
                   - Returns the relevant metrics about {service_topic}\n"""
@@ -443,12 +434,10 @@ class PythonTool(Tool):
         return async_func
 
     def _generate_description(self, python_func, tool_description, output_description):
-
         full_sig = self._process_full_signature(python_func=python_func)
         return f"""{full_sig}\n - {tool_description}\n - {output_description}"""
 
     def _process_full_signature(self, python_func):
-
         name = python_func.__name__
         signature = str(inspect.signature(python_func))
         return name + signature
