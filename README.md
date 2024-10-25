@@ -1,4 +1,4 @@
-# Cortex Cube - A Multi Agent Framework For Snowflake 
+# Cortex Cube - A Multi Agent Framework For Snowflake
 
 Cortex Cube is a multi-agent framework that offers native support for Snowflake tools. Instead of requiring users or developers to choose between RAG with Cortex Search or Text2SQL with Cortex Analyst, let the Cube route the work to the appropriate tool based on the user's request.
 
@@ -17,8 +17,8 @@ Note that Cortex Cube does not configure the underlying Cortex Search or Cortex 
 
 > Mac users have reported SSL Certificate authentication issues for Snowflake's Cortex REST API, which impacts Cortex Cube. We've found that
 python environments on Mac don't always have access to the requisite certificates to successfully hit the REST endpoints.
-To resolve this, cd into your Python directory and run ./Install\ Certificates.command. Alternatively, using  Finder lookup the "Install  
-Certificates.command" and double click to run the file in your relevant Python directory. (If multiple results show up on Finder, make sure 
+To resolve this, cd into your Python directory and run ./Install\ Certificates.command. Alternatively, using  Finder lookup the "Install
+Certificates.command" and double click to run the file in your relevant Python directory. (If multiple results show up on Finder, make sure
 to run the one in the appropriate path for your application).]
 
 

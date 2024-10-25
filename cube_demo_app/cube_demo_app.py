@@ -15,7 +15,7 @@ import requests
 from CortexCube import CortexCube, CortexAnalystTool, CortexSearchTool, PythonTool
 from streamlit.runtime.scriptrunner_utils.script_run_context import add_script_run_ctx
 from CortexCube.tools.utils import parse_log_message
-import warnings, threading, queue 
+import warnings, threading, queue
 
 warnings.filterwarnings('ignore')
 load_dotenv("../.env")
@@ -117,7 +117,7 @@ class StreamlitLogHandler(logging.Handler):
 
     def get_logs(self):
         return self.log_buffer.getvalue()
-    
+
     def clear_logs(self):
         self.log_area.empty()
 
@@ -140,14 +140,14 @@ def run_acall(prompt, message_queue, analyst):
     sys.stdout = new_stdout
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    
+
     # Run the async call
     response = loop.run_until_complete(analyst.acall(prompt))
     loop.close()
-    
+
     # Restore stdout
     sys.stdout = old_stdout
-    
+
     # Capture and send logs to the message queue
     output = new_stdout.getvalue()
     lines = output.split('\n')
@@ -159,7 +159,7 @@ def run_acall(prompt, message_queue, analyst):
         elif line:
             logging.info(line)  # Log other messages
             message_queue.put(line)
-            
+
     # Ensure the final output is correctly added to the queue
     message_queue.put({'output': response['output']})
 
@@ -234,7 +234,7 @@ for id in st.session_state.prompt_history:
 
     with st.chat_message('user'):
         st.write(current_prompt.get('prompt'))
-        
+
     with st.chat_message('assistant'):
         if current_prompt.get('response') == 'waiting':
             # Create containers for tool selection and response
@@ -243,7 +243,7 @@ for id in st.session_state.prompt_history:
 
             # Start processing messages
             message_generator = process_message(prompt_id=id)
-            
+
             # Use a spinner while processing
             with st.spinner("Awaiting Response..."):
                 for response in message_generator:
@@ -259,4 +259,3 @@ for id in st.session_state.prompt_history:
 
 st.chat_input("Ask Anything", on_submit=create_prompt,
               key='chat_input', args=['chat_input'])
-

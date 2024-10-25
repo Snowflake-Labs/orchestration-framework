@@ -8,7 +8,7 @@ def parse_log_message(log_message):
             start = task_info.find('running') + len('running')
             end = task_info.find('task')
             tool_name = task_info[start:end].strip().replace('_', ' ').upper()
-            
+
             # Determine tool type
             if 'CORTEXANALYST' in tool_name:
                 tool_type = "Cortex Analyst"
@@ -18,5 +18,5 @@ def parse_log_message(log_message):
                 tool_name = tool_name.replace('CORTEXSEARCH', "")
             else:
                 tool_type = "Python"
-                
+
             return f"Running {tool_name} {tool_type} Tool..."
