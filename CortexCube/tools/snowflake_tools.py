@@ -314,7 +314,7 @@ class CortexAnalystTool(Tool):
             service_topic=service_topic,
             data_source_description=data_description,
         )
-        tool_name = f"""{snowpark_connection.get_current_schema().replace('"',"")}_cortexanalyst"""
+        tool_name = "cortexanalyst"
         super().__init__(
             name=tool_name, func=self.asearch, description=tool_description
         )
@@ -398,7 +398,7 @@ class CortexAnalystTool(Tool):
         self, connection, service_topic, data_source_description
     ):
 
-        base_analyst_description = f"""{connection.get_current_schema().replace('"','')}_cortexanalyst(prompt: str) -> str:\n
+        base_analyst_description = f"""cortexanalyst(prompt: str) -> str:\n
                   - takes a user's question about {service_topic } and queries {data_source_description}\n
                   - Returns the relevant metrics about {service_topic}\n"""
 
