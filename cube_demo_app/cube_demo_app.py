@@ -1,21 +1,22 @@
-from dotenv import load_dotenv
-from snowflake.snowpark import Session
-
-import streamlit as st
+import asyncio
 import io
 import json
-import asyncio
-import re
-
 import os
-import uuid
+import queue
+import re
 import sys
-import requests
+import threading
+import uuid
+import warnings
 
-from CortexCube import CortexCube, CortexAnalystTool, CortexSearchTool, PythonTool
+import requests
+import streamlit as st
+from dotenv import load_dotenv
+from snowflake.snowpark import Session
 from streamlit.runtime.scriptrunner_utils.script_run_context import add_script_run_ctx
+
+from CortexCube import CortexAnalystTool, CortexCube, CortexSearchTool, PythonTool
 from CortexCube.tools.utils import parse_log_message
-import warnings, threading, queue
 
 warnings.filterwarnings('ignore')
 load_dotenv("../.env")
@@ -103,6 +104,7 @@ def create_prompt(prompt_key: str):
 source_list = []
 
 import logging
+
 
 class StreamlitLogHandler(logging.Handler):
     def __init__(self):

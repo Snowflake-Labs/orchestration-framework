@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Collection, Dict, List, Optional
-import logging
-from CortexCube.tools.logger import cube_logger
 
+from CortexCube.tools.logger import cube_logger
 
 SCHEDULING_INTERVAL = 0.01  # seconds
 

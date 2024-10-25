@@ -24,10 +24,11 @@ from langchain.callbacks.manager import (
 )
 from langchain.load.dump import dumpd
 from langchain.load.serializable import Serializable
-#from langchain.pydantic_v1 import Field, root_validator, validator
-from pydantic import Field,model_validator,field_validator
 from langchain.schema import RUN_KEY, BaseMemory, RunInfo
 from langchain.schema.runnable import Runnable, RunnableConfig
+
+#from langchain.pydantic_v1 import Field, root_validator, validator
+from pydantic import Field, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
 
