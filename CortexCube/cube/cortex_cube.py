@@ -13,7 +13,7 @@ from CortexCube.cube.planner import Planner
 from CortexCube.cube.task_fetching_unit import Task, TaskFetchingUnit
 from CortexCube.tools.base import StructuredTool, Tool
 import logging
-from CortexCube.tools.logger import cube_logger 
+from CortexCube.tools.logger import cube_logger
 
 
 class CubeAgent:
@@ -22,7 +22,7 @@ class CubeAgent:
     def __init__(self, session,llm) -> None:
         self.llm = llm
         self.session = session
-    
+
     async def arun(self, prompt: str) -> str:
         """Run the LLM."""
         headers,url,data =self._prepare_llm_request(prompt=prompt)
@@ -53,7 +53,7 @@ class CubeAgent:
         data = {"model": self.llm, "messages": [{"content": prompt}]}
 
         return headers,url,data
-    
+
     def _parse_snowflake_response(self, data_str):
 
         json_objects = data_str.split("\ndata: ")
@@ -126,7 +126,7 @@ class CortexCube(Chain,extra="allow"):
             joinner_prompt: Prompt to use for joinner.
             joinner_prompt_final: Prompt to use for joinner at the final replanning iter.
                 If not assigned, default to `joinner_prompt`.
-        """        
+        """
         super().__init__(name="compiler",**kwargs)
 
         if not planner_example_prompt_replan:
@@ -160,7 +160,7 @@ class CortexCube(Chain,extra="allow"):
     @property
     def output_keys(self) -> List[str]:
         return [self.output_key]
-       
+
 
     def _parse_joinner_output(self, raw_answer: str) -> str:
         """We expect the joinner output format to be:
@@ -184,7 +184,7 @@ class CortexCube(Chain,extra="allow"):
         is_replan = True if JOINNER_REPLAN in answer else False
 
         return thought, answer, is_replan
-        
+
     def _extract_answer(self,raw_answer):
         start_index = raw_answer.find('Action: Finish(')
         replan_index = raw_answer.find('Replan')
@@ -260,7 +260,7 @@ class CortexCube(Chain,extra="allow"):
             f"{agent_scratchpad}\n"  # T-A-O
             # "---\n"
         )
-        
+
         response = await self.agent.arun(prompt)
         raw_answer = cast(str, response)
         cube_logger.log(logging.DEBUG,"Question: \n", input_query, block=True)
@@ -270,13 +270,13 @@ class CortexCube(Chain,extra="allow"):
             # If final, we don't need to replan
             is_replan = False
         return thought, answer, is_replan
-    
+
     def _call(self, inputs):
         return self.__call__(inputs)
 
     def __call__(self, input:str):
         """Calls Cortex Cube multi-agent system.
-        
+
         Params:
             input (str): user's natural language request
         """
@@ -328,7 +328,7 @@ class CortexCube(Chain,extra="allow"):
                         [self.planner_callback] if self.planner_callback else None
                     ),
                 )
-                
+
                 task_fetching_unit.set_tasks(tasks)
                 await task_fetching_unit.schedule()
             tasks = task_fetching_unit.tasks
@@ -363,5 +363,3 @@ class CortexCube(Chain,extra="allow"):
             inputs["context"] = formatted_contexts
 
         return {self.output_key: answer}
-    
-    

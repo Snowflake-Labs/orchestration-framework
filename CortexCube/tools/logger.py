@@ -30,7 +30,7 @@ class Logger:
         if not self.logger.handlers:
             self.file_handler = logging.FileHandler('logs.log', mode='a')
             self.file_handler.setLevel(logging_level)  # Log all levels
-            
+
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             self.file_handler.setFormatter(formatter)
 

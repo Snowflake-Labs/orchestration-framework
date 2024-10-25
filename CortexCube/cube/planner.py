@@ -249,7 +249,7 @@ class Planner:
         data = {"model": self.llm, "messages": [{"content": prompt}]}
 
         return headers,url,data
-    
+
     def _parse_snowflake_response(self, data_str):
 
         json_objects = data_str.split("\ndata: ")

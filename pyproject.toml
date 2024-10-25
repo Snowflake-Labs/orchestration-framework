@@ -28,5 +28,3 @@ streamlit = "^1.39.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-
