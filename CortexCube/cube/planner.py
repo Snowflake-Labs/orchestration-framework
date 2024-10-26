@@ -20,6 +20,8 @@ from CortexCube.cube.output_parser import (
 from CortexCube.cube.task_fetching_unit import Task
 from CortexCube.executors.schema import Plan
 from CortexCube.tools.base import StructuredTool, Tool
+from CortexCube.tools.logger import cube_logger
+import logging
 
 JOIN_DESCRIPTION = (
     "join():\n"
@@ -272,6 +274,7 @@ class Planner:
             if "content" in choices["delta"].keys():
                 completion += choices["delta"]["content"]
 
+        cube_logger.log(logging.DEBUG, f"Planner response:{completion}")
         return completion
 
     async def plan(self, inputs: dict, is_replan: bool, **kwargs: Any):
