@@ -287,7 +287,6 @@ class CortexAnalystTool(Tool):
     STAGE: str = ""
     FILE: str = ""
     CONN: object = None
-    name: str = ""
 
     def __init__(
         self,
@@ -296,7 +295,7 @@ class CortexAnalystTool(Tool):
         service_topic,
         data_description,
         snowpark_connection,
-    ) -> None:
+    ):
         """Parameters
 
         ----------
@@ -307,15 +306,14 @@ class CortexAnalystTool(Tool):
         snowpark_connection (object): snowpark connection object
         """
 
+        tname = semantic_model.replace(".yaml", "") + "_" + "cortexanalyst"
         tool_description = self._prepare_analyst_description(
-            connection=snowpark_connection,
+            name=tname,
             service_topic=service_topic,
             data_source_description=data_description,
         )
-        tool_name = "cortexanalyst"
-        super().__init__(
-            name=tool_name, func=self.asearch, description=tool_description
-        )
+
+        super().__init__(name=tname, func=self.asearch, description=tool_description)
         self.CONN = snowpark_connection
         self.FILE = semantic_model
         self.STAGE = stage
@@ -389,9 +387,9 @@ class CortexAnalystTool(Tool):
             return "Invalid Query"
 
     def _prepare_analyst_description(
-        self, connection, service_topic, data_source_description
+        self, name, service_topic, data_source_description
     ):
-        base_analyst_description = f"""cortexanalyst(prompt: str) -> str:\n
+        base_analyst_description = f"""{name}(prompt: str) -> str:\n
                   - takes a user's question about {service_topic } and queries {data_source_description}\n
                   - Returns the relevant metrics about {service_topic}\n"""
 
