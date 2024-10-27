@@ -1,33 +1,51 @@
-# Cortex Cube - A Multi Agent Framework For Snowflake
+# Cortex Cube 
 
-Cortex Cube is a multi-agent framework that offers native support for Snowflake tools. Instead of requiring users or developers to choose between RAG with Cortex Search or Text2SQL with Cortex Analyst, let the Cube route the work to the appropriate tool based on the user's request.
+Cortex Cube is a multi-agent framework that offers native support for Snowflake tools. Instead of requiring users or developers to choose between RAG with Cortex Search or Text2SQL with Cortex Analyst, let the Cube orchestrate the users' requests to the appropriate tool. 
 
 CortexCube can be configured to work with 3 types of tools:
 - **Cortex Search Tool**: For unstructured data analysis, which requires a standard RAG access pattern.
 - **Cortex Analyst Tool**: For supporting structured data analysis, which requires a Text2SQL access pattern.
-- **Python Tool**: For supporting custom user operations (using 3rd Party API's), which requires calling arbitrary python.
+- **Python Tool**: For supporting custom user operations (i.e. sending API requests to third party services), which requires calling arbitrary python.
 
-See the Cube Quickstart notebook for a walkthrough of how to configure and run a system with all 3 types of tools. The demo is designed to illustrate how the agent can answer questions that require a divserse combination of tools (RAG,Text2SQL, Python, or a combination).
+Users have the flexibility to create multiple Cortex Search and Cortex Analyst tools for use with Cortex Cube. For a walkthrough of how to configure and run a system with all 3 types of tools, see the quickstart notebook. 
 
-## Requirements
+# Getting Started 
 
-Note that Cortex Cube does not configure the underlying Cortex Search or Cortex Analyst services for the user. Those services must be configured before initializing Cortex Cube.
+## Installation [ TO BE UPDATED]
+```python
+pip install cortex-cube
+```
 
->**Authentication for Mac Users**
+## Tool Requirements
 
-> Mac users have reported SSL Certificate authentication issues for Snowflake's Cortex REST API, which impacts Cortex Cube. We've found that
-python environments on Mac don't always have access to the requisite certificates to successfully hit the REST endpoints.
-To resolve this, cd into your Python directory and run ./Install\ Certificates.command. Alternatively, using  Finder lookup the "Install
-Certificates.command" and double click to run the file in your relevant Python directory. (If multiple results show up on Finder, make sure
-to run the one in the appropriate path for your application).]
+Cortex Cube requires the underlying Cortex Search, Cortex Analyst, or Python tools to be configured by the user. 
 
+To follow the Quickstart, you can generate the Cortex Search and Cortex Analyst demo services as follows:
+```python
+from CortexCube.tools.utils import generate_demo_services
+
+connection_parameters = {
+    "account": os.getenv("SNOWFLAKE_ACCOUNT"),
+    "user": os.getenv("SNOWFLAKE_USER"),
+    "password": os.getenv("SNOWFLAKE_PASSWORD"),
+    "role": os.getenv("SNOWFLAKE_ROLE"),
+    "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
+    "database": os.getenv("SNOWFLAKE_DATABASE"),
+    "schema": os.getenv("SNOWFLAKE_SCHEMA"),
+}
+
+generate_demo_services(connection_parameters)
+```
 
 
 ## Snowflake Tool Configuration
+Tools must be configured with relevant metadata for the Cube to route requests to the appropriate service.
 
-See CubeQuickstart.ipynb for a complete walkthrough of configuration and usage.
+NOTE: For best results, use specific and mutually exclusive language in your metadata descriptions to make it easy for Cortex Cube to delegate work to the right tools.
 
+##### Cortex Search Tool Configuration
 ```python
+from CortexCube import CortexSearchTool,CortexAnalystTool,PythonTool
 
 # Cortex Search Service Config
 search_config = {
@@ -38,6 +56,10 @@ search_config = {
     "snowpark_connection": snowpark
 }
 
+annual_reports = CortexSearchTool(**search_config)
+```
+##### Cortex Analyst Tool Configuration
+```python
 # Cortex Analyst Config
 analyst_config = {
     "semantic_model":"sp500_semantic_model.yaml",
@@ -47,15 +69,24 @@ analyst_config = {
     "snowpark_connection": snowpark
 }
 
-annual_reports = CortexSearchTool(**search_config)
 sp500 = CortexAnalystTool(**analyst_config)
-snowflake_tools = [annual_reports,sp500]
+```
+##### Python Tool Configuration
+```python
+python_config = {
+    "tool_description": "searches for relevant news based on user query",
+    "output_description": "relevant articles",
+    "python_func": news_search,
+}
+
+news_search = PythonTool(**python_config)
 ```
 
-## Cortex Cube - Configuration + Usage
+## Cube Configuration + Usage
 ````python
 
 # Config + Initialize Cortex Cube
+snowflake_tools = [annual_reports,sp500,news_search]
 analyst = CortexCube(snowpark_session=snowpark,tools=snowflake_tools)
 
 # Run Cortex Cube
@@ -66,3 +97,41 @@ print(answer)
 answer = await analyst.acall("What is the average price for toothbrushes?")
 print(answer)
 ````
+
+# FAQs
+
+#### Where does Cortex Cube run?
+- This initial version of Cortex Cube is a client-side library. Orchestration is done by Cortex Cube in your local enviornment while the compute is done inside of Snowflake.
+
+#### Does Cortex Cube work with a Streamlit UI?
+- Yes, see the cube_demo_app directory for an example Streamlit app that uses Cortex Cube for orchestration across Cortex Search, Cortex Analyst, and Python tools. Note, running Cortex Cube in SiS is not yet supported.
+
+#### How does authentication work with Cortex Cube?
+- Cortex Cube takes an authenticated snowpark connection. Just create your session object with your standard [connection parameters](https://docs.snowflake.com/en/developer-guide/snowpark/reference/python/latest/snowpark/api/snowflake.snowpark.Session)
+
+#### If I have multiple Cortex Search Services, can I use multiple Cortex Search tools with Cortex Cube?
+- Yes, Cortex Cube supports the use of multiple tools of the same type. 
+```python
+search_one = CortexSearchTool(**search_one_config)
+search_two = CortexSearchTool(**search_two_config)
+cube = CortexCube(snowpark_session=session,tools=[search_one,search_two]
+```
+
+#### If my snowflake tools live in different accounts / schemas, can I still use Cortex Cube?
+- Yes. The Cortex Analyst and Cortex Search tools take in a snowpark session as an input. This allows users to use different sessions / accounts in the same Cortex Cube instance.
+
+#### How can I see which tools are being used by Cortex Cube?
+- The Cortex Cube logger is set to INFO level by default. This allows users to view which tools are being used to answer the user's question. For more detailed logging and visibility into intermediary results of the tool calls, set the LOGGING_LEVE=DEBUG.
+
+#### I'm not getting any results when I submit a user request to the Cube. How do I debug this?
+- If the end to end Cube run doesn't return any results, try running the tools separately to validate that they've been configured appropriately. Tools are implemented asynchronousy, so you can run your tools in isolation and validate the config as follows:
+```python
+tool_result = await my_cortex_search_tool("This is a sample cortex search question")
+```
+
+# Bug Reports, Feedback, or Other Questions
+- You can add issues to the github or email Alejandro Herrera (alejandro.herrera@snowflake.com)
+
+
+
+
