@@ -6,6 +6,8 @@ import pytest
 from dotenv import load_dotenv
 from snowflake.snowpark import Session
 
+from CortexCube.tools.utils import generate_demo_services
+
 
 class TestConf:
     def __init__(self):
@@ -19,18 +21,9 @@ class TestConf:
         }
         return Session.builder.configs(connection_params).getOrCreate()
 
-    def setup_objects(self):
-        scripts = sorted(list(Path("tests/scripts").glob("*.sql")))
-        print(len(scripts))
-        con = self.session.connection
-        for script in scripts:
-            with open(script) as f:
-                deque(con.execute_stream(f), maxlen=0)
-        self.session.use_schema("CUBE_TESTING.PUBLIC")
-
 
 @pytest.fixture(scope="session")
 def session():
     conf = TestConf()
-    conf.setup_objects()
+    generate_demo_services(conf.session)
     yield conf.session

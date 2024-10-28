@@ -1,7 +1,13 @@
-from snowflake.snowpark import Session
-from snowflake.connector.connection import SnowflakeConnection
+import io
+import os
+from collections import deque
+from pathlib import Path
+from textwrap import dedent
 from typing import Union
 from urllib.parse import urlunparse
+
+from snowflake.connector.connection import SnowflakeConnection
+from snowflake.snowpark import Session
 
 
 class CortexEndpointBuilder:
@@ -64,3 +70,80 @@ def parse_log_message(log_message):
                 tool_type = "Python"
 
             return f"Running {tool_name} {tool_type} Tool..."
+
+
+def generate_demo_services(session: Session):
+    setup_objects = io.StringIO(
+        dedent(
+            """
+        CREATE DATABASE IF NOT EXISTS CUBE_TESTING;
+        CREATE WAREHOUSE IF NOT EXISTS CUBE_TESTING
+            WAREHOUSE_SIZE = 'XSMALL'
+            AUTO_SUSPEND = 60;
+        CREATE STAGE IF NOT EXISTS CUBE_TESTING.PUBLIC.ANALYST;
+        CREATE STAGE IF NOT EXISTS CUBE_TESTING.PUBLIC.DATA;
+        CREATE TABLE IF NOT EXISTS CUBE_TESTING.PUBLIC.SEC_CHUNK_SEARCH (
+            RELATIVE_PATH VARCHAR,
+            CHUNK VARCHAR
+        );
+        CREATE TABLE IF NOT EXISTS CUBE_TESTING.PUBLIC.SP500 (
+            EXCHANGE VARCHAR,
+            SYMBOL VARCHAR,
+            SHORTNAME VARCHAR,
+            LONGNAME VARCHAR,
+            SECTOR VARCHAR,
+            INDUSTRY VARCHAR,
+            CURRENTPRICE NUMBER(38,3),
+            MARKETCAP NUMBER(38,0),
+            EBITDA NUMBER(38,0),
+            REVENUEGROWTH NUMBER(38,3),
+            CITY VARCHAR,
+            STATE VARCHAR,
+            COUNTRY VARCHAR,
+            FULLTIMEEMPLOYEES NUMBER(38,0),
+            LONGBUSINESSSUMMARY VARCHAR,
+            WEIGHT NUMBER(38,20)
+        );
+        """
+        )
+    )
+    copy_into = io.StringIO(
+        dedent(
+            """
+    COPY INTO CUBE_TESTING.PUBLIC.SEC_CHUNK_SEARCH
+    FROM @CUBE_TESTING.PUBLIC.DATA/sec_chunk_search.parquet
+    FILE_FORMAT = (TYPE = PARQUET)
+    MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE;
+
+    COPY INTO CUBE_TESTING.PUBLIC.SP500
+    FROM @CUBE_TESTING.PUBLIC.DATA/sp500.parquet
+    FILE_FORMAT = (TYPE = PARQUET)
+    MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE;
+    """
+        )
+    )
+    current_path = os.getcwd()
+    os.chdir(Path(__file__).parent)
+    con = session.connection
+    deque(con.execute_stream(setup_objects), maxlen=0)
+    session.file.put("data/sp500_semantic_model.yaml", "CUBE_TESTING.PUBLIC.ANALYST")
+    session.file.put("data/*.parquet", "CUBE_TESTING.PUBLIC.DATA")
+    deque(con.execute_stream(copy_into), maxlen=0)
+    con.cursor().execute(
+        dedent(
+            """
+    CREATE CORTEX SEARCH SERVICE IF NOT EXISTS CUBE_TESTING.PUBLIC.SEC_SEARCH_SERVICE
+    ON CHUNK
+    attributes RELATIVE_PATH
+    warehouse='CUBE_TESTING'
+    target_lag='DOWNSTREAM'
+    AS (
+    SELECT
+        RELATIVE_PATH,
+        CHUNK
+    FROM SEC_CHUNK_SEARCH
+    );
+    """
+        )
+    )
+    os.chdir(current_path)
