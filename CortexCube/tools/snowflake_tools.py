@@ -12,6 +12,7 @@ from snowflake.snowpark.functions import col
 
 from CortexCube.agents.tools import Tool
 from CortexCube.tools.logger import cube_logger
+from CortexCube.tools.utils import CortexEndpointBuilder
 
 
 class SnowflakeError(Exception):
@@ -101,8 +102,12 @@ class CortexSearchTool(Tool):
             "Authorization": f'Snowflake Token="{self.session.connection.rest.token}"',
         }
 
-        url = f"""https://{self.session.connection.host}/api/v2/databases/{self.session.get_current_database().replace('"', '')}/schemas/{self.session.get_current_schema().replace('"', '')}/cortex-search-services/{self.service_name}:query"""
-
+        eb = CortexEndpointBuilder(self.session)
+        url = eb.get_search_endpoint(
+            self.session.get_current_database().replace('"', ""),
+            self.session.get_current_schema().replace('"', ""),
+            self.service_name,
+        )
         if self.auto_filter:
             search_attributes, sample_vals = self._get_sample_values(
                 snowpark_session=self.session, cortex_search_service=self.service_name
@@ -366,7 +371,8 @@ class CortexAnalystTool(Tool):
             "semantic_model_file": f"""@{self.CONN.get_current_database().replace('"',"")}.{self.CONN.get_current_schema().replace('"',"")}.{self.STAGE}/{self.FILE}""",
         }
 
-        url = f"""https://{self.CONN.connection._host.replace('"',"")}/api/v2/cortex/analyst/message"""
+        eb = CortexEndpointBuilder(self.CONN)
+        url = eb.get_analyst_endpoint()
 
         headers = {
             "Authorization": f'Snowflake Token="{self.CONN.connection.rest.token}"',

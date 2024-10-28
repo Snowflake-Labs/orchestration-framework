@@ -20,6 +20,7 @@ from CortexCube.cube.output_parser import (
 from CortexCube.cube.task_fetching_unit import Task
 from CortexCube.executors.schema import Plan
 from CortexCube.tools.base import StructuredTool, Tool
+from CortexCube.tools.utils import CortexEndpointBuilder
 from CortexCube.tools.logger import cube_logger
 import logging
 
@@ -245,7 +246,8 @@ class Planner:
             "Authorization": f'Snowflake Token="{self.session.connection.rest.token}"',
         }
 
-        url = f"""https://{self.session.get_current_account().replace('"',"")}.snowflakecomputing.com/api/v2/cortex/inference:complete"""
+        eb = CortexEndpointBuilder(self.session)
+        url = eb.get_complete_endpoint()
         data = {"model": self.llm, "messages": [{"content": prompt}]}
 
         return headers, url, data
