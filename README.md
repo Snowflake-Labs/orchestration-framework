@@ -89,14 +89,14 @@ news_search = PythonTool(**python_config)
 
 # Config + Initialize Cortex Cube
 snowflake_tools = [annual_reports,sp500,news_search]
-analyst = CortexCube(snowpark_session=snowpark,tools=snowflake_tools)
+cube_agent = CortexCube(snowpark_session=snowpark,tools=snowflake_tools)
 
 # Run Cortex Cube
-answer = analyst("What is the average price for toothbrushes?")
+answer = cube_agent("What is the average price for toothbrushes?")
 print(answer)
 
 # Async Execution of Cortex Cube
-answer = await analyst.acall("What is the average price for toothbrushes?")
+answer = await cube_agent.acall("What is the average price for toothbrushes?")
 print(answer)
 ````
 
