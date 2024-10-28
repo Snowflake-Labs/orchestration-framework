@@ -11,7 +11,7 @@ Users have the flexibility to create multiple Cortex Search and Cortex Analyst t
 
 # Getting Started 
 
-## Installation [ TO BE UPDATED]
+## Installation 
 ```python
 pip install git+https://github.com/sfc-gh-alherrera/cortex-cube.git
 ```
