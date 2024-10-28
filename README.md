@@ -17,9 +17,7 @@ In a new virtual enviornment with Python 3.10 or 3.11, install the latest versio
 pip install cortex-cube@git+https://github.com/sfc-gh-alherrera/cortex-cube.git
 ```
 
-**Note For Mac Users**: Mac users have reported SSL Certificate issues when using the Cortex REST API. This is related to python virtual enviornments not having access to local certificates. To avoid SSL Certificate issues, use Finder to locate the "Install Certificates.command" file in your relevant python directory and run that file before initializing Cortex Cube.
-
-## Tool Requirements
+**Note For Mac Users**: Mac users have reported SSL Certificate issues when using the Cortex REST API. This is related to python virtual enviornments not having access to local certificates. One potential solution to avoid SSL Certificate issues is to use Finder to locate the "Install Certificates.command" file in your relevant python directory and run that file before initializing Cortex Cube. See [this thread](https://github.com/python/cpython/issues/87570#issuecomment-1093904961) for more info.
 
 Cortex Cube requires the underlying Cortex Search, Cortex Analyst, or Python tools to be configured by the user. 
 
