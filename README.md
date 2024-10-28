@@ -12,9 +12,12 @@ Users have the flexibility to create multiple Cortex Search and Cortex Analyst t
 # Getting Started 
 
 ## Installation 
+In a new virtual enviornment with Python 3.10 or 3.11, install the latest version of Cortex Cube.
 ```python
-pip install git+https://github.com/sfc-gh-alherrera/cortex-cube.git
+pip install cortex-cube@git+https://github.com/sfc-gh-alherrera/cortex-cube.git
 ```
+
+**Note For Mac Users**: Mac users have reported SSL Certificate issues when using the Cortex REST API. This is related to python virtual enviornments not having access to local certificates. To avoid SSL Certificate issues, use Finder to locate the "Install Certificates.command" file in your relevant python directory and run that file before initializing Cortex Cube.
 
 ## Tool Requirements
 
