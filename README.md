@@ -25,18 +25,21 @@ Cortex Cube requires the underlying Cortex Search, Cortex Analyst, or Python too
 To follow the Quickstart, you can generate the Cortex Search and Cortex Analyst demo services as follows:
 ```python
 from CortexCube.tools.utils import generate_demo_services
+from snowflake.snowpark import Session
 
 connection_parameters = {
-    "account": os.getenv("SNOWFLAKE_ACCOUNT"),
-    "user": os.getenv("SNOWFLAKE_USER"),
-    "password": os.getenv("SNOWFLAKE_PASSWORD"),
-    "role": os.getenv("SNOWFLAKE_ROLE"),
-    "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
-    "database": os.getenv("SNOWFLAKE_DATABASE"),
-    "schema": os.getenv("SNOWFLAKE_SCHEMA"),
-}
+    
+    "account": os.getenv('SNOWFLAKE_ACCOUNT'),
+    "user": os.getenv('SNOWFLAKE_USER'),
+    "password": os.getenv('SNOWFLAKE_PASSWORD'),
+    "role": os.getenv('SNOWFLAKE_ROLE'),
+    "warehouse": os.getenv('SNOWFLAKE_WAREHOUSE'),
+    "database": os.getenv('SNOWFLAKE_DATABASE'),
+    "schema": os.getenv('SNOWFLAKE_SCHEMA')}  
 
-generate_demo_services(connection_parameters)
+session = Session.builder.configs(connection_parameters).create()
+
+generate_demo_services(session)
 ```
 
 
