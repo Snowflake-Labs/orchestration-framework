@@ -89,31 +89,6 @@ def _parse_llm_compiler_action_args(args: str) -> Union[Tuple[Any, ...], Tuple[s
         return (args,)
 
 
-# def _parse_llm_compiler_action_args(args: str) -> list[Any]:
-#     """Parse arguments from a string."""
-#     # This will convert the string into a python object
-#     # e.g. '"Ronaldo number of kids"' -> ("Ronaldo number of kids", )
-#     # '"I can answer the question now.", [3]' -> ("I can answer the question now.", [3])
-#     args = args.strip()
-
-#     # Remove leading/trailing quotes if present
-#     if (args.startswith('"') and args.endswith('"')) or (args.startswith("'") and args.endswith("'")):
-#         args = args[1:-1]
-
-#     if '\n' in args:
-#         args = f'"""{args}"""'
-
-#     if args == "":
-#         return ()
-#     try:
-#         args = ast.literal_eval(args)
-#     except ValueError:
-#         args = args
-#     if not isinstance(args, list) and not isinstance(args, tuple):
-#         args = (args,)
-#     return args
-
-
 def _find_tool(
     tool_name: str, tools: Sequence[Union[Tool, StructuredTool]]
 ) -> Union[Tool, StructuredTool]:
