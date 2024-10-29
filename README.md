@@ -58,7 +58,7 @@ search_config = {
     "service_topic":"Snowflake's business,product offerings,and performance",
     "data_description": "Snowflake annual reports",
     "retrieval_columns":["CHUNK"],
-    "snowpark_connection": snowpark
+    "snowpark_connection": session
 }
 
 annual_reports = CortexSearchTool(**search_config)
@@ -71,7 +71,7 @@ analyst_config = {
     "stage":"SEMANTICS",
     "service_topic":"S&P500 company and stock metrics",
     "data_description": "a table with stock and financial metrics about S&P500 companies ",
-    "snowpark_connection": snowpark
+    "snowpark_connection": session
 }
 
 sp500 = CortexAnalystTool(**analyst_config)
@@ -92,7 +92,7 @@ news_search = PythonTool(**python_config)
 
 # Config + Initialize Cortex Cube
 snowflake_tools = [annual_reports,sp500,news_search]
-cube_agent = CortexCube(snowpark_session=snowpark,tools=snowflake_tools)
+cube_agent = CortexCube(snowpark_session=session,tools=snowflake_tools)
 
 # Run Cortex Cube
 answer = cube_agent("What is the average price for toothbrushes?")
