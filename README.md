@@ -22,7 +22,7 @@ pip install cortex-cube@git+https://github.com/sfc-gh-alherrera/cortex-cube.git
 ## Tool Requirements
 Cortex Cube requires the underlying Cortex Search, Cortex Analyst, or Python tools to be configured by the user. 
 
-To follow the Quickstart, you can generate the Cortex Search and Cortex Analyst demo services as follows:
+To follow the Quickstart notebook in this repo, you can generate the Cortex Search and Cortex Analyst demo services as follows:
 ```python
 from CortexCube.tools.utils import generate_demo_services
 from snowflake.snowpark import Session
