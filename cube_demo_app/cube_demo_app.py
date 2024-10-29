@@ -13,7 +13,6 @@ import requests
 import streamlit as st
 from dotenv import load_dotenv
 from snowflake.snowpark import Session
-from streamlit.runtime.scriptrunner_utils.script_run_context import add_script_run_ctx
 
 from CortexCube import CortexAnalystTool, CortexCube, CortexSearchTool, PythonTool
 from CortexCube.tools.utils import parse_log_message
@@ -32,9 +31,7 @@ connection_parameters = {
     "schema": os.getenv("SNOWFLAKE_SCHEMA"),
 }
 
-
 os.environ["NEWS_API_TOKEN"] = os.getenv("NEWS_API_TOKEN")
-snowpark = Session.builder.configs(connection_parameters).create()
 
 
 class NewsTool:
@@ -67,15 +64,15 @@ if "snowpark" not in st.session_state or st.session_state.snowpark is None:
         "service_topic": "Snowflake's business,product offerings,and performance",
         "data_description": "Snowflake annual reports",
         "retrieval_columns": ["CHUNK"],
-        "snowpark_connection": snowpark,
+        "snowpark_connection": st.session_state.snowpark,
     }
 
     analyst_config = {
         "semantic_model": "sp500_semantic_model.yaml",
-        "stage": "SEMANTICS",
+        "stage": "ANALYST",
         "service_topic": "S&P500 company and stock metrics",
         "data_description": "a table with stock and financial metrics about S&P500 companies ",
-        "snowpark_connection": snowpark,
+        "snowpark_connection": st.session_state.snowpark,
     }
 
     # Tools Config
