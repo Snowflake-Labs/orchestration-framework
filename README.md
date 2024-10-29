@@ -1,6 +1,6 @@
 # Cortex Cube 
 
-Cortex Cube is a multi-agent framework that offers native support for Snowflake tools. Instead of requiring users or developers to choose between RAG with Cortex Search or Text2SQL with Cortex Analyst, let the Cube orchestrate the users' requests to the appropriate tool. 
+Cortex Cube is a multi-agent framework that offers native support for Snowflake tools. Instead of requiring users or developers to choose between RAG with Cortex Search or Text2SQL with Cortex Analyst, let the Cube orchestrate the user requests to the appropriate tool. 
 
 CortexCube can be configured to work with 3 types of tools:
 - **Cortex Search Tool**: For unstructured data analysis, which requires a standard RAG access pattern.
@@ -46,7 +46,7 @@ generate_demo_services(session)
 ## Snowflake Tool Configuration
 Tools must be configured with relevant metadata for the Cube to route requests to the appropriate service.
 
-NOTE: For best results, use specific and mutually exclusive language in your metadata descriptions to make it easy for Cortex Cube to delegate work to the right tools.
+**NOTE:** For best results, use specific and mutually exclusive language in your metadata descriptions to make it easy for Cortex Cube to delegate work to the right tools.
 
 ##### Cortex Search Tool Configuration
 ```python
