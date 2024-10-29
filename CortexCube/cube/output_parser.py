@@ -1,6 +1,6 @@
 import ast
 import re
-from typing import Any, Sequence, Union
+from typing import Any, Sequence, Union, Tuple
 
 # from langchain.agents.agent import AgentOutputParser
 from langchain.schema import OutputParserException
@@ -9,7 +9,8 @@ from CortexCube.cube.task_fetching_unit import Task
 from CortexCube.tools.base import StructuredTool, Tool
 
 THOUGHT_PATTERN = r"Thought: ([^\n]*)"
-ACTION_PATTERN = r"\n*(\d+)\. (\w+)\((.*)\)(\s*#\w+\n)?"
+# ACTION_PATTERN = r"\n*(\d+)\. (\w+)\((.*)\)(\s*#\w+\n)?"
+ACTION_PATTERN = r"\n*(\d+)\. (\w+)\((.*?)\)(\s*#\w+\n)?"
 # $1 or ${1} -> 1
 ID_PATTERN = r"\$\{?(\d+)\}?"
 
@@ -33,7 +34,8 @@ class CubePlanParser:
         # 1. search("Ronaldo number of kids") -> 1, "search", '"Ronaldo number of kids"'
         # pattern = r"(\d+)\. (\w+)\(([^)]+)\)"
         pattern = rf"(?:{THOUGHT_PATTERN}\n)?{ACTION_PATTERN}"
-        matches = re.findall(pattern, text)
+        # matches = re.findall(pattern, text)
+        matches = re.findall(pattern, text, re.DOTALL)
 
         graph_dict = {}
 
@@ -61,20 +63,55 @@ class CubePlanParser:
 ### Helper functions
 
 
-def _parse_llm_compiler_action_args(args: str) -> list[Any]:
+def _parse_llm_compiler_action_args(args: str) -> Union[Tuple[Any, ...], Tuple[str]]:
     """Parse arguments from a string."""
-    # This will convert the string into a python object
-    # e.g. '"Ronaldo number of kids"' -> ("Ronaldo number of kids", )
-    # '"I can answer the question now.", [3]' -> ("I can answer the question now.", [3])
+    args = args.strip()
+
+    # Remove leading/trailing quotes if present
+    if (args.startswith('"') and args.endswith('"')) or (
+        args.startswith("'") and args.endswith("'")
+    ):
+        args = args[1:-1]
+
+    if "\n" in args:
+        args = f'"""{args}"""'
+
     if args == "":
         return ()
+
     try:
-        args = ast.literal_eval(args)
-    except ValueError:
-        args = args
-    if not isinstance(args, list) and not isinstance(args, tuple):
-        args = (args,)
-    return args
+        parsed_args = ast.literal_eval(args)
+        if not isinstance(parsed_args, (list, tuple)):
+            return (parsed_args,)
+        return tuple(parsed_args)
+    except (ValueError, SyntaxError):
+        # If literal_eval fails, return the original string as a single-element tuple
+        return (args,)
+
+
+# def _parse_llm_compiler_action_args(args: str) -> list[Any]:
+#     """Parse arguments from a string."""
+#     # This will convert the string into a python object
+#     # e.g. '"Ronaldo number of kids"' -> ("Ronaldo number of kids", )
+#     # '"I can answer the question now.", [3]' -> ("I can answer the question now.", [3])
+#     args = args.strip()
+
+#     # Remove leading/trailing quotes if present
+#     if (args.startswith('"') and args.endswith('"')) or (args.startswith("'") and args.endswith("'")):
+#         args = args[1:-1]
+
+#     if '\n' in args:
+#         args = f'"""{args}"""'
+
+#     if args == "":
+#         return ()
+#     try:
+#         args = ast.literal_eval(args)
+#     except ValueError:
+#         args = args
+#     if not isinstance(args, list) and not isinstance(args, tuple):
+#         args = (args,)
+#     return args
 
 
 def _find_tool(
