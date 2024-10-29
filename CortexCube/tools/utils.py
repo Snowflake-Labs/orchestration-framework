@@ -1,11 +1,11 @@
 import io
-import os
 from collections import deque
 from pathlib import Path
 from textwrap import dedent
 from typing import Union
 from urllib.parse import urlunparse
 
+import pkg_resources
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
 
@@ -122,12 +122,20 @@ def generate_demo_services(session: Session):
     """
         )
     )
-    current_path = os.getcwd()
-    os.chdir(Path(__file__).parent)
     con = session.connection
     deque(con.execute_stream(setup_objects), maxlen=0)
-    session.file.put("data/sp500_semantic_model.yaml", "CUBE_TESTING.PUBLIC.ANALYST")
-    session.file.put("data/*.parquet", "CUBE_TESTING.PUBLIC.DATA")
+    session.file.put_stream(
+        pkg_resources.resource_stream(__name__, "data/sp500_semantic_model.yaml"),
+        "CUBE_TESTING.PUBLIC.ANALYST/sp500_semantic_model.yaml",
+    )
+    session.file.put_stream(
+        pkg_resources.resource_stream(__name__, "data/sec_chunk_search.parquet"),
+        "CUBE_TESTING.PUBLIC.DATA/sec_chunk_search.parquet",
+    )
+    session.file.put_stream(
+        pkg_resources.resource_stream(__name__, "data/sp500.parquet"),
+        "CUBE_TESTING.PUBLIC.DATA/sp500.parquet",
+    )
     deque(con.execute_stream(copy_into), maxlen=0)
     con.cursor().execute(
         dedent(
@@ -146,4 +154,3 @@ def generate_demo_services(session: Session):
     """
         )
     )
-    os.chdir(current_path)
