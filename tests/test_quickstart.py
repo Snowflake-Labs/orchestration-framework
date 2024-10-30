@@ -27,7 +27,7 @@ def test_search_tool(session, question, answer):
         "service_topic": "Snowflake's business,product offerings,and performance",
         "data_description": "Snowflake annual reports",
         "retrieval_columns": ["CHUNK"],
-        "snowpark_connection": session,
+        "snowflake_connection": session,
     }
     annual_reports = CortexSearchTool(**search_config)
     response = asyncio.run(annual_reports(question))
@@ -56,7 +56,7 @@ def test_analyst_tool(session, question, answer):
         "stage": "ANALYST",
         "service_topic": "S&P500 company and stock metrics",
         "data_description": "a table with stock and financial metrics about S&P500 companies ",
-        "snowpark_connection": session,
+        "snowflake_connection": session,
     }
     sp500 = CortexAnalystTool(**analyst_config)
     response = asyncio.run(sp500(question))
@@ -101,14 +101,14 @@ def test_cube_agent(session, question, answer_contains):
         "service_topic": "Snowflake's business,product offerings,and performance",
         "data_description": "Snowflake annual reports",
         "retrieval_columns": ["CHUNK"],
-        "snowpark_connection": session,
+        "snowflake_connection": session,
     }
     analyst_config = {
         "semantic_model": "sp500_semantic_model.yaml",
         "stage": "ANALYST",
         "service_topic": "S&P500 company and stock metrics",
         "data_description": "a table with stock and financial metrics about S&P500 companies ",
-        "snowpark_connection": session,
+        "snowflake_connection": session,
     }
 
     def get_news(_) -> dict:
