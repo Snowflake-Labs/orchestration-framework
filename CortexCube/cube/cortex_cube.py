@@ -96,7 +96,7 @@ class CortexCube(Chain, extra="allow"):
 
     def __init__(
         self,
-        snowpark_session: object,
+        snowflake_connection: object,
         tools: list[Union[Tool, StructuredTool]],
         planner_llm: str = "mistral-large2",  # replace basellm
         agent_llm: str = "mistral-large2",  # replace basellm
@@ -113,7 +113,7 @@ class CortexCube(Chain, extra="allow"):
 
         ----------
         Args:
-            snowpark_sesison: authenticated snowflake snowpark connection object
+            snowflake_connection: authenticated Snowflake connection object
             tools: List of tools to use.
             max_retries: Maximum number of replans to do. Defaults to 2.
 
@@ -138,7 +138,7 @@ class CortexCube(Chain, extra="allow"):
             planner_example_prompt_replan = planner_example_prompt
 
         self.planner = Planner(
-            session=snowpark_session,
+            session=snowflake_connection,
             llm=planner_llm,
             example_prompt=planner_example_prompt,
             example_prompt_replan=planner_example_prompt_replan,
@@ -146,7 +146,7 @@ class CortexCube(Chain, extra="allow"):
             stop=planner_stop,
         )
 
-        self.agent = CubeAgent(session=snowpark_session, llm=agent_llm)
+        self.agent = CubeAgent(session=snowflake_connection, llm=agent_llm)
         self.fusion_prompt = fusion_prompt
         self.fusion_prompt_final = fusion_prompt_final or fusion_prompt
         self.planner_stream = planner_stream

@@ -88,7 +88,7 @@ if "snowpark" not in st.session_state or st.session_state.snowpark is None:
 
 if "analyst" not in st.session_state:
     st.session_state.analyst = CortexCube(
-        snowpark_session=st.session_state.snowpark,
+        snowflake_connection=st.session_state.snowpark,
         tools=st.session_state.snowflake_tools,
     )
 

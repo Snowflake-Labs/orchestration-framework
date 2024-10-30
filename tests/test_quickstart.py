@@ -125,7 +125,7 @@ def test_cube_agent(session, question, answer_contains):
     sp500 = CortexAnalystTool(**analyst_config)
     news_search = PythonTool(**python_config)
     agent = CortexCube(
-        snowpark_session=session, tools=[annual_reports, sp500, news_search]
+        snowflake_connection=session, tools=[annual_reports, sp500, news_search]
     )
     response = agent(question)
     assert answer_contains in response
