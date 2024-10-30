@@ -98,6 +98,7 @@ class CortexCube(Chain, extra="allow"):
         self,
         snowflake_connection: object,
         tools: list[Union[Tool, StructuredTool]],
+        max_retries: int = 2,
         planner_llm: str = "mistral-large2",  # replace basellm
         agent_llm: str = "mistral-large2",  # replace basellm
         planner_example_prompt: str = SNOWFLAKE_PLANNER_PROMPT,
@@ -105,7 +106,6 @@ class CortexCube(Chain, extra="allow"):
         planner_stop: Optional[list[str]] = [END_OF_PLAN],
         fusion_prompt: str = OUTPUT_PROMPT,
         fusion_prompt_final: Optional[str] = None,
-        max_retries: int = 2,
         planner_stream: bool = False,
         **kwargs,
     ) -> None:
@@ -116,21 +116,17 @@ class CortexCube(Chain, extra="allow"):
             snowflake_connection: authenticated Snowflake connection object
             tools: List of tools to use.
             max_retries: Maximum number of replans to do. Defaults to 2.
-
-        Planner Args:
             planner_llm: Name of Snowflake Cortex LLM to use for planning.
+            agent_llm: Name of Snowflake Cortex LLM to use for planning.
             planner_example_prompt: Example prompt for planning. Defaults to SNOWFLAKE_PLANNER_PROMPT.
             planner_example_prompt_replan: Example prompt for replanning.
                 Assign this if you want to use different example prompt for replanning.
                 If not assigned, default to `planner_example_prompt`.
             planner_stop: Stop tokens for planning.
-            planner_stream: Whether to stream the planning.
-
-        Agent Args:
-            agent_llm: Name of Snowflake Cortex LLM to use for planning.
             fusion_prompt: Prompt to use for fusion.
             fusion_prompt_final: Prompt to use for fusion at the final replanning iter.
                 If not assigned, default to `fusion_prompt`.
+            planner_stream: Whether to stream the planning.
         """
         super().__init__(name="compiler", **kwargs)
 
