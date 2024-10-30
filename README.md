@@ -92,7 +92,7 @@ news_search = PythonTool(**python_config)
 
 # Config + Initialize Cortex Cube
 snowflake_tools = [annual_reports,sp500,news_search]
-cube_agent = CortexCube(snowpark_session=session,tools=snowflake_tools)
+cube_agent = CortexCube(snowflake_connection=session,tools=snowflake_tools)
 
 # Run Cortex Cube
 answer = cube_agent("What is the average price for toothbrushes?")
@@ -119,7 +119,7 @@ print(answer)
 ```python
 search_one = CortexSearchTool(**search_one_config)
 search_two = CortexSearchTool(**search_two_config)
-cube = CortexCube(snowpark_session=session,tools=[search_one,search_two]
+cube = CortexCube(snowflake_connection=session,tools=[search_one,search_two]
 ```
 
 #### If my snowflake tools live in different accounts / schemas, can I still use Cortex Cube?

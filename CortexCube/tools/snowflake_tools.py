@@ -110,7 +110,8 @@ class CortexSearchTool(Tool):
         )
         if self.auto_filter:
             search_attributes, sample_vals = self._get_sample_values(
-                snowpark_session=self.session, cortex_search_service=self.service_name
+                snowflake_connection=self.session,
+                cortex_search_service=self.service_name,
             )
             raw_filter = self.filter_generator(
                 query=query,
@@ -137,8 +138,8 @@ class CortexSearchTool(Tool):
 
         return base_description
 
-    def _get_search_attributes(self, snowpark_session, search_service_name):
-        df = snowpark_session.sql("SHOW CORTEX SEARCH SERVICES")
+    def _get_search_attributes(self, snowflake_connection, search_service_name):
+        df = snowflake_connection.sql("SHOW CORTEX SEARCH SERVICES")
         raw_atts = (
             df.where(col('"name"') == search_service_name)
             .select('"attribute_columns"')
@@ -150,8 +151,8 @@ class CortexSearchTool(Tool):
 
         return attribute_list
 
-    def _get_search_table(self, snowpark_session, search_service_name):
-        df = snowpark_session.sql("SHOW CORTEX SEARCH SERVICES")
+    def _get_search_table(self, snowflake_connection, search_service_name):
+        df = snowflake_connection.sql("SHOW CORTEX SEARCH SERVICES")
         table_def = (
             df.where(col('"name"') == search_service_name)
             .select('"definition"')
@@ -172,20 +173,22 @@ class CortexSearchTool(Tool):
         return table_def
 
     def _get_sample_values(
-        self, snowpark_session, cortex_search_service, max_samples=10
+        self, snowflake_connection, cortex_search_service, max_samples=10
     ):
         sample_values = {}
         attributes = self._get_search_attributes(
-            snowpark_session=snowpark_session, search_service_name=cortex_search_service
+            snowflake_connection=snowflake_connection,
+            search_service_name=cortex_search_service,
         )
         table_name = self._get_search_table(
-            snowpark_session=snowpark_session, search_service_name=cortex_search_service
+            snowflake_connection=snowflake_connection,
+            search_service_name=cortex_search_service,
         )
 
         for attribute in attributes:
             query = f"""SELECT DISTINCT({attribute}) FROM {table_name} LIMIT {max_samples}"""
             sample_values[attribute] = list(
-                snowpark_session.sql(query).to_pandas()[attribute].values
+                snowflake_connection.sql(query).to_pandas()[attribute].values
             )
 
         return attributes, sample_values
