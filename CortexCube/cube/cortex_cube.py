@@ -105,7 +105,7 @@ class CortexCube(Chain, extra="allow"):
         planner_stop: Optional[list[str]] = [END_OF_PLAN],
         joinner_prompt: str = OUTPUT_PROMPT,
         joinner_prompt_final: Optional[str] = None,
-        max_replans: int = 2,
+        max_retries: int = 2,
         planner_stream: bool = False,
         **kwargs,
     ) -> None:
@@ -115,7 +115,7 @@ class CortexCube(Chain, extra="allow"):
         Args:
             snowpark_sesison: authenticated snowflake snowpark connection object
             tools: List of tools to use.
-            max_replans: Maximum number of replans to do. Defaults to 2.
+            max_retries: Maximum number of replans to do. Defaults to 2.
 
         Planner Args:
             planner_llm: Name of Snowflake Cortex LLM to use for planning.
@@ -150,7 +150,7 @@ class CortexCube(Chain, extra="allow"):
         self.joinner_prompt = joinner_prompt
         self.joinner_prompt_final = joinner_prompt_final or joinner_prompt
         self.planner_stream = planner_stream
-        self.max_replans = max_replans
+        self.max_retries = max_retries
 
         # callbacks
         self.planner_callback = None
@@ -303,9 +303,9 @@ class CortexCube(Chain, extra="allow"):
         joinner_thought = ""
         agent_scratchpad = ""
         inputs = {"input": input}
-        for i in range(self.max_replans):
+        for i in range(self.max_retries):
             is_first_iter = i == 0
-            is_final_iter = i == self.max_replans - 1
+            is_final_iter = i == self.max_retries - 1
 
             task_fetching_unit = TaskFetchingUnit()
             if self.planner_stream:
