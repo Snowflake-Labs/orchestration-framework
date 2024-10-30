@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
 import aiohttp
 
 from CortexCube.chains.chain import Chain
-from CortexCube.cube.constants import END_OF_PLAN, JOINNER_REPLAN
+from CortexCube.cube.constants import END_OF_PLAN, FUSION_REPLAN
 from CortexCube.cube.planner import Planner
 from CortexCube.cube.task_fetching_unit import Task, TaskFetchingUnit
 from CortexCube.tools.base import StructuredTool, Tool
@@ -103,8 +103,8 @@ class CortexCube(Chain, extra="allow"):
         planner_example_prompt: str = SNOWFLAKE_PLANNER_PROMPT,
         planner_example_prompt_replan: Optional[str] = None,
         planner_stop: Optional[list[str]] = [END_OF_PLAN],
-        joinner_prompt: str = OUTPUT_PROMPT,
-        joinner_prompt_final: Optional[str] = None,
+        fusion_prompt: str = OUTPUT_PROMPT,
+        fusion_prompt_final: Optional[str] = None,
         max_retries: int = 2,
         planner_stream: bool = False,
         **kwargs,
@@ -128,9 +128,9 @@ class CortexCube(Chain, extra="allow"):
 
         Agent Args:
             agent_llm: Name of Snowflake Cortex LLM to use for planning.
-            joinner_prompt: Prompt to use for joinner.
-            joinner_prompt_final: Prompt to use for joinner at the final replanning iter.
-                If not assigned, default to `joinner_prompt`.
+            fusion_prompt: Prompt to use for fusion.
+            fusion_prompt_final: Prompt to use for fusion at the final replanning iter.
+                If not assigned, default to `fusion_prompt`.
         """
         super().__init__(name="compiler", **kwargs)
 
@@ -147,8 +147,8 @@ class CortexCube(Chain, extra="allow"):
         )
 
         self.agent = CubeAgent(session=snowpark_session, llm=agent_llm)
-        self.joinner_prompt = joinner_prompt
-        self.joinner_prompt_final = joinner_prompt_final or joinner_prompt
+        self.fusion_prompt = fusion_prompt
+        self.fusion_prompt_final = fusion_prompt_final or fusion_prompt
         self.planner_stream = planner_stream
         self.max_retries = max_retries
 
@@ -165,8 +165,8 @@ class CortexCube(Chain, extra="allow"):
     def output_keys(self) -> List[str]:
         return [self.output_key]
 
-    def _parse_joinner_output(self, raw_answer: str) -> str:
-        """We expect the joinner output format to be:
+    def _parse_fusion_output(self, raw_answer: str) -> str:
+        """We expect the fusion output format to be:
         ```
         Thought: xxx
         Action: Finish/Replan(yyy)
@@ -184,7 +184,7 @@ class CortexCube(Chain, extra="allow"):
 
         # Extracting the Answer
         answer = self._extract_answer(raw_answer)
-        is_replan = True if JOINNER_REPLAN in answer else False
+        is_replan = True if FUSION_REPLAN in answer else False
 
         return thought, answer, is_replan
 
@@ -215,7 +215,7 @@ class CortexCube(Chain, extra="allow"):
                 return None
 
     def _generate_context_for_replanner(
-        self, tasks: Mapping[int, Task], joinner_thought: str
+        self, tasks: Mapping[int, Task], fusion_thought: str
     ) -> str:
         """Formatted like this:
         ```
@@ -224,7 +224,7 @@ class CortexCube(Chain, extra="allow"):
         2. action 2
         Observation: yyy
         ...
-        Thought: joinner_thought
+        Thought: fusion_thought
         ```
         """
         previous_plan_and_observations = "\n".join(
@@ -236,8 +236,8 @@ class CortexCube(Chain, extra="allow"):
                 if not task.is_join
             ]
         )
-        joinner_thought = f"Thought: {joinner_thought}"
-        context = "\n\n".join([previous_plan_and_observations, joinner_thought])
+        fusion_thought = f"Thought: {fusion_thought}"
+        context = "\n\n".join([previous_plan_and_observations, fusion_thought])
         return context
 
     def _format_contexts(self, contexts: Sequence[str]) -> str:
@@ -254,11 +254,11 @@ class CortexCube(Chain, extra="allow"):
         self, input_query: str, agent_scratchpad: str, is_final: bool
     ) -> str:
         if is_final:
-            joinner_prompt = self.joinner_prompt_final
+            fusion_prompt = self.fusion_prompt_final
         else:
-            joinner_prompt = self.joinner_prompt
+            fusion_prompt = self.fusion_prompt
         prompt = (
-            f"{joinner_prompt}\n"  # Instructions and examples
+            f"{fusion_prompt}\n"  # Instructions and examples
             f"Question: {input_query}\n\n"  # User input query
             f"{agent_scratchpad}\n"  # T-A-O
             # "---\n"
@@ -268,7 +268,7 @@ class CortexCube(Chain, extra="allow"):
         raw_answer = cast(str, response)
         cube_logger.log(logging.DEBUG, "Question: \n", input_query, block=True)
         cube_logger.log(logging.DEBUG, "Raw Answer: \n", raw_answer, block=True)
-        thought, answer, is_replan = self._parse_joinner_output(raw_answer)
+        thought, answer, is_replan = self._parse_fusion_output(raw_answer)
         if is_final:
             # If final, we don't need to replan
             is_replan = False
@@ -300,7 +300,7 @@ class CortexCube(Chain, extra="allow"):
         # inputs: Dict[str, Any]
     ) -> Dict[str, Any]:
         contexts = []
-        joinner_thought = ""
+        fusion_thought = ""
         agent_scratchpad = ""
         inputs = {"input": input}
         for i in range(self.max_retries):
@@ -349,7 +349,7 @@ class CortexCube(Chain, extra="allow"):
             )
             agent_scratchpad = agent_scratchpad.strip()
 
-            joinner_thought, answer, is_replan = await self.join(
+            fusion_thought, answer, is_replan = await self.join(
                 input,
                 agent_scratchpad=agent_scratchpad,
                 is_final=is_final_iter,
@@ -359,7 +359,7 @@ class CortexCube(Chain, extra="allow"):
 
             # Collect contexts for the subsequent replanner
             context = self._generate_context_for_replanner(
-                tasks=tasks, joinner_thought=joinner_thought
+                tasks=tasks, fusion_thought=fusion_thought
             )
             contexts.append(context)
             formatted_contexts = self._format_contexts(contexts)
