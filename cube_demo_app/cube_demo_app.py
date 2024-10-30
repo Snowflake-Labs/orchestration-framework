@@ -64,7 +64,7 @@ if "snowpark" not in st.session_state or st.session_state.snowpark is None:
         "service_topic": "Snowflake's business,product offerings,and performance",
         "data_description": "Snowflake annual reports",
         "retrieval_columns": ["CHUNK"],
-        "snowpark_connection": st.session_state.snowpark,
+        "snowflake_connection": st.session_state.snowpark,
     }
 
     analyst_config = {
@@ -72,7 +72,7 @@ if "snowpark" not in st.session_state or st.session_state.snowpark is None:
         "stage": "ANALYST",
         "service_topic": "S&P500 company and stock metrics",
         "data_description": "a table with stock and financial metrics about S&P500 companies ",
-        "snowpark_connection": st.session_state.snowpark,
+        "snowflake_connection": st.session_state.snowpark,
     }
 
     # Tools Config

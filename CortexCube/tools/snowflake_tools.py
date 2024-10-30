@@ -38,7 +38,7 @@ class CortexSearchTool(Tool):
         service_topic,
         data_description,
         retrieval_columns,
-        snowpark_connection,
+        snowflake_connection,
         auto_filter=False,
         k=5,
     ):
@@ -49,7 +49,7 @@ class CortexSearchTool(Tool):
         service_topic (str): description of content indexed by Cortex Search.
         data_description (str): description of the source data that has been indexed.
         retrieval_columns (list): list of columns to include in Cortex Search results.
-        snowpark_connection (object): snowpark connection object
+        snowflake_connection (object): snowpark connection object
         auto_filter (bool): automatically generate filter based on user's query or not.
         k: number of records to include in results
         """
@@ -64,7 +64,7 @@ class CortexSearchTool(Tool):
             name=tool_name, description=tool_description, func=self.asearch
         )
         self.auto_filter = auto_filter
-        self.session = snowpark_connection
+        self.session = snowflake_connection
         if self.auto_filter:
             self.filter_generator = SmartSearch()
             lm = dspy.Snowflake(session=self.session, model="mixtral-8x7b")
@@ -299,7 +299,7 @@ class CortexAnalystTool(Tool):
         stage,
         service_topic,
         data_description,
-        snowpark_connection,
+        snowflake_connection,
     ):
         """Parameters
 
@@ -308,7 +308,7 @@ class CortexAnalystTool(Tool):
         stage (str): name of stage containing semantic model yaml.
         service_topic (str): topic of the data in the tables (i.e S&P500 company financials).
         data_description (str): description of the source data that has been indexed (i.e a table with stock and financial metrics about S&P500 companies).
-        snowpark_connection (object): snowpark connection object
+        snowflake_connection (object): snowpark connection object
         """
 
         tname = semantic_model.replace(".yaml", "") + "_" + "cortexanalyst"
@@ -319,7 +319,7 @@ class CortexAnalystTool(Tool):
         )
 
         super().__init__(name=tname, func=self.asearch, description=tool_description)
-        self.CONN = snowpark_connection
+        self.CONN = snowflake_connection
         self.FILE = semantic_model
         self.STAGE = stage
 
