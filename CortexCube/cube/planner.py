@@ -17,7 +17,7 @@ from CortexCube.cube.output_parser import (
     CubePlanParser,
     instantiate_task,
 )
-from CortexCube.cube.task_fetching_unit import Task
+from CortexCube.cube.task_processor import Task
 from CortexCube.executors.schema import Plan
 from CortexCube.tools.base import StructuredTool, Tool
 from CortexCube.tools.utils import CortexEndpointBuilder

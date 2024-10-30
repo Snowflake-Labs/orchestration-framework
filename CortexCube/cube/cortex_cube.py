@@ -10,7 +10,7 @@ import aiohttp
 from CortexCube.chains.chain import Chain
 from CortexCube.cube.constants import END_OF_PLAN, FUSION_REPLAN
 from CortexCube.cube.planner import Planner
-from CortexCube.cube.task_fetching_unit import Task, TaskFetchingUnit
+from CortexCube.cube.task_processor import Task, TaskProcessor
 from CortexCube.tools.base import StructuredTool, Tool
 from CortexCube.tools.logger import cube_logger
 from CortexCube.tools.snowflake_prompts import OUTPUT_PROMPT
@@ -20,8 +20,14 @@ from CortexCube.tools.snowflake_prompts import (
 from CortexCube.tools.utils import CortexEndpointBuilder
 
 
+class CortexCubeError(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+
 class CubeAgent:
-    """Self defined agent for LLM Compiler."""
+    """Self defined agent for Cortex Cube."""
 
     def __init__(self, session, llm) -> None:
         self.llm = llm
@@ -30,7 +36,6 @@ class CubeAgent:
     async def arun(self, prompt: str) -> str:
         """Run the LLM."""
         headers, url, data = self._prepare_llm_request(prompt=prompt)
-        cube_logger.log(logging.DEBUG, "Cortex Request Headers\n", headers, block=True)
         cube_logger.log(logging.DEBUG, "Cortex Request URL\n", url, block=True)
         cube_logger.log(logging.DEBUG, "Cortex Request Data\n", data, block=True)
 
@@ -45,8 +50,19 @@ class CubeAgent:
                     response.content,
                     block=True,
                 )
-                snowflake_response = self._parse_snowflake_response(response_text)
-                return snowflake_response
+
+                if "choices" not in response_text:
+                    raise CortexCubeError(
+                        message="Failed Cortex LLM Request. Missing choices in response. See details:{response_text}"
+                    )
+
+                try:
+                    snowflake_response = self._parse_snowflake_response(response_text)
+                    return snowflake_response
+                except:
+                    raise CortexCubeError(
+                        message="Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
+                    )
 
     def _prepare_llm_request(self, prompt):
         headers = {
@@ -62,30 +78,35 @@ class CubeAgent:
         return headers, url, data
 
     def _parse_snowflake_response(self, data_str):
-        json_objects = data_str.split("\ndata: ")
-        json_list = []
+        try:
+            json_objects = data_str.split("\ndata: ")
+            json_list = []
 
-        # Iterate over each JSON object
-        for obj in json_objects:
-            obj = obj.strip()
-            if obj:
-                # Remove the 'data: ' prefix if it exists
-                if obj.startswith("data: "):
-                    obj = obj[6:]
-                # Load the JSON object into a Python dictionary
-                json_dict = json.loads(obj, strict=False)
-                # Append the JSON dictionary to the list
-                json_list.append(json_dict)
+            # Iterate over each JSON object
+            for obj in json_objects:
+                obj = obj.strip()
+                if obj:
+                    # Remove the 'data: ' prefix if it exists
+                    if obj.startswith("data: "):
+                        obj = obj[6:]
+                    # Load the JSON object into a Python dictionary
+                    json_dict = json.loads(obj, strict=False)
+                    # Append the JSON dictionary to the list
+                    json_list.append(json_dict)
 
-        completion = ""
-        choices = {}
-        for chunk in json_list:
-            choices = chunk["choices"][0]
+            completion = ""
+            choices = {}
+            for chunk in json_list:
+                choices = chunk["choices"][0]
 
-            if "content" in choices["delta"].keys():
-                completion += choices["delta"]["content"]
+                if "content" in choices["delta"].keys():
+                    completion += choices["delta"]["content"]
 
-        return completion
+            return completion
+        except KeyError as e:
+            raise CortexCubeError(
+                message=f"Missing Cortex LLM response components. {str(e)}"
+            )
 
 
 class CortexCube(Chain, extra="allow"):
@@ -283,10 +304,23 @@ class CortexCube(Chain, extra="allow"):
         thread = threading.Thread(target=self.run_async, args=(input, result))
         thread.start()
         thread.join()
-        return result[0]["output"]
+        try:
+            return result[0]["output"]
+        except IndexError:
+            raise CortexCubeError(
+                message="Unable to retrieve response. Please check each of your Cortex tools and ensure all connections are valid."
+            )
+
+    def handle_exception(self, loop, context):
+        exception = context.get("exception")
+        if exception:
+            print(f"Caught unhandled exception: {exception}")
+            loop.default_exception_handler(context)
+            loop.stop()
 
     def run_async(self, input, result):
         loop = asyncio.new_event_loop()
+        loop.set_exception_handler(self.handle_exception)
         asyncio.set_event_loop(loop)
         result.append(loop.run_until_complete(self.acall(input)))
 
@@ -303,7 +337,7 @@ class CortexCube(Chain, extra="allow"):
             is_first_iter = i == 0
             is_final_iter = i == self.max_retries - 1
 
-            task_fetching_unit = TaskFetchingUnit()
+            task_processor = TaskProcessor()
             if self.planner_stream:
                 task_queue = asyncio.Queue()
                 asyncio.create_task(
@@ -316,7 +350,7 @@ class CortexCube(Chain, extra="allow"):
                         ),
                     )
                 )
-                await task_fetching_unit.aschedule(
+                await task_processor.aschedule(
                     task_queue=task_queue, func=lambda x: None
                 )
             else:
@@ -328,9 +362,9 @@ class CortexCube(Chain, extra="allow"):
                     ),
                 )
 
-                task_fetching_unit.set_tasks(tasks)
-                await task_fetching_unit.schedule()
-            tasks = task_fetching_unit.tasks
+                task_processor.set_tasks(tasks)
+                await task_processor.schedule()
+            tasks = task_processor.tasks
 
             # collect thought-action-observation
             agent_scratchpad += "\n\n"

@@ -10,6 +10,12 @@ from CortexCube.tools.logger import cube_logger
 SCHEDULING_INTERVAL = 0.01  # seconds
 
 
+class CortexCubeError(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+
 def _default_stringify_rule_for_arguments(args):
     if len(args) == 1:
         return str(args[0])
@@ -53,9 +59,14 @@ class Task:
 
     async def __call__(self) -> Any:
         cube_logger.log(logging.INFO, f"running {self.name} task")
-        x = await self.tool(*self.args)
-        cube_logger.log(logging.DEBUG, "task completed")
-        return x
+        try:
+            x = await self.tool(*self.args)
+            cube_logger.log(logging.DEBUG, "task succesfully completed")
+            return x
+        except Exception as e:
+            raise CortexCubeError(
+                f"Unexpected error during Cortex Cube Tool request: {str(e)}"
+            ) from e
 
     def get_thought_action_observation(
         self, include_action=True, include_thought=True, include_action_idx=False
@@ -80,7 +91,7 @@ class Task:
         return thought_action_observation
 
 
-class TaskFetchingUnit:
+class TaskProcessor:
     tasks: Dict[str, Task]
     tasks_done: Dict[str, asyncio.Event]
     remaining_tasks: set[str]
@@ -118,8 +129,11 @@ class TaskFetchingUnit:
     async def _run_task(self, task: Task):
         self._preprocess_args(task)
         if not task.is_join:
-            observation = await task()
-            task.observation = observation
+            try:
+                observation = await task()
+                task.observation = observation
+            except Exception as e:
+                raise CortexCubeError(f"{str(e)}") from e
         self.tasks_done[task.idx].set()
 
     async def schedule(self):

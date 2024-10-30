@@ -5,7 +5,7 @@ from typing import Any, Sequence, Union, Tuple
 # from langchain.agents.agent import AgentOutputParser
 from langchain.schema import OutputParserException
 
-from CortexCube.cube.task_fetching_unit import Task
+from CortexCube.cube.task_processor import Task
 from CortexCube.tools.base import StructuredTool, Tool
 
 THOUGHT_PATTERN = r"Thought: ([^\n]*)"
