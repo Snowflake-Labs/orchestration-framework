@@ -65,14 +65,9 @@ class CubeAgent:
                     )
 
     def _prepare_llm_request(self, prompt):
-        headers = {
-            "Accept": "text/stream",
-            "Content-Type": "application/json",
-            "Authorization": f'Snowflake Token="{self.session.connection.rest.token}"',
-        }
-
         eb = CortexEndpointBuilder(self.session)
         url = eb.get_complete_endpoint()
+        headers = eb.get_complete_headers()
         data = {"model": self.llm, "messages": [{"content": prompt}]}
 
         return headers, url, data
