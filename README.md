@@ -14,7 +14,7 @@ Users have the flexibility to create multiple Cortex Search and Cortex Analyst t
 ## Installation
 In a new virtual enviornment with Python 3.10 or 3.11, install the latest version of Cortex Cube.
 ```python
-pip install cortex-cube@git+https://github.com/sfc-gh-alherrera/cortex-cube.git
+pip install cortex-cube@git+https://github.com/Snowflake-Labs/cortex-cube.git
 ```
 
 **Note For Mac Users**: Mac users have reported SSL Certificate issues when using the Cortex REST API. This is related to python virtual enviornments not having access to local certificates. One potential solution to avoid SSL Certificate issues is to use Finder to locate the "Install Certificates.command" file in your relevant python directory and run that file before initializing Cortex Cube. See [this thread](https://github.com/python/cpython/issues/87570#issuecomment-1093904961) for more info.
@@ -68,7 +68,7 @@ annual_reports = CortexSearchTool(**search_config)
 # Cortex Analyst Config
 analyst_config = {
     "semantic_model":"sp500_semantic_model.yaml",
-    "stage":"SEMANTICS",
+    "stage":"ANALYST",
     "service_topic":"S&P500 company and stock metrics",
     "data_description": "a table with stock and financial metrics about S&P500 companies ",
     "snowflake_connection": session
@@ -89,6 +89,7 @@ news_search = PythonTool(**python_config)
 
 ## Cube Configuration + Usage
 ````python
+from CortexCube import CortexCube
 
 # Config + Initialize Cortex Cube
 snowflake_tools = [annual_reports,sp500,news_search]
