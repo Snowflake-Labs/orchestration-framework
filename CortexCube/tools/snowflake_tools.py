@@ -96,13 +96,8 @@ class CortexSearchTool(Tool):
                     raise SnowflakeError(message=response_json["message"])
 
     def _prepare_request(self, query):
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "Authorization": f'Snowflake Token="{self.session.connection.rest.token}"',
-        }
-
         eb = CortexEndpointBuilder(self.session)
+        headers = eb.get_search_headers()
         url = eb.get_search_endpoint(
             self.session.get_current_database().replace('"', ""),
             self.session.get_current_schema().replace('"', ""),
@@ -375,12 +370,8 @@ class CortexAnalystTool(Tool):
         }
 
         eb = CortexEndpointBuilder(self.CONN)
+        headers = eb.get_analyst_headers()
         url = eb.get_analyst_endpoint()
-
-        headers = {
-            "Authorization": f'Snowflake Token="{self.CONN.connection.rest.token}"',
-            "Content-Type": "application/json",
-        }
 
         return url, headers, data
 

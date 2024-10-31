@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import re
 from typing import Any, Optional, Sequence, Union
 from uuid import UUID
@@ -20,9 +21,8 @@ from CortexCube.cube.output_parser import (
 from CortexCube.cube.task_processor import Task
 from CortexCube.executors.schema import Plan
 from CortexCube.tools.base import StructuredTool, Tool
-from CortexCube.tools.utils import CortexEndpointBuilder
 from CortexCube.tools.logger import cube_logger
-import logging
+from CortexCube.tools.utils import CortexEndpointBuilder
 
 JOIN_DESCRIPTION = (
     "join():\n"
@@ -240,14 +240,9 @@ class Planner:
                 return snowflake_response
 
     def _prepare_llm_request(self, prompt):
-        headers = {
-            "Accept": "text/stream",
-            "Content-Type": "application/json",
-            "Authorization": f'Snowflake Token="{self.session.connection.rest.token}"',
-        }
-
         eb = CortexEndpointBuilder(self.session)
         url = eb.get_complete_endpoint()
+        headers = eb.get_complete_headers()
         data = {"model": self.llm, "messages": [{"content": prompt}]}
 
         return headers, url, data

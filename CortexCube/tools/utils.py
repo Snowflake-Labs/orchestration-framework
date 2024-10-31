@@ -2,7 +2,7 @@ import io
 from collections import deque
 from pathlib import Path
 from textwrap import dedent
-from typing import Union
+from typing import TypedDict, Union
 from urllib.parse import urlunparse
 
 import pkg_resources
@@ -10,11 +10,21 @@ from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
 
 
+class Headers(TypedDict):
+    Accept: str
+    Content_Type: str
+    Authorization: str
+
+
 class CortexEndpointBuilder:
     def __init__(self, connection: Union[Session, SnowflakeConnection]):
         self.connection = connection
         self._set_connection()
         self.BASE_URL = self._set_base_url()
+        self.BASE_HEADERS = {
+            "Content-Type": "application/json",
+            "Authorization": f'Snowflake Token="{self.connection.rest.token}"',
+        }
 
     def _set_connection(self):
         if isinstance(self.connection, Session):
@@ -46,6 +56,15 @@ class CortexEndpointBuilder:
         URL_SUFFIX = f"/api/v2/databases/{database}/schemas/{schema}/cortex-search-services/{service_name}:query"
         URL_SUFFIX = URL_SUFFIX.lower()
         return f"{self.BASE_URL}{URL_SUFFIX}"
+
+    def get_complete_headers(self) -> Headers:
+        return self.BASE_HEADERS | {"Accept": "application/json"}
+
+    def get_analyst_headers(self) -> Headers:
+        return self.BASE_HEADERS
+
+    def get_search_headers(self) -> Headers:
+        return self.BASE_HEADERS | {"Accept": "application/json"}
 
 
 def parse_log_message(log_message):
