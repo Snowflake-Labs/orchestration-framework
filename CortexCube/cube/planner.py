@@ -157,7 +157,7 @@ class CubeCallback(AsyncCallbackHandler):
         self._queue = queue
         self._parser = StreamingGraphParser(tools=tools)
 
-    async def on_llm_start(self, serialized, prompts, **kwargs: Any) -> Any:
+    async def on_llm_start(self, prompts, **kwargs: Any) -> Any:
         """Run when LLM starts running."""
 
     async def on_llm_new_token(
@@ -165,7 +165,6 @@ class CubeCallback(AsyncCallbackHandler):
         token: str,
         *,
         run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
         **kwargs: Any,
     ) -> None:
         parsed_data = self._parser.ingest_token(token)
@@ -179,7 +178,6 @@ class CubeCallback(AsyncCallbackHandler):
         response,
         *,
         run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
         **kwargs: Any,
     ) -> None:
         parsed_data = self._parser.finalize()

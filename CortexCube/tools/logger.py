@@ -2,8 +2,6 @@ import logging
 import os
 import pprint
 
-import numpy as np
-
 # Global variable to toggle logging
 logging_enabled = os.getenv("LOGGING_ENABLED")
 if logging_enabled is None:
