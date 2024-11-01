@@ -20,10 +20,8 @@ class CortexEndpointBuilder:
         self.connection = connection
         self._set_connection()
         self.BASE_URL = self._set_base_url()
-        self.BASE_HEADERS = {
-            "Content-Type": "application/json",
-            "Authorization": f'Snowflake Token="{self.connection.rest.token}"',
-        }
+        self.inside_snowflake = self._determine_runtime()
+        self.BASE_HEADERS = self._set_base_headers()
 
     def _set_connection(self):
         if isinstance(self.connection, Session):
@@ -31,6 +29,14 @@ class CortexEndpointBuilder:
         else:
             con = self.connection
         self.connection = con
+
+    def _determine_runtime(self):
+        try:
+            from _stored_proc_restful import StoredProcRestful
+
+            return True
+        except ImportError:
+            return False
 
     def _set_base_url(self):
         scheme = "https"
@@ -43,17 +49,33 @@ class CortexEndpointBuilder:
         url = urlunparse((scheme, host, "", "", "", ""))
         return url
 
+    def _set_base_headers(self):
+        if self.inside_snowflake:
+            token = None
+        else:
+            token = self.connection.rest.token
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f'Snowflake Token="{token}"',
+        }
+
     def get_complete_endpoint(self):
         URL_SUFFIX = "/api/v2/cortex/inference:complete"
+        if self.inside_snowflake:
+            return URL_SUFFIX
         return f"{self.BASE_URL}{URL_SUFFIX}"
 
     def get_analyst_endpoint(self):
         URL_SUFFIX = "/api/v2/cortex/analyst/message"
+        if self.inside_snowflake:
+            return URL_SUFFIX
         return f"{self.BASE_URL}{URL_SUFFIX}"
 
     def get_search_endpoint(self, database, schema, service_name):
         URL_SUFFIX = f"/api/v2/databases/{database}/schemas/{schema}/cortex-search-services/{service_name}:query"
         URL_SUFFIX = URL_SUFFIX.lower()
+        if self.inside_snowflake:
+            return URL_SUFFIX
         return f"{self.BASE_URL}{URL_SUFFIX}"
 
     def get_complete_headers(self) -> Headers:
