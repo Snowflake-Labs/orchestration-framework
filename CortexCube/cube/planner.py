@@ -7,7 +7,6 @@ import re
 from typing import Any, Optional, Sequence, Union
 from uuid import UUID
 
-# from litellm import acompletion
 import aiohttp
 from langchain.callbacks.base import AsyncCallbackHandler
 
