@@ -128,6 +128,7 @@ class CortexCube(Chain, extra="allow"):
         """Parameters
 
         ----------
+
         Args:
             snowflake_connection: authenticated Snowflake connection object
             tools: List of tools to use.
@@ -143,6 +144,7 @@ class CortexCube(Chain, extra="allow"):
             fusion_prompt_final: Prompt to use for fusion at the final replanning iter.
                 If not assigned, default to `fusion_prompt`.
             planner_stream: Whether to stream the planning.
+
         """
         super().__init__(name="compiler", **kwargs)
 
@@ -188,7 +190,6 @@ class CortexCube(Chain, extra="allow"):
             answer (yyy)
             is_replan (True/False)
         """
-
         # Extracting the Thought
         thought_pattern = r"Thought: (.*?)\n\n"
         thought_match = re.search(thought_pattern, raw_answer)
@@ -253,7 +254,7 @@ class CortexCube(Chain, extra="allow"):
         return context
 
     def _format_contexts(self, contexts: Sequence[str]) -> str:
-        """contexts is a list of context
+        """Contexts is a list of context
         each context is formatted as the description of _generate_context_for_replanner
         """
         formatted_contexts = ""

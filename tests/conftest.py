@@ -1,9 +1,6 @@
 import os
-from collections import deque
-from pathlib import Path
 
 import pytest
-from dotenv import load_dotenv
 from snowflake.snowpark import Session
 
 from CortexCube.tools.utils import generate_demo_services

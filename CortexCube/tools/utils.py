@@ -1,6 +1,5 @@
 import io
 from collections import deque
-from pathlib import Path
 from textwrap import dedent
 from typing import TypedDict, Union
 from urllib.parse import urlunparse
