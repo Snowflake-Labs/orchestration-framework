@@ -111,6 +111,7 @@ class Agent(BaseSingleActionAgent):
 
         Returns:
             Action specifying what tool to use.
+
         """
         try:
             full_inputs = self.get_full_inputs(intermediate_steps, **kwargs)
@@ -139,6 +140,7 @@ class Agent(BaseSingleActionAgent):
 
         Returns:
             Action specifying what tool to use.
+
         """
         try:
             full_inputs = self.get_full_inputs(intermediate_steps, **kwargs)
@@ -297,6 +299,7 @@ class Agent(BaseSingleActionAgent):
 
             # If working with agent executor
             agent.agent.save(file_path="path/agent.yaml")
+
         """
         # Convert file to Path object.
         if isinstance(file_path, str):

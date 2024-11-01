@@ -54,11 +54,13 @@ def create_schema_from_function(
     func: Callable,
 ) -> Type[BaseModel]:
     """Create a pydantic schema from a function's signature.
+
     Args:
         model_name: Name to assign to the generated pydandic schema
         func: Function to generate the schema from
     Returns:
         A pydantic model with the same arguments as the function
+
     """
     # https://docs.pydantic.dev/latest/usage/validation_decorator/
     validated = validate_arguments(func, config=_SchemaConfig)  # type: ignore
@@ -336,8 +338,8 @@ class StructuredTool(BaseTool):
                     return a + b
                 tool = StructuredTool.from_function(add)
                 tool.run(1, 2) # 3
-        """
 
+        """
         if func is not None:
             source_function = func
         elif coroutine is not None:
@@ -396,12 +398,14 @@ def tool(
             @tool
             def search_api(query: str) -> str:
                 # Searches the API for the query.
-                return
 
+    Return:
             @tool("search", return_direct=True)
             def search_api(query: str) -> str:
                 # Searches the API for the query.
-                return
+
+    Return:
+
     """
 
     def _make_with_name(tool_name: str) -> Callable:

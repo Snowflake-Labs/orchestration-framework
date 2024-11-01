@@ -53,7 +53,6 @@ class CortexSearchTool(Tool):
         auto_filter (bool): automatically generate filter based on user's query or not.
         k: number of records to include in results
         """
-
         tool_name = service_name.lower() + "_cortexsearch"
         tool_description = self._prepare_search_description(
             name=tool_name,
@@ -230,8 +229,7 @@ class JSONFilter(BaseModel):
 
 
 class GenerateFilter(dspy.Signature):
-    """
-    Given a query, attributes in the data, and example values of each attribute, generate a filter in valid JSON format.
+    """Given a query, attributes in the data, and example values of each attribute, generate a filter in valid JSON format.
     Ensure the filter only uses valid operators: @eq, @contains,@and,@or,@not
     Ensure only the valid JSON is output with no other reasoning.
 
@@ -308,7 +306,6 @@ class CortexAnalystTool(Tool):
         data_description (str): description of the source data that has been indexed (i.e a table with stock and financial metrics about S&P500 companies).
         snowflake_connection (object): snowpark connection object
         """
-
         tname = semantic_model.replace(".yaml", "") + "_" + "cortexanalyst"
         tool_description = self._prepare_analyst_description(
             name=tname,

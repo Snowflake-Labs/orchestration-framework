@@ -98,6 +98,7 @@ def _find_tool(
 
     Returns:
         Tool or StructuredTool.
+
     """
     for tool in tools:
         if tool.name == tool_name:
