@@ -318,7 +318,7 @@ class CortexAnalystTool(Tool):
         self.FILE = semantic_model
         self.STAGE = stage
 
-        cube_logger.log(logging.INFO, f"Cortex Analyst Tool succesfully initialized")
+        cube_logger.log(logging.INFO, f"Cortex Analyst Tool successfully initialized")
 
     def __call__(self, prompt) -> Any:
         return self.asearch(query=prompt)

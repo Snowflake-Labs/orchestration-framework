@@ -61,7 +61,7 @@ class Task:
         cube_logger.log(logging.INFO, f"running {self.name} task")
         try:
             x = await self.tool(*self.args)
-            cube_logger.log(logging.DEBUG, "task succesfully completed")
+            cube_logger.log(logging.DEBUG, "task successfully completed")
             return x
         except Exception as e:
             raise CortexCubeError(
