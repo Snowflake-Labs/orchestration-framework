@@ -3,11 +3,13 @@ import inspect
 import json
 import logging
 import re
-from typing import Any, Type
+from typing import Any, Type, Union
 
 import aiohttp
 import dspy
 from pydantic import BaseModel, Field, ValidationError
+from snowflake.connector.connection import SnowflakeConnection
+from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 
 from CortexCube.agents.tools import Tool
@@ -287,7 +289,7 @@ class CortexAnalystTool(Tool):
 
     STAGE: str = ""
     FILE: str = ""
-    CONN: object = None
+    connection: Union[Session, SnowflakeConnection] = None
 
     def __init__(
         self,
@@ -314,7 +316,7 @@ class CortexAnalystTool(Tool):
         )
 
         super().__init__(name=tname, func=self.asearch, description=tool_description)
-        self.CONN = snowflake_connection
+        self.connection = snowflake_connection
         self.FILE = semantic_model
         self.STAGE = stage
 
@@ -343,7 +345,7 @@ class CortexAnalystTool(Tool):
                 )
 
                 if query_response == "Invalid Query":
-                    lm = dspy.Snowflake(session=self.CONN, model="llama3.2-1b")
+                    lm = dspy.Snowflake(session=self.connection, model="llama3.2-1b")
                     dspy.settings.configure(lm=lm)
                     rephrase_prompt = dspy.ChainOfThought(PromptRephrase)
                     current_query = rephrase_prompt(user_prompt=current_query)[
@@ -363,10 +365,10 @@ class CortexAnalystTool(Tool):
             "messages": [
                 {"role": "user", "content": [{"type": "text", "text": prompt}]}
             ],
-            "semantic_model_file": f"""@{self.CONN.get_current_database().replace('"',"")}.{self.CONN.get_current_schema().replace('"',"")}.{self.STAGE}/{self.FILE}""",
+            "semantic_model_file": f"""@{self.connection.get_current_database().replace('"',"")}.{self.connection.get_current_schema().replace('"',"")}.{self.STAGE}/{self.FILE}""",
         }
 
-        eb = CortexEndpointBuilder(self.CONN)
+        eb = CortexEndpointBuilder(self.connection)
         headers = eb.get_analyst_headers()
         url = eb.get_analyst_endpoint()
 
@@ -377,7 +379,9 @@ class CortexAnalystTool(Tool):
         if "sql" == response[1]["type"]:
             sql_query = response[1]["statement"]
             # cube_logger.log(logging.DEBUG,f"Cortex Analyst SQL Query:{sql_query}")
-            table = self.CONN.connection.cursor().execute(sql_query).fetch_arrow_all()
+            table = (
+                self.connection.connection.cursor().execute(sql_query).fetch_arrow_all()
+            )
 
             return str(table.to_pydict())
         else:

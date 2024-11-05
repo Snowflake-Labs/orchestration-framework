@@ -6,6 +6,8 @@ import threading
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
 
 import aiohttp
+from snowflake.connector.connection import SnowflakeConnection
+from snowflake.snowpark import Session
 
 from CortexCube.chains.chain import Chain
 from CortexCube.cube.constants import END_OF_PLAN, FUSION_REPLAN
@@ -112,7 +114,7 @@ class CortexCube(Chain, extra="allow"):
 
     def __init__(
         self,
-        snowflake_connection: object,
+        snowflake_connection: Union[Session, SnowflakeConnection],
         tools: list[Union[Tool, StructuredTool]],
         max_retries: int = 2,
         planner_llm: str = "mistral-large2",  # replace basellm
