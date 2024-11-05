@@ -14,7 +14,7 @@ from snowflake.snowpark.functions import col
 
 from CortexCube.agents.tools import Tool
 from CortexCube.tools.logger import cube_logger
-from CortexCube.tools.utils import CortexEndpointBuilder
+from CortexCube.tools.utils import CortexEndpointBuilder, _get_connection
 
 
 class SnowflakeError(Exception):
@@ -30,7 +30,7 @@ class CortexSearchTool(Tool):
     k: int = 5
     retrieval_columns: list = []
     service_name: str = ""
-    session: object = None
+    connection: Union[Session, SnowflakeConnection] = None
     auto_filter: bool = False
     filter_generator: object = None
 
@@ -65,7 +65,7 @@ class CortexSearchTool(Tool):
             name=tool_name, description=tool_description, func=self.asearch
         )
         self.auto_filter = auto_filter
-        self.session = snowflake_connection
+        self.connection = _get_connection(snowflake_connection)
         if self.auto_filter:
             self.filter_generator = SmartSearch()
             lm = dspy.Snowflake(session=self.session, model="mixtral-8x7b")
@@ -97,16 +97,18 @@ class CortexSearchTool(Tool):
                     raise SnowflakeError(message=response_json["message"])
 
     def _prepare_request(self, query):
-        eb = CortexEndpointBuilder(self.session)
+        eb = CortexEndpointBuilder(self.connection)
         headers = eb.get_search_headers()
         url = eb.get_search_endpoint(
-            self.session.get_current_database().replace('"', ""),
-            self.session.get_current_schema().replace('"', ""),
+            self.connection.database,
+            self.connection.schema,
             self.service_name,
         )
         if self.auto_filter:
             search_attributes, sample_vals = self._get_sample_values(
-                snowflake_connection=self.session,
+                snowflake_connection=Session.builder.config(
+                    "connection", self.connection
+                ),
                 cortex_search_service=self.service_name,
             )
             raw_filter = self.filter_generator(
@@ -134,7 +136,8 @@ class CortexSearchTool(Tool):
 
         return base_description
 
-    def _get_search_attributes(self, snowflake_connection, search_service_name):
+    def _get_search_attributes(self, search_service_name):
+        snowflake_connection = Session.builder.config("connection", self.connection)
         df = snowflake_connection.sql("SHOW CORTEX SEARCH SERVICES")
         raw_atts = (
             df.where(col('"name"') == search_service_name)
@@ -147,7 +150,8 @@ class CortexSearchTool(Tool):
 
         return attribute_list
 
-    def _get_search_table(self, snowflake_connection, search_service_name):
+    def _get_search_table(self, search_service_name):
+        snowflake_connection = Session.builder.config("connection", self.connection)
         df = snowflake_connection.sql("SHOW CORTEX SEARCH SERVICES")
         table_def = (
             df.where(col('"name"') == search_service_name)
@@ -316,7 +320,7 @@ class CortexAnalystTool(Tool):
         )
 
         super().__init__(name=tname, func=self.asearch, description=tool_description)
-        self.connection = snowflake_connection
+        self.connection = _get_connection(snowflake_connection)
         self.FILE = semantic_model
         self.STAGE = stage
 
@@ -345,7 +349,10 @@ class CortexAnalystTool(Tool):
                 )
 
                 if query_response == "Invalid Query":
-                    lm = dspy.Snowflake(session=self.connection, model="llama3.2-1b")
+                    lm = dspy.Snowflake(
+                        session=Session.builder.config("connection", self.connection),
+                        model="llama3.2-1b",
+                    )
                     dspy.settings.configure(lm=lm)
                     rephrase_prompt = dspy.ChainOfThought(PromptRephrase)
                     current_query = rephrase_prompt(user_prompt=current_query)[
@@ -365,7 +372,7 @@ class CortexAnalystTool(Tool):
             "messages": [
                 {"role": "user", "content": [{"type": "text", "text": prompt}]}
             ],
-            "semantic_model_file": f"""@{self.connection.get_current_database().replace('"',"")}.{self.connection.get_current_schema().replace('"',"")}.{self.STAGE}/{self.FILE}""",
+            "semantic_model_file": f"""@{self.connection.database}.{self.connection.schema}.{self.STAGE}/{self.FILE}""",
         }
 
         eb = CortexEndpointBuilder(self.connection)
@@ -379,9 +386,7 @@ class CortexAnalystTool(Tool):
         if "sql" == response[1]["type"]:
             sql_query = response[1]["statement"]
             # cube_logger.log(logging.DEBUG,f"Cortex Analyst SQL Query:{sql_query}")
-            table = (
-                self.connection.connection.cursor().execute(sql_query).fetch_arrow_all()
-            )
+            table = self.connection.cursor().execute(sql_query).fetch_arrow_all()
 
             return str(table.to_pydict())
         else:

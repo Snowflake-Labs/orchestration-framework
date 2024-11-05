@@ -9,6 +9,14 @@ from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
 
 
+def _get_connection(
+    connection: Union[Session, SnowflakeConnection]
+) -> SnowflakeConnection:
+    if isinstance(connection, Session):
+        return getattr(connection, "connection")
+    return connection
+
+
 class Headers(TypedDict):
     Accept: str
     Content_Type: str
@@ -17,18 +25,10 @@ class Headers(TypedDict):
 
 class CortexEndpointBuilder:
     def __init__(self, connection: Union[Session, SnowflakeConnection]):
-        self.connection = connection
-        self._set_connection()
+        self.connection = _get_connection(connection)
         self.BASE_URL = self._set_base_url()
         self.inside_snowflake = self._determine_runtime()
         self.BASE_HEADERS = self._set_base_headers()
-
-    def _set_connection(self):
-        if isinstance(self.connection, Session):
-            con = getattr(self.connection, "connection")
-        else:
-            con = self.connection
-        self.connection = con
 
     def _determine_runtime(self):
         try:
