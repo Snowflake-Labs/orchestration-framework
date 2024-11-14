@@ -20,12 +20,8 @@ from CortexCube.cube.task_processor import Task
 from CortexCube.tools.base import StructuredTool, Tool
 
 THOUGHT_PATTERN = r"Thought: ([^\n]*)"
-# ACTION_PATTERN = r"\n*(\d+)\. (\w+)\((.*)\)(\s*#\w+\n)?"
 ACTION_PATTERN = r"\n*(\d+)\. (\w+)\((.*?)\)(\s*#\w+\n)?"
-# $1 or ${1} -> 1
 ID_PATTERN = r"\$\{?(\d+)\}?"
-
-END_OF_PLAN = "<END_OF_PLAN>"
 
 
 def default_dependency_rule(idx, args: str):
