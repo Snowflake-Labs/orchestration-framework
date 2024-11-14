@@ -1,3 +1,15 @@
+# Copyright 2024 Snowflake Inc.
+# SPDX-License-Identifier: Apache-2.0
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Cortex Cube Planner"""
 
 import asyncio
@@ -23,11 +35,11 @@ from CortexCube.tools.base import StructuredTool, Tool
 from CortexCube.tools.logger import cube_logger
 from CortexCube.tools.utils import CortexEndpointBuilder
 
-JOIN_DESCRIPTION = (
-    "join():\n"
+FUSE_DESCRIPTION = (
+    "fuse():\n"
     " - Collects and combines results from prior actions.\n"
-    " - A LLM agent is called upon invoking join to either finalize the user query or wait until the plans are executed.\n"
-    " - join should always be the last action in the plan, and will be called in two scenarios:\n"
+    " - A LLM agent is called upon invoking fuse to either finalize the user query or wait until the plans are executed.\n"
+    " - fuse should always be the last action in the plan, and will be called in two scenarios:\n"
     "   (a) if the answer can be determined by gathering the outputs from tasks to generate the final response.\n"
     "   (b) if the answer cannot be determined in the planning phase before you execute the plans. "
 )
@@ -47,8 +59,8 @@ def generate_cube_prompt(
     for i, tool in enumerate(tools):
         prefix += f"{i+1}. {tool.description}\n"
 
-    # Join operation
-    prefix += f"{i+2}. {JOIN_DESCRIPTION}\n\n"
+    # FUSE operation
+    prefix += f"{i+2}. {FUSE_DESCRIPTION}\n\n"
 
     # Guidelines
     prefix += (
@@ -60,9 +72,9 @@ def generate_cube_prompt(
         " - Each action MUST have a unique ID, which is strictly increasing.\n"
         " - Inputs for actions can either be constants or outputs from preceding actions. "
         "In the latter case, use the format $id to denote the ID of the previous action whose output will be the input.\n"
-        f" - Always call join as the last action in the plan. Say '{END_OF_PLAN}' after you call join\n"
+        f" - Always call fuse as the last action in the plan. Say '{END_OF_PLAN}' after you call fuse\n"
         " - Ensure the plan maximizes parallelizability.\n"
-        " - Only use the provided action types. If a query cannot be addressed using these, invoke the join action for the next steps.\n"
+        " - Only use the provided action types. If a query cannot be addressed using these, invoke the fuse action for the next steps.\n"
         " - Never explain the plan with comments (e.g. #).\n"
         " - Never introduce new actions other than the ones provided.\n\n"
     )
@@ -169,7 +181,7 @@ class CubeCallback(AsyncCallbackHandler):
         parsed_data = self._parser.ingest_token(token)
         if parsed_data:
             await self._queue.put(parsed_data)
-            if parsed_data.is_join:
+            if parsed_data.is_fuse:
                 await self._queue.put(None)
 
     async def on_llm_end(

@@ -1,3 +1,15 @@
+# Copyright 2024 Snowflake Inc.
+# SPDX-License-Identifier: Apache-2.0
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import asyncio
 import json
 import logging
@@ -248,7 +260,7 @@ class CortexCube(Chain, extra="allow"):
                     include_action=True, include_action_idx=True
                 )
                 for task in tasks.values()
-                if not task.is_join
+                if not task.is_fuse
             ]
         )
         fusion_thought = f"Thought: {fusion_thought}"
@@ -265,7 +277,7 @@ class CortexCube(Chain, extra="allow"):
         formatted_contexts += "Current Plan:\n\n"
         return formatted_contexts
 
-    async def join(
+    async def fuse(
         self, input_query: str, agent_scratchpad: str, is_final: bool
     ) -> str:
         if is_final:
@@ -372,12 +384,12 @@ class CortexCube(Chain, extra="allow"):
                         include_action=True, include_thought=True
                     )
                     for task in tasks.values()
-                    if not task.is_join
+                    if not task.is_fuse
                 ]
             )
             agent_scratchpad = agent_scratchpad.strip()
 
-            fusion_thought, answer, is_replan = await self.join(
+            fusion_thought, answer, is_replan = await self.fuse(
                 input,
                 agent_scratchpad=agent_scratchpad,
                 is_final=is_final_iter,
