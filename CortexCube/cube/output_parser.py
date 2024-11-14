@@ -1,3 +1,15 @@
+# Copyright 2024 Snowflake Inc.
+# SPDX-License-Identifier: Apache-2.0
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import ast
 import re
 from typing import Any, Sequence, Tuple, Union
@@ -53,7 +65,7 @@ class CubePlanParser:
             )
 
             graph_dict[idx] = task
-            if task.is_join:
+            if task.is_fuse:
                 break
 
         return graph_dict
@@ -110,7 +122,7 @@ def _get_dependencies_from_graph(
     idx: int, tool_name: str, args: Sequence[Any]
 ) -> dict[str, list[str]]:
     """Get dependencies from a graph."""
-    if tool_name == "join":
+    if tool_name == "fuse":
         # depends on the previous step
         dependencies = list(range(1, idx))
     else:
@@ -129,8 +141,8 @@ def instantiate_task(
 ) -> Task:
     dependencies = _get_dependencies_from_graph(idx, tool_name, args)
     args = _parse_llm_compiler_action_args(args)
-    if tool_name == "join":
-        # join does not have a tool
+    if tool_name == "fuse":
+        # fuse does not have a tool
         tool_func = lambda x: None
         stringify_rule = None
     else:
@@ -145,5 +157,5 @@ def instantiate_task(
         dependencies=dependencies,
         stringify_rule=stringify_rule,
         thought=thought,
-        is_join=tool_name == "join",
+        is_fuse=tool_name == "fuse",
     )

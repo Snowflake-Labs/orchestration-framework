@@ -1,3 +1,15 @@
+# Copyright 2024 Snowflake Inc.
+# SPDX-License-Identifier: Apache-2.0
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from CortexCube.cube.constants import END_OF_PLAN, FUSION_FINISH, FUSION_REPLAN
 
 PLANNER_PROMPT = (
@@ -7,13 +19,13 @@ PLANNER_PROMPT = (
     "Thought: I need to find the financials of the $competitors identified in the annual report.\n"
     '2. cortexanalyst("Give me summary statistics of the financials of the $competitors")\n'
     "Thought: I can answer the question now.\n"
-    f"3. join(){END_OF_PLAN}\n"
+    f"3. fuse(){END_OF_PLAN}\n"
     "###\n"
     "Question: What is the EBITDA of Berkshire Hathaway?\n"
     "Thought: I need to get financial metrics from an S&P500 company.\n"
     '1. cortexanalyst("What is the EBITDA of Berkshire Hathaway?")\n'
     "Thought: I can answer the question now.\n"
-    f"2. join(){END_OF_PLAN}\n"
+    f"2. fuse(){END_OF_PLAN}\n"
     "###\n"
     "Question: What is the Revenue of the competitors mentioned in Snowflake's annual report?\n"
     "Thought: I first nneed to identify which companies are considered Snowflake's competitors.\n"
@@ -21,7 +33,7 @@ PLANNER_PROMPT = (
     "Thought: Now that I know the competitors, I can look up their financials in my database, if they're in the S&P500.\n"
     '2. cortexanalyst("What is the Revenue of Amazon, Microsoft, and Google?")\n'
     "Thought: I can answer the question now.\n"
-    f"3. join(){END_OF_PLAN}\n"
+    f"3. fuse(){END_OF_PLAN}\n"
 )
 
 
