@@ -24,7 +24,7 @@ all 3 types of tools, see the [CubeQuickstart](CubeQuickstart.ipynb) notebook.
 In a new virtual environment with Python 3.10 or 3.11, install the latest version of
 Cortex Cube.
 ```sh
-pip install cortex-cube@git+https://github.com/Snowflake-Labs/cortex-cube.git
+pip install orchestration-framework@git+https://github.com/Snowflake-Labs/orchestration-framework.git
 ```
 
 **Note For Mac Users**: Mac users have reported SSL Certificate issues when using the
