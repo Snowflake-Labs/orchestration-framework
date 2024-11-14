@@ -10,8 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Base implementation for tools or skills."""
-
 from __future__ import annotations
 
 import asyncio
