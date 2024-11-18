@@ -26,7 +26,8 @@ import streamlit as st
 from dotenv import load_dotenv
 from snowflake.snowpark import Session
 
-from agent_gateway import CortexAnalystTool, agent_gateway, CortexSearchTool, PythonTool
+from agent_gateway import Agent
+from agent_gateway.tools import CortexAnalystTool, CortexSearchTool, PythonTool
 from agent_gateway.tools.utils import parse_log_message
 
 warnings.filterwarnings("ignore")
@@ -99,7 +100,7 @@ if "snowpark" not in st.session_state or st.session_state.snowpark is None:
 
 
 if "analyst" not in st.session_state:
-    st.session_state.analyst = agent_gateway(
+    st.session_state.analyst = Agent(
         snowflake_connection=st.session_state.snowpark,
         tools=st.session_state.snowflake_tools,
     )

@@ -42,7 +42,7 @@ class Logger:
         return cls._instance
 
     def init(self):
-        self.logger = logging.getLogger("agent_gatewayLogger")
+        self.logger = logging.getLogger("AgentGatewayLogger")
         self.logger.setLevel(logging_level)
 
         if not self.logger.handlers:

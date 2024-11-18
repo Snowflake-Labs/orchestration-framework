@@ -1,11 +1,12 @@
-# Cortex Cube
+# Orchestration Framework For Snowflake LLM Services
 
-Cortex Cube is a multi-agent framework that offers native support for Snowflake tools.
+The Agent Gateway is a multi-agent framework that offers native support for Snowflake tools.
+
 Instead of requiring users or developers to choose between RAG with Cortex Search or
-Text2SQL with Cortex Analyst, let the Cube orchestrate the user requests to the
+Text2SQL with Cortex Analyst, let the Agent Gateway orchestrate the user request to the
 appropriate tool.
 
-agent_gateway can be configured to work with 3 types of tools:
+The Agent Gateway can be configured to work with 3 types of tools:
 - **Cortex Search Tool**: For unstructured data analysis, which requires a standard RAG
 access pattern.
 - **Cortex Analyst Tool**: For supporting structured data analysis, which requires a
@@ -13,16 +14,13 @@ Text2SQL access pattern.
 - **Python Tool**: For supporting custom user operations (i.e. sending API requests to
 third party services), which requires calling arbitrary python.
 
-Users have the flexibility to create multiple Cortex Search and Cortex Analyst tools
-for use with Cortex Cube. For a walkthrough of how to configure and run a system with
-all 3 types of tools, see the [CubeQuickstart](CubeQuickstart.ipynb) notebook.
+The Agent Gateway supports multi-step and multi-tool workflows. Users have the flexibility to create multiple Cortex Search and Cortex Analyst tools for use with the Agent Gateway. For a walkthrough of how to configure and run a system with all 3 types of tools, see the [Quickstart](Quickstart.ipynb) notebook.
 
 # Getting Started
 
 ## Installation
 
-In a new virtual environment with Python 3.10 or 3.11, install the latest version of
-Cortex Cube.
+In a new virtual environment with Python 3.10 or 3.11, install the latest version of this framework.
 ```sh
 pip install orchestration-framework@git+https://github.com/Snowflake-Labs/orchestration-framework.git
 ```
@@ -35,7 +33,7 @@ directory and run that file before initializing Cortex Cube. See [this thread](h
 
 ## Tool Requirements
 
-Cortex Cube requires the underlying Cortex Search, Cortex Analyst, or Python tools to
+Agents requires the underlying Cortex Search, Cortex Analyst, or Python tools to
 be configured by the user.
 
 To follow the Quickstart notebook in this repo, you can generate the Cortex Search and
@@ -62,17 +60,17 @@ generate_demo_services(session)
 
 ## Snowflake Tool Configuration
 
-Tools must be configured with relevant metadata for the Cube to route requests to the
+Tools must be configured with relevant metadata for the Agent Gateway to route requests to the
 appropriate service.
 
 **NOTE:** For best results, use specific and mutually exclusive language in your
-metadata descriptions to make it easy for Cortex Cube to delegate work to the right
+metadata descriptions to make it easy for the agent to delegate work to the right
 tools.
 
 ##### Cortex Search Tool Configuration
 
 ```python
-from agent_gateway import CortexSearchTool, CortexAnalystTool, PythonTool
+from agent_gateway.tools import CortexSearchTool, CortexAnalystTool, PythonTool
 
 # Cortex Search Service Config
 search_config = {
@@ -112,66 +110,64 @@ python_config = {
 news_search = PythonTool(**python_config)
 ```
 
-## Cube Configuration + Usage
+## Agent Configuration + Usage
 
 ````python
-from agent_gateway import agent_gateway
+from agent_gateway import Agent
 
-# Config + Initialize Cortex Cube
+# Config + Initialize Agent
 snowflake_tools = [annual_reports, sp500, news_search]
-cube_agent = agent_gateway(snowflake_connection=session, tools=snowflake_tools)
+snowflake_agent = Agent(snowflake_connection=session, tools=snowflake_tools)
 
-# Run Cortex Cube
-answer = cube_agent("What is the average price for toothbrushes?")
+# Run Agent
+answer = snowflake_agent("What is the average price for toothbrushes?")
 print(answer)
 
-# Async Execution of Cortex Cube
-answer = await cube_agent.acall("What is the average price for toothbrushes?")
+# Async Execution of Agent
+answer = await snowflake_agent.acall("What is the average price for toothbrushes?")
 print(answer)
 ````
 
 # FAQs
 
-#### Where does Cortex Cube run?
+#### Where does the Agent Gateway run?
 
-- This initial version of Cortex Cube is a client-side library. Orchestration is done
-by Cortex Cube in your local environment while the compute is done inside of Snowflake.
+- This library is optimized for client-side orchestration. If you prefer a managed service that does the orchestration inside of Snowflake, we recommend using the Snowflake Chat API.
 
-#### Does Cortex Cube work with a Streamlit UI?
+#### Does the Agent Gateway work with a Streamlit UI?
 
-- Yes, see the cube_demo_app directory for an example Streamlit app that uses Cortex
-Cube for orchestration across Cortex Search, Cortex Analyst, and Python tools. Note,
-running Cortex Cube in SiS is not yet supported.
+- Yes, see the demo_app directory for an example Streamlit app that uses the Agent Gateway for orchestration across Cortex Search, Cortex Analyst, and Python tools. Note,
+running the gateway is not yet supported in Stremlit in Snowflake.
 
-#### How does authentication work with Cortex Cube?
+#### How does authentication work?
 
 - Cortex Cube takes an authenticated snowpark connection. Just create your session
 object with your standard [connection parameters](https://docs.snowflake.com/en/developer-guide/snowpark/reference/python/latest/snowpark/api/snowflake.snowpark.Session).
 
-#### If I have multiple Cortex Search Services, can I use multiple Cortex Search tools with Cortex Cube?
+#### If I have multiple Cortex Search Services, can I use multiple Cortex Search tools with this framework?
 
-- Yes, Cortex Cube supports the use of multiple tools of the same type.
+- Yes, you can connect multiple tools of the same type to the Agent Gateway.
 ```python
 search_one = CortexSearchTool(**search_one_config)
 search_two = CortexSearchTool(**search_two_config)
-cube = agent_gateway(snowflake_connection=session, tools=[search_one, search_two])
+cube = Agent(snowflake_connection=session, tools=[search_one, search_two])
 ```
 
-#### If my Snowflake tools live in different accounts / schemas, can I still use Cortex Cube?
+#### If my Snowflake tools live in different accounts / schemas, can I still use the Agent Gateway?
 
 - Yes. The Cortex Analyst and Cortex Search tools take in a snowpark session as an
 input. This allows users to use different sessions / accounts in the same Cortex Cube
 instance.
 
-#### How can I see which tools are being used by Cortex Cube?
+#### How can I see which tools are being used by the Agent Gateway?
 
-- The Cortex Cube logger is set to INFO level by default. This allows users to view
+- The Agent Gateway logger is set to INFO level by default. This allows users to view
 which tools are being used to answer the user's question. For more detailed logging and
 visibility into intermediary results of the tool calls, set the LOGGING_LEVEL=DEBUG.
 
 #### I'm not getting any results when I submit a user request to the Cube. How do I debug this?
 
-- If the end to end Cube run doesn't return any results, try running the tools
+- If the Agent Gateway doesn't return results, try running the tools
 separately to validate that they've been configured appropriately. Tools are
 implemented asynchronously, so you can run your tools in isolation and validate the
 config as follows:
