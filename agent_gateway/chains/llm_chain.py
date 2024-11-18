@@ -36,7 +36,7 @@ from langchain.schema import (
 from langchain.schema.language_model import BaseLanguageModel
 from langchain.utils.input import get_colored_text
 
-from CortexCube.chains.chain import Chain
+from agent_gateway.chains.chain import Chain
 
 logger = logging.getLogger(__name__)
 

@@ -34,8 +34,8 @@ from langchain.tools import BaseTool
 from langchain.utilities.asyncio import asyncio_timeout
 from langchain.utils.input import get_color_mapping
 
-from CortexCube.chains.chain import Chain
-from CortexCube.tools.base import BaseTool
+from agent_gateway.chains.chain import Chain
+from agent_gateway.tools.base import BaseTool
 
 logger = logging.getLogger(__name__)
 

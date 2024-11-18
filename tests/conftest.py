@@ -15,7 +15,7 @@ import os
 import pytest
 from snowflake.snowpark import Session
 
-from CortexCube.tools.utils import generate_demo_services
+from agent_gateway.tools.utils import generate_demo_services
 
 
 class TestConf:

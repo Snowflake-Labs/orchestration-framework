@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Cortex Cube Planner"""
+"""Cortex gateway Planner"""
 
 import asyncio
 import json
@@ -22,18 +22,18 @@ from uuid import UUID
 import aiohttp
 from langchain.callbacks.base import AsyncCallbackHandler
 
-from CortexCube.cube.constants import END_OF_PLAN
-from CortexCube.cube.output_parser import (
+from agent_gateway.gateway.constants import END_OF_PLAN
+from agent_gateway.gateway.output_parser import (
     ACTION_PATTERN,
     THOUGHT_PATTERN,
-    CubePlanParser,
+    gatewayPlanParser,
     instantiate_task,
 )
-from CortexCube.cube.task_processor import Task
-from CortexCube.executors.schema import Plan
-from CortexCube.tools.base import StructuredTool, Tool
-from CortexCube.tools.logger import cube_logger
-from CortexCube.tools.utils import CortexEndpointBuilder
+from agent_gateway.gateway.task_processor import Task
+from agent_gateway.executors.schema import Plan
+from agent_gateway.tools.base import StructuredTool, Tool
+from agent_gateway.tools.logger import gateway_logger
+from agent_gateway.tools.utils import CortexEndpointBuilder
 
 FUSE_DESCRIPTION = (
     "fuse():\n"
@@ -45,7 +45,7 @@ FUSE_DESCRIPTION = (
 )
 
 
-def generate_cube_prompt(
+def generate_gateway_prompt(
     tools: Sequence[Union[Tool, StructuredTool]],
     example_prompt=str,
     is_replan: bool = False,
@@ -155,7 +155,7 @@ class StreamingGraphParser:
         return self._match_buffer_and_generate_task("")
 
 
-class CubeCallback(AsyncCallbackHandler):
+class gatewayCallback(AsyncCallbackHandler):
     _queue: asyncio.Queue[Optional[Task]]
     _parser: StreamingGraphParser
     _tools: Sequence[Union[Tool, StructuredTool]]
@@ -209,18 +209,18 @@ class Planner:
     ):
         self.llm = llm
         self.session = session
-        self.system_prompt = generate_cube_prompt(
+        self.system_prompt = generate_gateway_prompt(
             tools=tools,
             example_prompt=example_prompt,
             is_replan=False,
         )
-        self.system_prompt_replan = generate_cube_prompt(
+        self.system_prompt_replan = generate_gateway_prompt(
             tools=tools,
             example_prompt=example_prompt_replan,
             is_replan=True,
         )
         self.tools = tools
-        self.output_parser = CubePlanParser(tools=tools)
+        self.output_parser = gatewayPlanParser(tools=tools)
         self.stop = stop
 
     async def run_llm(
@@ -280,7 +280,7 @@ class Planner:
             if "content" in choices["delta"].keys():
                 completion += choices["delta"]["content"]
 
-        cube_logger.log(logging.DEBUG, f"Planner response:{completion}")
+        gateway_logger.log(logging.DEBUG, f"Planner response:{completion}")
         return completion
 
     async def plan(self, inputs: dict, is_replan: bool, **kwargs: Any):

@@ -21,27 +21,27 @@ import aiohttp
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
 
-from CortexCube.chains.chain import Chain
-from CortexCube.cube.constants import END_OF_PLAN, FUSION_REPLAN
-from CortexCube.cube.planner import Planner
-from CortexCube.cube.task_processor import Task, TaskProcessor
-from CortexCube.tools.base import StructuredTool, Tool
-from CortexCube.tools.logger import cube_logger
-from CortexCube.tools.snowflake_prompts import OUTPUT_PROMPT
-from CortexCube.tools.snowflake_prompts import (
+from agent_gateway.chains.chain import Chain
+from agent_gateway.gateway.constants import END_OF_PLAN, FUSION_REPLAN
+from agent_gateway.gateway.planner import Planner
+from agent_gateway.gateway.task_processor import Task, TaskProcessor
+from agent_gateway.tools.base import StructuredTool, Tool
+from agent_gateway.tools.logger import gateway_logger
+from agent_gateway.tools.snowflake_prompts import OUTPUT_PROMPT
+from agent_gateway.tools.snowflake_prompts import (
     PLANNER_PROMPT as SNOWFLAKE_PLANNER_PROMPT,
 )
-from CortexCube.tools.utils import CortexEndpointBuilder
+from agent_gateway.tools.utils import CortexEndpointBuilder
 
 
-class CortexCubeError(Exception):
+class AgentGatewayError(Exception):
     def __init__(self, message):
         self.message = message
         super().__init__(self.message)
 
 
-class CubeAgent:
-    """Self defined agent for Cortex Cube."""
+class GatewayAgent:
+    """Self defined agent for Cortex gateway."""
 
     def __init__(self, session, llm) -> None:
         self.llm = llm
@@ -50,15 +50,15 @@ class CubeAgent:
     async def arun(self, prompt: str) -> str:
         """Run the LLM."""
         headers, url, data = self._prepare_llm_request(prompt=prompt)
-        cube_logger.log(logging.DEBUG, "Cortex Request URL\n", url, block=True)
-        cube_logger.log(logging.DEBUG, "Cortex Request Data\n", data, block=True)
+        gateway_logger.log(logging.DEBUG, "Cortex Request URL\n", url, block=True)
+        gateway_logger.log(logging.DEBUG, "Cortex Request Data\n", data, block=True)
 
         async with aiohttp.ClientSession(
             headers=headers,
         ) as session:
             async with session.post(url=url, json=data) as response:
                 response_text = await response.text()
-                cube_logger.log(
+                gateway_logger.log(
                     logging.DEBUG,
                     "Cortex Request Response\n",
                     response.content,
@@ -66,7 +66,7 @@ class CubeAgent:
                 )
 
                 if "choices" not in response_text:
-                    raise CortexCubeError(
+                    raise agent_gatewayError(
                         message="Failed Cortex LLM Request. Missing choices in response. See details:{response_text}"
                     )
 
@@ -74,7 +74,7 @@ class CubeAgent:
                     snowflake_response = self._parse_snowflake_response(response_text)
                     return snowflake_response
                 except:
-                    raise CortexCubeError(
+                    raise agent_gatewayError(
                         message="Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
                     )
 
@@ -113,13 +113,13 @@ class CubeAgent:
 
             return completion
         except KeyError as e:
-            raise CortexCubeError(
+            raise agent_gatewayError(
                 message=f"Missing Cortex LLM response components. {str(e)}"
             )
 
 
-class CortexCube(Chain, extra="allow"):
-    """Cortex Cube Multi Agent Class"""
+class Agent(Chain, extra="allow"):
+    """Cortex Gateway Multi Agent Class"""
 
     input_key: str = "input"
     output_key: str = "output"
@@ -174,7 +174,7 @@ class CortexCube(Chain, extra="allow"):
             stop=planner_stop,
         )
 
-        self.agent = CubeAgent(session=snowflake_connection, llm=agent_llm)
+        self.agent = GatewayAgent(session=snowflake_connection, llm=agent_llm)
         self.fusion_prompt = fusion_prompt
         self.fusion_prompt_final = fusion_prompt_final or fusion_prompt
         self.planner_stream = planner_stream
@@ -183,7 +183,7 @@ class CortexCube(Chain, extra="allow"):
         # callbacks
         self.planner_callback = None
         self.executor_callback = None
-        cube_logger.log(logging.INFO, "Cortex Cube successfully initialized")
+        gateway_logger.log(logging.INFO, "Cortex gateway successfully initialized")
 
     @property
     def input_keys(self) -> List[str]:
@@ -293,8 +293,8 @@ class CortexCube(Chain, extra="allow"):
 
         response = await self.agent.arun(prompt)
         raw_answer = cast(str, response)
-        cube_logger.log(logging.DEBUG, "Question: \n", input_query, block=True)
-        cube_logger.log(logging.DEBUG, "Raw Answer: \n", raw_answer, block=True)
+        gateway_logger.log(logging.DEBUG, "Question: \n", input_query, block=True)
+        gateway_logger.log(logging.DEBUG, "Raw Answer: \n", raw_answer, block=True)
         thought, answer, is_replan = self._parse_fusion_output(raw_answer)
         if is_final:
             # If final, we don't need to replan
@@ -305,7 +305,7 @@ class CortexCube(Chain, extra="allow"):
         return self.__call__(inputs)
 
     def __call__(self, input: str):
-        """Calls Cortex Cube multi-agent system.
+        """Calls Cortex gateway multi-agent system.
 
         Params:
             input (str): user's natural language request
@@ -317,7 +317,7 @@ class CortexCube(Chain, extra="allow"):
         try:
             return result[0]["output"]
         except IndexError:
-            raise CortexCubeError(
+            raise AgentGatewayError(
                 message="Unable to retrieve response. Please check each of your Cortex tools and ensure all connections are valid."
             )
 

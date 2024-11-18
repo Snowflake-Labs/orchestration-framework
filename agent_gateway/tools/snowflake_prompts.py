@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from CortexCube.cube.constants import END_OF_PLAN, FUSION_FINISH, FUSION_REPLAN
+from agent_gateway.gateway.constants import END_OF_PLAN, FUSION_FINISH, FUSION_REPLAN
 
 PLANNER_PROMPT = (
     "Question: Give me a summary of the financials of Snowflake's competitors\n"

@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Multi-agent framework for Snowflake"
 authors = ["alejandro <alejandro.herrera@snowflake.com>"]
 readme = "README.md"
-packages = [{include = "CortexCube"}]
+packages = [{include = "agent_gateway"}]
 include = ["README.md"]
 
 [tool.poetry.dependencies]

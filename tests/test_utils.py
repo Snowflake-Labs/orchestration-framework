@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 
 import pytest
 
-from CortexCube.tools.utils import CortexEndpointBuilder
+from agent_gateway.tools.utils import CortexEndpointBuilder
 
 
 class MockConnection:

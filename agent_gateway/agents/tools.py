@@ -17,7 +17,7 @@ from langchain.callbacks.manager import (
 )
 from langchain.tools import BaseTool
 
-from CortexCube.tools.base import Tool, tool
+from agent_gateway.tools.base import Tool, tool
 
 
 class InvalidTool(BaseTool):

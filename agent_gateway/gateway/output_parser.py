@@ -16,8 +16,8 @@ from typing import Any, Sequence, Tuple, Union
 
 from langchain.schema import OutputParserException
 
-from CortexCube.cube.task_processor import Task
-from CortexCube.tools.base import StructuredTool, Tool
+from agent_gateway.gateway.task_processor import Task
+from agent_gateway.tools.base import StructuredTool, Tool
 
 THOUGHT_PATTERN = r"Thought: ([^\n]*)"
 ACTION_PATTERN = r"\n*(\d+)\. (\w+)\((.*?)\)(\s*#\w+\n)?"
@@ -30,7 +30,7 @@ def default_dependency_rule(idx, args: str):
     return idx in numbers
 
 
-class CubePlanParser:
+class gatewayPlanParser:
     """Planning output parser."""
 
     def __init__(self, tools: Sequence[Union[Tool, StructuredTool]], **kwargs):

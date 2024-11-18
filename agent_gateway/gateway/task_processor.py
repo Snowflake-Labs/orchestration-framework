@@ -17,12 +17,12 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Collection, Dict, List, Optional
 
-from CortexCube.tools.logger import cube_logger
+from agent_gateway.tools.logger import gateway_logger
 
 SCHEDULING_INTERVAL = 0.01  # seconds
 
 
-class CortexCubeError(Exception):
+class agent_gatewayError(Exception):
     def __init__(self, message):
         self.message = message
         super().__init__(self.message)
@@ -70,14 +70,14 @@ class Task:
     is_fuse: bool = False
 
     async def __call__(self) -> Any:
-        cube_logger.log(logging.INFO, f"running {self.name} task")
+        gateway_logger.log(logging.INFO, f"running {self.name} task")
         try:
             x = await self.tool(*self.args)
-            cube_logger.log(logging.DEBUG, "task successfully completed")
+            gateway_logger.log(logging.DEBUG, "task successfully completed")
             return x
         except Exception as e:
-            raise CortexCubeError(
-                f"Unexpected error during Cortex Cube Tool request: {str(e)}"
+            raise agent_gatewayError(
+                f"Unexpected error during Cortex gateway Tool request: {str(e)}"
             ) from e
 
     def get_thought_action_observation(
@@ -145,7 +145,7 @@ class TaskProcessor:
                 observation = await task()
                 task.observation = observation
             except Exception as e:
-                raise CortexCubeError(f"{str(e)}") from e
+                raise agent_gatewayError(f"{str(e)}") from e
         self.tasks_done[task.idx].set()
 
     async def schedule(self):

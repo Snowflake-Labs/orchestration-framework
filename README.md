@@ -5,7 +5,7 @@ Instead of requiring users or developers to choose between RAG with Cortex Searc
 Text2SQL with Cortex Analyst, let the Cube orchestrate the user requests to the
 appropriate tool.
 
-CortexCube can be configured to work with 3 types of tools:
+agent_gateway can be configured to work with 3 types of tools:
 - **Cortex Search Tool**: For unstructured data analysis, which requires a standard RAG
 access pattern.
 - **Cortex Analyst Tool**: For supporting structured data analysis, which requires a
@@ -42,7 +42,7 @@ To follow the Quickstart notebook in this repo, you can generate the Cortex Sear
 Cortex Analyst demo services as follows:
 
 ```python
-from CortexCube.tools.utils import generate_demo_services
+from agent_gateway.tools.utils import generate_demo_services
 from snowflake.snowpark import Session
 
 connection_parameters = {
@@ -72,7 +72,7 @@ tools.
 ##### Cortex Search Tool Configuration
 
 ```python
-from CortexCube import CortexSearchTool, CortexAnalystTool, PythonTool
+from agent_gateway import CortexSearchTool, CortexAnalystTool, PythonTool
 
 # Cortex Search Service Config
 search_config = {
@@ -115,11 +115,11 @@ news_search = PythonTool(**python_config)
 ## Cube Configuration + Usage
 
 ````python
-from CortexCube import CortexCube
+from agent_gateway import agent_gateway
 
 # Config + Initialize Cortex Cube
 snowflake_tools = [annual_reports, sp500, news_search]
-cube_agent = CortexCube(snowflake_connection=session, tools=snowflake_tools)
+cube_agent = agent_gateway(snowflake_connection=session, tools=snowflake_tools)
 
 # Run Cortex Cube
 answer = cube_agent("What is the average price for toothbrushes?")
@@ -154,7 +154,7 @@ object with your standard [connection parameters](https://docs.snowflake.com/en/
 ```python
 search_one = CortexSearchTool(**search_one_config)
 search_two = CortexSearchTool(**search_two_config)
-cube = CortexCube(snowflake_connection=session, tools=[search_one, search_two])
+cube = agent_gateway(snowflake_connection=session, tools=[search_one, search_two])
 ```
 
 #### If my Snowflake tools live in different accounts / schemas, can I still use Cortex Cube?

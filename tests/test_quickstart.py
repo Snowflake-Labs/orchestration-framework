@@ -15,7 +15,8 @@ import json
 
 import pytest
 
-from CortexCube import CortexAnalystTool, CortexCube, CortexSearchTool, PythonTool
+from agent_gateway import Agent
+from agent_gateway.tools import CortexSearchTool, CortexAnalystTool, PythonTool
 
 
 @pytest.mark.parametrize(
@@ -107,7 +108,7 @@ def test_python_tool():
         ),
     ],
 )
-def test_cube_agent(session, question, answer_contains):
+def test_gateway_agent(session, question, answer_contains):
     search_config = {
         "service_name": "SEC_SEARCH_SERVICE",
         "service_topic": "Snowflake's business,product offerings,and performance",
@@ -136,7 +137,7 @@ def test_cube_agent(session, question, answer_contains):
     annual_reports = CortexSearchTool(**search_config)
     sp500 = CortexAnalystTool(**analyst_config)
     news_search = PythonTool(**python_config)
-    agent = CortexCube(
+    agent = Agent(
         snowflake_connection=session, tools=[annual_reports, sp500, news_search]
     )
     response = agent(question)

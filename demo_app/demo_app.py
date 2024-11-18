@@ -26,8 +26,8 @@ import streamlit as st
 from dotenv import load_dotenv
 from snowflake.snowpark import Session
 
-from CortexCube import CortexAnalystTool, CortexCube, CortexSearchTool, PythonTool
-from CortexCube.tools.utils import parse_log_message
+from agent_gateway import CortexAnalystTool, agent_gateway, CortexSearchTool, PythonTool
+from agent_gateway.tools.utils import parse_log_message
 
 warnings.filterwarnings("ignore")
 load_dotenv("../.env")
@@ -99,7 +99,7 @@ if "snowpark" not in st.session_state or st.session_state.snowpark is None:
 
 
 if "analyst" not in st.session_state:
-    st.session_state.analyst = CortexCube(
+    st.session_state.analyst = agent_gateway(
         snowflake_connection=st.session_state.snowpark,
         tools=st.session_state.snowflake_tools,
     )

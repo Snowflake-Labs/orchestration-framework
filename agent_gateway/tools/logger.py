@@ -42,7 +42,7 @@ class Logger:
         return cls._instance
 
     def init(self):
-        self.logger = logging.getLogger("CortexCubeLogger")
+        self.logger = logging.getLogger("agent_gatewayLogger")
         self.logger.setLevel(logging_level)
 
         if not self.logger.handlers:
@@ -70,10 +70,10 @@ class Logger:
                 self.logger.log(level, "=" * 80)
 
 
-cube_logger = Logger()
+gateway_logger = Logger()
 
 # The updated log function
 
 
 def log(level, *args, block=False, **kwargs):
-    cube_logger.log(level, *args, block=block, **kwargs)
+    gateway_logger.log(level, *args, block=block, **kwargs)

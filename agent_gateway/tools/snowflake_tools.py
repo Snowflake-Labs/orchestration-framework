@@ -24,9 +24,9 @@ from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 
-from CortexCube.agents.tools import Tool
-from CortexCube.tools.logger import cube_logger
-from CortexCube.tools.utils import CortexEndpointBuilder, _get_connection
+from agent_gateway.agents.tools import Tool
+from agent_gateway.tools.logger import gateway_logger
+from agent_gateway.tools.utils import CortexEndpointBuilder, _get_connection
 
 
 class SnowflakeError(Exception):
@@ -37,7 +37,7 @@ class SnowflakeError(Exception):
 
 
 class CortexSearchTool(Tool):
-    """Cortex Search tool for use with SnowflakeCortexCube"""
+    """Cortex Search tool for use with Snowflakeagent_gateway"""
 
     k: int = 5
     retrieval_columns: list = []
@@ -86,13 +86,13 @@ class CortexSearchTool(Tool):
         self.k = k
         self.retrieval_columns = retrieval_columns
         self.service_name = service_name
-        cube_logger.log(logging.INFO, f"Cortex Search Tool successfully initialized")
+        gateway_logger.log(logging.INFO, f"Cortex Search Tool successfully initialized")
 
     def __call__(self, question) -> Any:
         return self.asearch(question)
 
     async def asearch(self, query):
-        cube_logger.log(logging.DEBUG, f"Cortex Search Query:{query}")
+        gateway_logger.log(logging.DEBUG, f"Cortex Search Query:{query}")
         headers, url, data = self._prepare_request(query=query)
         async with aiohttp.ClientSession(
             headers=headers,
@@ -100,7 +100,7 @@ class CortexSearchTool(Tool):
             async with session.post(url=url, json=data) as response:
                 response_text = await response.text()
                 response_json = json.loads(response_text)
-                cube_logger.log(
+                gateway_logger.log(
                     logging.DEBUG, f"Cortex Search Response:{response_json}"
                 )
                 try:
@@ -301,7 +301,7 @@ class SmartSearch(dspy.Module):
 
 
 class CortexAnalystTool(Tool):
-    """""Cortex Analyst tool for use with SnowflakeCortexCube""" ""
+    """""Cortex Analyst tool for use with Snowflakeagent_gateway""" ""
 
     STAGE: str = ""
     FILE: str = ""
@@ -336,13 +336,15 @@ class CortexAnalystTool(Tool):
         self.FILE = semantic_model
         self.STAGE = stage
 
-        cube_logger.log(logging.INFO, f"Cortex Analyst Tool successfully initialized")
+        gateway_logger.log(
+            logging.INFO, f"Cortex Analyst Tool successfully initialized"
+        )
 
     def __call__(self, prompt) -> Any:
         return self.asearch(query=prompt)
 
     async def asearch(self, query):
-        cube_logger.log(logging.DEBUG, f"Cortex Analyst Prompt:{query}")
+        gateway_logger.log(logging.DEBUG, f"Cortex Analyst Prompt:{query}")
 
         for _ in range(3):
             current_query = query
@@ -376,7 +378,7 @@ class CortexAnalystTool(Tool):
             except:
                 raise SnowflakeError(message=json_response["message"])
 
-        cube_logger.log(logging.DEBUG, f"Cortex Analyst Response:{query_response}")
+        gateway_logger.log(logging.DEBUG, f"Cortex Analyst Response:{query_response}")
         return query_response
 
     def _prepare_analyst_request(self, prompt):
@@ -397,7 +399,7 @@ class CortexAnalystTool(Tool):
         # If Valid SQL is present in Cortex Analyst Response execute the query
         if "sql" == response[1]["type"]:
             sql_query = response[1]["statement"]
-            # cube_logger.log(logging.DEBUG,f"Cortex Analyst SQL Query:{sql_query}")
+            # gateway_logger.log(logging.DEBUG,f"Cortex Analyst SQL Query:{sql_query}")
             table = self.connection.cursor().execute(sql_query).fetch_arrow_all()
 
             return str(table.to_pydict())
@@ -440,7 +442,7 @@ class PythonTool(Tool):
             name=python_func.__name__, func=python_callable, description=desc
         )
         self.python_callable = python_func
-        cube_logger.log(logging.INFO, "Python Tool successfully initialized")
+        gateway_logger.log(logging.INFO, "Python Tool successfully initialized")
 
     def asyncify(self, sync_func):
         async def async_func(*args, **kwargs):
