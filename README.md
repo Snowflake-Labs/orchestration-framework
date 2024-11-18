@@ -29,7 +29,7 @@ pip install orchestration-framework@git+https://github.com/Snowflake-Labs/orches
 Cortex REST API. This is related to python virtual environments not having access to
 local certificates. One potential solution to avoid SSL Certificate issues is to use
 Finder to locate the "Install Certificates.command" file in your relevant Python
-directory and run that file before initializing Cortex Cube. See [this thread](https://github.com/python/cpython/issues/87570#issuecomment-1093904961) for more info.
+directory and run that file before initializing the agent. See [this thread](https://github.com/python/cpython/issues/87570#issuecomment-1093904961) for more info.
 
 ## Tool Requirements
 
@@ -141,7 +141,7 @@ running the gateway is not yet supported in Stremlit in Snowflake.
 
 #### How does authentication work?
 
-- Cortex Cube takes an authenticated snowpark connection. Just create your session
+- The Agent Gateway and its tools take an authenticated snowpark connection. Just create your session
 object with your standard [connection parameters](https://docs.snowflake.com/en/developer-guide/snowpark/reference/python/latest/snowpark/api/snowflake.snowpark.Session).
 
 #### If I have multiple Cortex Search Services, can I use multiple Cortex Search tools with this framework?
@@ -150,14 +150,13 @@ object with your standard [connection parameters](https://docs.snowflake.com/en/
 ```python
 search_one = CortexSearchTool(**search_one_config)
 search_two = CortexSearchTool(**search_two_config)
-cube = Agent(snowflake_connection=session, tools=[search_one, search_two])
+snowflake_agent = Agent(snowflake_connection=session, tools=[search_one, search_two])
 ```
 
 #### If my Snowflake tools live in different accounts / schemas, can I still use the Agent Gateway?
 
 - Yes. The Cortex Analyst and Cortex Search tools take in a snowpark session as an
-input. This allows users to use different sessions / accounts in the same Cortex Cube
-instance.
+input. This allows users to use different sessions / accounts in the same gateway agent.
 
 #### How can I see which tools are being used by the Agent Gateway?
 
@@ -165,7 +164,7 @@ instance.
 which tools are being used to answer the user's question. For more detailed logging and
 visibility into intermediary results of the tool calls, set the LOGGING_LEVEL=DEBUG.
 
-#### I'm not getting any results when I submit a user request to the Cube. How do I debug this?
+#### I'm not getting any results when I submit a request. How do I debug this?
 
 - If the Agent Gateway doesn't return results, try running the tools
 separately to validate that they've been configured appropriately. Tools are
