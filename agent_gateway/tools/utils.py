@@ -11,6 +11,8 @@
 # limitations under the License.
 
 import io
+import asyncio
+import json
 from collections import deque
 from textwrap import dedent
 from typing import TypedDict, Union
@@ -36,20 +38,21 @@ class Headers(TypedDict):
     Authorization: str
 
 
+def _determine_runtime():
+    try:
+        from _stored_proc_restful import StoredProcRestful
+
+        return True
+    except ImportError:
+        return False
+
+
 class CortexEndpointBuilder:
     def __init__(self, connection: Union[Session, SnowflakeConnection]):
         self.connection = _get_connection(connection)
         self.BASE_URL = self._set_base_url()
-        self.inside_snowflake = self._determine_runtime()
+        self.inside_snowflake = _determine_runtime()
         self.BASE_HEADERS = self._set_base_headers()
-
-    def _determine_runtime(self):
-        try:
-            from _stored_proc_restful import StoredProcRestful
-
-            return True
-        except ImportError:
-            return False
 
     def _set_base_url(self):
         scheme = "https"
@@ -102,12 +105,41 @@ class CortexEndpointBuilder:
 
 
 async def post_cortex_request(url: str, headers: Headers, data: dict):
-    async with aiohttp.ClientSession(
-        headers=headers,
-    ) as session:
-        async with session.post(url=url, json=data) as response:
-            response_text = await response.text()
-            return response_text
+    """Submit cortex request depending on runtime"""
+
+    snowflake_runtime = _determine_runtime()
+
+    # if not inside of snowflake, use aiohttp. otherwise use _snowflake
+    if not snowflake_runtime:
+        async with aiohttp.ClientSession(
+            headers=headers,
+        ) as session:
+            async with session.post(url=url, json=data) as response:
+                response_text = await response.text()
+                return response_text
+
+    else:
+        import _snowflake
+
+        resp = _snowflake.send_snow_api_request(
+            "POST",
+            url,
+            {},
+            {},
+            data,
+            {},
+            30000,
+        )
+
+        return json.dumps(resp)
+
+
+def asyncify(self, sync_func):
+    async def async_func(*args, **kwargs):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, sync_func, *args, **kwargs)
+
+    return async_func
 
 
 def parse_log_message(log_message):
