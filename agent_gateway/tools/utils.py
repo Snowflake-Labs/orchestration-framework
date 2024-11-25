@@ -16,6 +16,7 @@ from textwrap import dedent
 from typing import TypedDict, Union
 from urllib.parse import urlunparse
 
+import aiohttp
 import pkg_resources
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
@@ -98,6 +99,15 @@ class CortexEndpointBuilder:
 
     def get_search_headers(self) -> Headers:
         return self.BASE_HEADERS | {"Accept": "application/json"}
+
+
+async def post_cortex_request(url: str, headers: Headers, data: dict):
+    async with aiohttp.ClientSession(
+        headers=headers,
+    ) as session:
+        async with session.post(url=url, json=data) as response:
+            response_text = await response.text()
+            return response_text
 
 
 def parse_log_message(log_message):

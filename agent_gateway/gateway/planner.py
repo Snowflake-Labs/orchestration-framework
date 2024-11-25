@@ -19,7 +19,6 @@ import re
 from typing import Any, Optional, Sequence, Union
 from uuid import UUID
 
-import aiohttp
 from langchain.callbacks.base import AsyncCallbackHandler
 
 from agent_gateway.gateway.constants import END_OF_PLAN
@@ -33,7 +32,7 @@ from agent_gateway.gateway.task_processor import Task
 from agent_gateway.executors.schema import Plan
 from agent_gateway.tools.base import StructuredTool, Tool
 from agent_gateway.tools.logger import gateway_logger
-from agent_gateway.tools.utils import CortexEndpointBuilder
+from agent_gateway.tools.utils import CortexEndpointBuilder, post_cortex_request
 
 FUSE_DESCRIPTION = (
     "fuse():\n"
@@ -240,13 +239,9 @@ class Planner:
         message = system_prompt + "\n\n" + human_prompt
         headers, url, data = self._prepare_llm_request(prompt=message)
 
-        async with aiohttp.ClientSession(
-            headers=headers,
-        ) as session:
-            async with session.post(url=url, json=data) as response:
-                response_text = await response.text()
-                snowflake_response = self._parse_snowflake_response(response_text)
-                return snowflake_response
+        response_text = await post_cortex_request(url=url, headers=headers, data=data)
+        snowflake_response = self._parse_snowflake_response(response_text)
+        return snowflake_response
 
     def _prepare_llm_request(self, prompt):
         eb = CortexEndpointBuilder(self.session)

@@ -17,7 +17,6 @@ import logging
 import re
 from typing import Any, Type, Union
 
-import aiohttp
 import dspy
 from pydantic import BaseModel, Field, ValidationError
 from snowflake.connector.connection import SnowflakeConnection
@@ -26,7 +25,11 @@ from snowflake.snowpark.functions import col
 
 from agent_gateway.agents.tools import Tool
 from agent_gateway.tools.logger import gateway_logger
-from agent_gateway.tools.utils import CortexEndpointBuilder, _get_connection
+from agent_gateway.tools.utils import (
+    CortexEndpointBuilder,
+    _get_connection,
+    post_cortex_request,
+)
 
 
 class SnowflakeError(Exception):
@@ -86,7 +89,7 @@ class CortexSearchTool(Tool):
         self.k = k
         self.retrieval_columns = retrieval_columns
         self.service_name = service_name
-        gateway_logger.log(logging.INFO, f"Cortex Search Tool successfully initialized")
+        gateway_logger.log(logging.INFO, "Cortex Search Tool successfully initialized")
 
     def __call__(self, question) -> Any:
         return self.asearch(question)
@@ -94,19 +97,13 @@ class CortexSearchTool(Tool):
     async def asearch(self, query):
         gateway_logger.log(logging.DEBUG, f"Cortex Search Query:{query}")
         headers, url, data = self._prepare_request(query=query)
-        async with aiohttp.ClientSession(
-            headers=headers,
-        ) as session:
-            async with session.post(url=url, json=data) as response:
-                response_text = await response.text()
-                response_json = json.loads(response_text)
-                gateway_logger.log(
-                    logging.DEBUG, f"Cortex Search Response:{response_json}"
-                )
-                try:
-                    return response_json["results"]
-                except:
-                    raise SnowflakeError(message=response_json["message"])
+        response_text = await post_cortex_request(url=url, headers=headers, data=data)
+        response_json = json.loads(response_text)
+        gateway_logger.log(logging.DEBUG, f"Cortex Search Response:{response_json}")
+        try:
+            return response_json["results"]
+        except:
+            raise SnowflakeError(message=response_json["message"])
 
     def _prepare_request(self, query):
         eb = CortexEndpointBuilder(self.connection)
@@ -337,7 +334,7 @@ class CortexAnalystTool(Tool):
         self.STAGE = stage
 
         gateway_logger.log(
-            logging.INFO, f"Cortex Analyst Tool successfully initialized"
+            logging.INFO, "Cortex Analyst Tool successfully initialized"
         )
 
     def __call__(self, prompt) -> Any:
@@ -350,12 +347,10 @@ class CortexAnalystTool(Tool):
             current_query = query
             url, headers, data = self._prepare_analyst_request(prompt=query)
 
-            async with aiohttp.ClientSession(
-                headers=headers,
-            ) as session:
-                async with session.post(url=url, json=data) as response:
-                    response_text = await response.text()
-                    json_response = json.loads(response_text)
+            response_text = await post_cortex_request(
+                url=url, headers=headers, data=data
+            )
+            json_response = json.loads(response_text)
 
             try:
                 query_response = self._process_message(

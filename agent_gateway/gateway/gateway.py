@@ -17,7 +17,6 @@ import re
 import threading
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
 
-import aiohttp
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
 
@@ -31,7 +30,7 @@ from agent_gateway.tools.snowflake_prompts import OUTPUT_PROMPT
 from agent_gateway.tools.snowflake_prompts import (
     PLANNER_PROMPT as SNOWFLAKE_PLANNER_PROMPT,
 )
-from agent_gateway.tools.utils import CortexEndpointBuilder
+from agent_gateway.tools.utils import CortexEndpointBuilder, post_cortex_request
 
 
 class AgentGatewayError(Exception):
@@ -53,30 +52,26 @@ class CortexCompleteAgent:
         gateway_logger.log(logging.DEBUG, "Cortex Request URL\n", url, block=True)
         gateway_logger.log(logging.DEBUG, "Cortex Request Data\n", data, block=True)
 
-        async with aiohttp.ClientSession(
-            headers=headers,
-        ) as session:
-            async with session.post(url=url, json=data) as response:
-                response_text = await response.text()
-                gateway_logger.log(
-                    logging.DEBUG,
-                    "Cortex Request Response\n",
-                    response.content,
-                    block=True,
-                )
+        response_text = await post_cortex_request(url=url, headers=headers, data=data)
+        gateway_logger.log(
+            logging.DEBUG,
+            "Cortex Request Response\n",
+            response_text,
+            block=True,
+        )
 
-                if "choices" not in response_text:
-                    raise AgentGatewayError(
-                        message="Failed Cortex LLM Request. Missing choices in response. See details:{response_text}"
-                    )
+        if "choices" not in response_text:
+            raise agent_gatewayError(
+                message="Failed Cortex LLM Request. Missing choices in response. See details:{response_text}"
+            )
 
-                try:
-                    snowflake_response = self._parse_snowflake_response(response_text)
-                    return snowflake_response
-                except:
-                    raise AgentGatewayError(
-                        message="Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
-                    )
+        try:
+            snowflake_response = self._parse_snowflake_response(response_text)
+            return snowflake_response
+        except:
+            raise agent_gatewayError(
+                message="Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
+            )
 
     def _prepare_llm_request(self, prompt):
         eb = CortexEndpointBuilder(self.session)
