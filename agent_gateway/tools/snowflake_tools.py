@@ -398,18 +398,19 @@ class CortexAnalystTool(Tool):
         return url, headers, data
 
     def _process_message(self, response):
-        # If Valid SQL is present in Cortex Analyst Response execute the query
-        if "sql" == response[1]["type"]:
-            sql_query = response[1]["statement"]
-            gateway_logger.log(logging.DEBUG, f"Cortex Analyst SQL Query:{sql_query}")
-            table = self.connection.cursor().execute(sql_query).fetch_arrow_all()
-
-            # handles valid sql queries with empty responses
-            if table is not None:
-                return str(table.to_pydict())
-
-        else:
+        # ensure valid sql query is present in response
+        if response[1].get("type") != "sql":
             return "Invalid Query"
+
+        # execute sql query
+        sql_query = response[1]["statement"]
+        gateway_logger.log(logging.DEBUG, f"Cortex Analyst SQL Query:{sql_query}")
+        table = self.connection.cursor().execute(sql_query).fetch_arrow_all()
+
+        if table is not None:
+            return str(table.to_pydict())
+        else:
+            return "No Results Found"
 
     def _prepare_analyst_description(
         self, name, service_topic, data_source_description
