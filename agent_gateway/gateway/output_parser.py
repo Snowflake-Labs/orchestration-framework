@@ -30,7 +30,7 @@ def default_dependency_rule(idx, args: str):
     return idx in numbers
 
 
-class gatewayPlanParser:
+class GatewayPlanParser:
     """Planning output parser."""
 
     def __init__(self, tools: Sequence[Union[Tool, StructuredTool]], **kwargs):
