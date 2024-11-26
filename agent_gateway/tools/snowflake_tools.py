@@ -260,11 +260,6 @@ class GenerateFilter(dspy.Signature):
     Query: Wha is the sentiment of Biotech CEO's of companies based in New York?
     Attributes: industry,hq,date
     Sample Values: {"industry":["biotechnology","healthcare","agriculture"],"HQ":["NY, US","CA,US","FL,US"],"date":["01/01,1999","01/01/2024"]}
-    Answer: {"@and": [ { "@eq": { "industry"": "biotechnology" } }, { "@eq": { "HQ": "NY,US" } }]}
-
-    Query: What is the sentiment of Biotech CEOs outside of California?
-    Attributes: industry,hq,date
-    Sample Values: {"industry":["biotechnology","healthcare","agriculture"],"HQ":["NY, US","CA,US","FL,US"],"date":["01/01,1999","01/01/2024"]}
     Answer: {"@and":[{ "@eq": { "industry": "biotechnology" } },{"@not":{"@eq":{"HQ":"CA,US"}}}]}
 
     Query: What is the sentiment of Biotech CEOs outside of California?
