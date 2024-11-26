@@ -101,7 +101,7 @@ class CortexSearchTool(Tool):
         gateway_logger.log(logging.DEBUG, f"Cortex Search Response:{response_json}")
         try:
             return response_json["results"]
-        except:
+        except Exception:
             raise SnowflakeError(message=response_json["message"])
 
     def _prepare_request(self, query):
@@ -291,7 +291,7 @@ class SmartSearch(dspy.Module):
 
 
 class CortexAnalystTool(Tool):
-    """Cortex Analyst tool for use with Snowflakeagent_gateway"""
+    """""Cortex Analyst tool for use with Snowflake Agent Gateway""" ""
 
     STAGE: str = ""
     FILE: str = ""
@@ -363,7 +363,7 @@ class CortexAnalystTool(Tool):
                 else:
                     break
 
-            except:
+            except Exception:
                 raise SnowflakeError(message=json_response["message"])
 
         gateway_logger.log(logging.DEBUG, f"Cortex Analyst Response:{query_response}")
