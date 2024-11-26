@@ -32,7 +32,7 @@ from agent_gateway.tools.utils import CortexEndpointBuilder, _get_connection
 class SnowflakeError(Exception):
     def __init__(self, message):
         self.message = message
-        super().__init__(self.message)  # Call the base class const
+        super().__init__(self.message)
 
 
 class CortexSearchTool(Tool):
