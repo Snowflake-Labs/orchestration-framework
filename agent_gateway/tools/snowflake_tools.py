@@ -31,12 +31,13 @@ from agent_gateway.tools.utils import CortexEndpointBuilder, _get_connection
 
 class SnowflakeError(Exception):
     def __init__(self, message):
+        # self.status_code = status_code
         self.message = message
-        super().__init__(self.message)
+        super().__init__(self.message)  # Call the base class const
 
 
 class CortexSearchTool(Tool):
-    """Cortex Search tool for use with Snowflakeagent_gateway"""
+    """Cortex Search tool for use with Snowflake Agent Gateway"""
 
     k: int = 5
     retrieval_columns: list = []
@@ -256,10 +257,15 @@ class GenerateFilter(dspy.Signature):
     Sample Values: {"industry":["biotechnology","healthcare","agriculture"],"HQ":["NY, US","CA,US","FL,US"],"date":["01/01,1999","01/01/2024"]}
     Answer: {"@or":[{"@eq":{"year":"2021"}},{"@eq":{"year":"2022"}},{"@eq":{"year":"2023"}},{"@eq":{"year":"2024"}}]}
 
-    Query: What is the sentiment of Biotech CEOs of companies based in New York?
+    Query: Wha is the sentiment of Biotech CEO's of companies based in New York?
     Attributes: industry,hq,date
     Sample Values: {"industry":["biotechnology","healthcare","agriculture"],"HQ":["NY, US","CA,US","FL,US"],"date":["01/01,1999","01/01/2024"]}
-    Answer: {"@and": [ { "@eq": { "industry": "biotechnology" } }, { "@eq": { "HQ": "NY,US" } }]}
+    Answer: {"@and": [ { "@eq": { "industry"": "biotechnology" } }, { "@eq": { "HQ": "NY,US" } }]}
+
+    Query: What is the sentiment of Biotech CEOs outside of California?
+    Attributes: industry,hq,date
+    Sample Values: {"industry":["biotechnology","healthcare","agriculture"],"HQ":["NY, US","CA,US","FL,US"],"date":["01/01,1999","01/01/2024"]}
+    Answer: {"@and":[{ "@eq": { "industry": "biotechnology" } },{"@not":{"@eq":{"HQ":"CA,US"}}}]}
 
     Query: What is the sentiment of Biotech CEOs outside of California?
     Attributes: industry,hq,date
@@ -268,8 +274,9 @@ class GenerateFilter(dspy.Signature):
 
     Query: What is sentiment towards ag and biotech companies based outside of the US?
     Attributes: industry,hq,date
-    Sample Values: {"industry":["biotechnology","healthcare","agriculture"],"COUNTRY":["United States","Ireland","Russia","Georgia","Spain"],"month":["01","02","03","06","11","12"],"year":["2022","2023","2024"]}
-    Answer: {"@and": [{ "@or": [{"@eq":{ "industry": "biotechnology" } },{"@eq":{"industry":"agriculture"}}]},{ "@not": {"@eq": { "COUNTRY": "United States" } }}]}
+    Sample Values: {"industry"":["biotechnology","healthcare","agriculture"],"COUNTRY":["United States","Ireland","Russia","Georgia","Spain"],"month":["01","02","03","06","11","12""],""year"":["2022","2023","2024"]}
+    Answer:{"@and": [{ "@or": [{"@eq":{ "industry": "biotechnology" } },{"@eq":{"industry":"agriculture"}}]},{ "@not": {"@eq": { "COUNTRY": "United States" } }}]}
+
     """
 
     query = dspy.InputField(desc="user query")
@@ -294,7 +301,7 @@ class SmartSearch(dspy.Module):
 
 
 class CortexAnalystTool(Tool):
-    """Cortex Analyst tool for use with Snowflakeagent_gateway"""
+    """""Cortex Analyst tool for use with Snowflake Agent Gateway""" ""
 
     STAGE: str = ""
     FILE: str = ""
@@ -381,7 +388,7 @@ class CortexAnalystTool(Tool):
             "messages": [
                 {"role": "user", "content": [{"type": "text", "text": prompt}]}
             ],
-            "semantic_model_file": f"@{self.connection.database}.{self.connection.schema}.{self.STAGE}/{self.FILE}",
+            "semantic_model_file": f"""@{self.connection.database}.{self.connection.schema}.{self.STAGE}/{self.FILE}""",
         }
 
         eb = CortexEndpointBuilder(self.connection)
@@ -392,12 +399,15 @@ class CortexAnalystTool(Tool):
 
     def _process_message(self, response):
         # If Valid SQL is present in Cortex Analyst Response execute the query
-        if response[1].get("type") == "sql":
+        if "sql" == response[1]["type"]:
             sql_query = response[1]["statement"]
-            # gateway_logger.log(logging.DEBUG,f"Cortex Analyst SQL Query:{sql_query}")
+            gateway_logger.log(logging.DEBUG, f"Cortex Analyst SQL Query:{sql_query}")
             table = self.connection.cursor().execute(sql_query).fetch_arrow_all()
 
-            return str(table.to_pydict())
+            # handles valid sql queries with empty responses
+            if table is not None:
+                return str(table.to_pydict())
+
         else:
             return "Invalid Query"
 
@@ -416,6 +426,7 @@ class PromptRephrase(dspy.Signature):
     If there are references to entities that are not clear or consistent with the question being asked, make the references more appropriate.
     """
 
+    # previous_response = dspy.InputField(desc="previous cortex analyst response")
     user_prompt = dspy.InputField(desc="original user prompt")
     rephrased_prompt = dspy.OutputField(
         desc="rephrased prompt with more clear and specific intent"
