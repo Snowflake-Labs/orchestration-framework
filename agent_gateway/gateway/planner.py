@@ -260,9 +260,6 @@ class Planner:
                 message="Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
             )
 
-        snowflake_response = self._parse_snowflake_response(response_text)
-        return snowflake_response
-
     def _prepare_llm_request(self, prompt):
         eb = CortexEndpointBuilder(self.session)
         url = eb.get_complete_endpoint()
