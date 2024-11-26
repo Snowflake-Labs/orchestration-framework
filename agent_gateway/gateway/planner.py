@@ -260,45 +260,33 @@ class Planner:
         json_objects = data_str.split("\ndata: ")
         json_list = []
 
-        # Iterate over each JSON object
+        # Parse JSON objects from the response string
         for obj in json_objects:
             obj = obj.strip()
             if obj:
-                # Remove the 'data: ' prefix if it exists
                 if obj.startswith("data: "):
                     obj = obj[6:]
-                # Load the JSON object into a Python dictionary
-                json_dict = json.loads(str(obj))
-                # Append the JSON dictionary to the list
-                json_list.append(json_dict)
+                try:
+                    json_dict = json.loads(obj)  # Safely parse JSON
+                    json_list.append(json_dict)
+                except json.JSONDecodeError as e:
+                    gateway_logger.log(
+                        logging.ERROR, f"Failed to parse JSON object: {obj}. Error: {e}"
+                    )
+                    continue
 
         completion = ""
-        choices = {}
         for chunk in json_list:
-            choices = chunk["choices"][0]
+            # Safeguard access to 'choices' and nested keys
+            if "choices" in chunk and chunk["choices"]:
+                choice = chunk["choices"][0]  # Get the first choice
+                if "delta" in choice and "content" in choice["delta"]:
+                    completion += choice["delta"]["content"]
+            else:
+                gateway_logger.log(
+                    logging.WARNING, f"Missing or empty 'choices' in chunk: {chunk}"
+                )
 
-            if "content" in choices["delta"].keys():
-                completion += choices["delta"]["content"]
-
-        gateway_logger.log(logging.DEBUG, f"Planner response:{completion}")
+        gateway_logger.log(logging.DEBUG, f"Planner response: {completion}")
         return completion
 
-    async def plan(self, inputs: dict, is_replan: bool, **kwargs: Any):
-        llm_response = await self.run_llm(
-            inputs=inputs,
-            is_replan=is_replan,
-        )
-        llm_response = llm_response + "\n"
-        plan_response = self.output_parser.parse(llm_response)
-        return plan_response
-
-    async def aplan(
-        self,
-        inputs: dict,
-        task_queue: asyncio.Queue[Optional[str]],
-        is_replan: bool,
-        **kwargs: Any,
-    ) -> Plan:
-        """Given input, asynchronously decide what to do."""
-        aplan_response = self.run_llm(inputs=inputs, is_replan=is_replan)
-        await aplan_response
