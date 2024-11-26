@@ -388,7 +388,7 @@ class CortexAnalystTool(Tool):
             "messages": [
                 {"role": "user", "content": [{"type": "text", "text": prompt}]}
             ],
-            "semantic_model_file": f"""@{self.connection.database}.{self.connection.schema}.{self.STAGE}/{self.FILE}""",
+            "semantic_model_file": f"@{self.connection.database}.{self.connection.schema}.{self.STAGE}/{self.FILE}",
         }
 
         eb = CortexEndpointBuilder(self.connection)
