@@ -427,7 +427,6 @@ class PromptRephrase(dspy.Signature):
     If there are references to entities that are not clear or consistent with the question being asked, make the references more appropriate.
     """
 
-    # previous_response = dspy.InputField(desc="previous cortex analyst response")
     user_prompt = dspy.InputField(desc="original user prompt")
     rephrased_prompt = dspy.OutputField(
         desc="rephrased prompt with more clear and specific intent"
