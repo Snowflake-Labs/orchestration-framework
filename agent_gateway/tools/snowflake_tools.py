@@ -39,7 +39,7 @@ class SnowflakeError(Exception):
 
 
 class CortexSearchTool(Tool):
-    """Cortex Search tool for use with Snowflakeagent_gateway"""
+    """Cortex Search tool for use with Snowflake Agent Gateway"""
 
     k: int = 5
     retrieval_columns: list = []
@@ -256,7 +256,7 @@ class GenerateFilter(dspy.Signature):
     Query: What is the sentiment of Biotech CEOs of companies based in New York?
     Attributes: industry,hq,date
     Sample Values: {"industry":["biotechnology","healthcare","agriculture"],"HQ":["NY, US","CA,US","FL,US"],"date":["01/01,1999","01/01/2024"]}
-    Answer: {"@and": [ { "@eq": { "industry": "biotechnology" } }, { "@eq": { "HQ": "NY,US" } }]}
+    Answer: {"@and":[{ "@eq": { "industry": "biotechnology" } },{"@not":{"@eq":{"HQ":"CA,US"}}}]}
 
     Query: What is the sentiment of Biotech CEOs outside of California?
     Attributes: industry,hq,date
@@ -291,7 +291,7 @@ class SmartSearch(dspy.Module):
 
 
 class CortexAnalystTool(Tool):
-    """Cortex Analyst tool for use with Snowflakeagent_gateway"""
+    """""Cortex Analyst tool for use with Snowflake Agent Gateway""" ""
 
     STAGE: str = ""
     FILE: str = ""
@@ -386,15 +386,19 @@ class CortexAnalystTool(Tool):
         return url, headers, data
 
     def _process_message(self, response):
-        # If Valid SQL is present in Cortex Analyst Response execute the query
-        if response[1].get("type") == "sql":
-            sql_query = response[1]["statement"]
-            # gateway_logger.log(logging.DEBUG,f"Cortex Analyst SQL Query:{sql_query}")
-            table = self.connection.cursor().execute(sql_query).fetch_arrow_all()
+        # ensure valid sql query is present in response
+        if response[1].get("type") != "sql":
+            return "Invalid Query"
 
+        # execute sql query
+        sql_query = response[1]["statement"]
+        gateway_logger.log(logging.DEBUG, f"Cortex Analyst SQL Query:{sql_query}")
+        table = self.connection.cursor().execute(sql_query).fetch_arrow_all()
+
+        if table is not None:
             return str(table.to_pydict())
         else:
-            return "Invalid Query"
+            return "No Results Found"
 
     def _prepare_analyst_description(
         self, name, service_topic, data_source_description
