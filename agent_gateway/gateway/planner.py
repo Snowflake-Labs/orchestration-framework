@@ -25,7 +25,7 @@ from agent_gateway.gateway.constants import END_OF_PLAN
 from agent_gateway.gateway.output_parser import (
     ACTION_PATTERN,
     THOUGHT_PATTERN,
-    gatewayPlanParser,
+    GatewayPlanParser,
     instantiate_task,
 )
 from agent_gateway.gateway.task_processor import Task
@@ -33,6 +33,13 @@ from agent_gateway.executors.schema import Plan
 from agent_gateway.tools.base import StructuredTool, Tool
 from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.utils import CortexEndpointBuilder, post_cortex_request
+
+
+class AgentGatewayError(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
 
 FUSE_DESCRIPTION = (
     "fuse():\n"
@@ -219,7 +226,7 @@ class Planner:
             is_replan=True,
         )
         self.tools = tools
-        self.output_parser = gatewayPlanParser(tools=tools)
+        self.output_parser = GatewayPlanParser(tools=tools)
         self.stop = stop
 
     async def run_llm(
@@ -238,8 +245,21 @@ class Planner:
 
         message = system_prompt + "\n\n" + human_prompt
         headers, url, data = self._prepare_llm_request(prompt=message)
-
         response_text = await post_cortex_request(url=url, headers=headers, data=data)
+
+        if "choices" not in response_text:
+            raise AgentGatewayError(
+                message="Failed Cortex LLM Request. Missing choices in response. See details:{response_text}"
+            )
+
+        try:
+            snowflake_response = self._parse_snowflake_response(response_text)
+            return snowflake_response
+        except:
+            raise AgentGatewayError(
+                message="Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
+            )
+
         snowflake_response = self._parse_snowflake_response(response_text)
         return snowflake_response
 
