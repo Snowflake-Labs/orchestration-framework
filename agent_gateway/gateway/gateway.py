@@ -61,16 +61,16 @@ class CortexCompleteAgent:
         )
 
         if "choices" not in response_text:
-            raise agent_gatewayError(
-                message="Failed Cortex LLM Request. Missing choices in response. See details:{response_text}"
+            raise AgentGatewayError(
+                message=f"Failed Cortex LLM Request. Missing choices in response. See details:{response_text}"
             )
 
         try:
             snowflake_response = self._parse_snowflake_response(response_text)
             return snowflake_response
         except:
-            raise agent_gatewayError(
-                message="Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
+            raise AgentGatewayError(
+                message=f"Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
             )
 
     def _prepare_llm_request(self, prompt):

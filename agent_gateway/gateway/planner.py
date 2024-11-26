@@ -249,7 +249,7 @@ class Planner:
 
         if "choices" not in response_text:
             raise AgentGatewayError(
-                message="Failed Cortex LLM Request. Missing choices in response. See details:{response_text}"
+                message=f"Failed Cortex LLM Request. Missing choices in response. See details:{response_text}"
             )
 
         try:
@@ -257,7 +257,7 @@ class Planner:
             return snowflake_response
         except:
             raise AgentGatewayError(
-                message="Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
+                message=f"Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
             )
 
     def _prepare_llm_request(self, prompt):
