@@ -272,41 +272,68 @@ class Planner:
 
         return headers, url, data
 
-    def _parse_snowflake_response(self, data_str):
-        json_objects = data_str.split("\ndata: ")
-        json_list = []
+    def _parse_snowflake_response(self, data_str: str) -> str:
+        """
+        Parse the snowflake response string and return the completion text.
+        """
+        try:
+            json_objects = data_str.split("\ndata: ")
+            json_list = []
 
-        # Iterate over each JSON object
-        for obj in json_objects:
-            obj = obj.strip()
-            if obj:
-                # Remove the 'data: ' prefix if it exists
-                if obj.startswith("data: "):
-                    obj = obj[6:]
-                # Load the JSON object into a Python dictionary
-                json_dict = json.loads(str(obj))
-                # Append the JSON dictionary to the list
-                json_list.append(json_dict)
+            # Iterate over each JSON object and parse it safely
+            for obj in json_objects:
+                obj = obj.strip()
+                if obj:
+                    # Remove the 'data: ' prefix if it exists
+                    if obj.startswith("data: "):
+                        obj = obj[6:]
 
-        completion = ""
-        choices = {}
-        for chunk in json_list:
-            choices = chunk["choices"][0]
+                    # Safely parse the JSON object
+                    try:
+                        json_dict = json.loads(obj)  # JSON parsing
+                        json_list.append(json_dict)
+                    except json.JSONDecodeError as e:
+                        self.gateway_logger.log(
+                            logging.ERROR, f"Failed to decode JSON object: {obj}. Error: {e}"
+                        )
+                        continue  # Skip malformed objects
 
-            if "content" in choices["delta"].keys():
-                completion += choices["delta"]["content"]
+            completion = ""
+            choices = {}  
 
-        gateway_logger.log(logging.DEBUG, f"Planner response:{completion}")
-        return completion
+            for chunk in json_list:
+                try:
+                    choices = chunk["choices"][0]  # Get the first choice
+                    if "content" in choices["delta"]:
+                        completion += choices["delta"]["content"]
+                except KeyError as e:
+                    self.gateway_logger.log(
+                        logging.WARNING, f"Missing key in chunk: {e}. Chunk: {chunk}"
+                    )
+                    continue  # Skip chunks with missing keys
 
-    async def plan(self, inputs: dict, is_replan: bool, **kwargs: Any):
-        llm_response = await self.run_llm(
-            inputs=inputs,
-            is_replan=is_replan,
-        )
-        llm_response = llm_response + "\n"
-        plan_response = self.output_parser.parse(llm_response)
-        return plan_response
+            self.gateway_logger.log(logging.DEBUG, f"Planner response: {completion}")
+            return completion
+
+        except Exception as e:
+            self.gateway_logger.log(logging.ERROR, f"Unexpected error in _parse_snowflake_response: {e}")
+            return ""  # Return empty string on failure
+
+    async def plan(self, inputs: dict, is_replan: bool, **kwargs: Any) -> Optional[str]:
+        """
+        Asynchronously generate a plan based on inputs.
+        """
+        try:
+            llm_response = await self.run_llm(inputs=inputs, is_replan=is_replan)
+            llm_response += "\n"
+
+            # Parse the LLM response
+            plan_response = self.output_parser.parse(llm_response)
+            return plan_response
+
+        except Exception as e:
+            self.gateway_logger.log(logging.ERROR, f"Error in plan method: {e}")
+            return None  # Return None to indicate failure
 
     async def aplan(
         self,
@@ -314,7 +341,18 @@ class Planner:
         task_queue: asyncio.Queue[Optional[str]],
         is_replan: bool,
         **kwargs: Any,
-    ) -> Plan:
-        """Given input, asynchronously decide what to do."""
-        aplan_response = self.run_llm(inputs=inputs, is_replan=is_replan)
-        await aplan_response
+    ) -> Optional[Any]:
+        """
+        Asynchronously decide what to do given input.
+        """
+        try:
+            # Run the LLM asynchronously
+            aplan_response = await self.run_llm(inputs=inputs, is_replan=is_replan)
+
+            # Process the response (if necessary, parse here or in the caller)
+            await aplan_response
+            return aplan_response
+
+        except Exception as e:
+            self.gateway_logger.log(logging.ERROR, f"Error in aplan method: {e}")
+            return None  # Return None to indicate failure

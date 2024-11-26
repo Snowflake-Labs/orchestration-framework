@@ -291,7 +291,7 @@ class SmartSearch(dspy.Module):
 
 
 class CortexAnalystTool(Tool):
-    """""Cortex Analyst tool for use with Snowflake Agent Gateway""" ""
+    """Cortex Analyst tool for use with Snowflakeagent_gateway"""
 
     STAGE: str = ""
     FILE: str = ""
