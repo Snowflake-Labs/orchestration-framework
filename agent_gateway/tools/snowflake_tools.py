@@ -391,7 +391,7 @@ class CortexAnalystTool(Tool):
         return url, headers, data
 
     def _process_message(self, response):
-    # If Valid SQL is present in Cortex Analyst Response execute the query
+        # If Valid SQL is present in Cortex Analyst Response execute the query
         if response[1].get("type") == "sql":
             sql_query = response[1]["statement"]
             # gateway_logger.log(logging.DEBUG,f"Cortex Analyst SQL Query:{sql_query}")
