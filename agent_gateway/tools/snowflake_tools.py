@@ -274,9 +274,8 @@ class GenerateFilter(dspy.Signature):
 
     Query: What is sentiment towards ag and biotech companies based outside of the US?
     Attributes: industry,hq,date
-    Sample Values: {"industry"":["biotechnology","healthcare","agriculture"],"COUNTRY":["United States","Ireland","Russia","Georgia","Spain"],"month":["01","02","03","06","11","12""],""year"":["2022","2023","2024"]}
-    Answer:{"@and": [{ "@or": [{"@eq":{ "industry": "biotechnology" } },{"@eq":{"industry":"agriculture"}}]},{ "@not": {"@eq": { "COUNTRY": "United States" } }}]}
-
+    Sample Values: {"industry":["biotechnology","healthcare","agriculture"],"COUNTRY":["United States","Ireland","Russia","Georgia","Spain"],"month":["01","02","03","06","11","12"],"year":["2022","2023","2024"]}
+    Answer: {"@and": [{ "@or": [{"@eq":{ "industry": "biotechnology" } },{"@eq":{"industry":"agriculture"}}]},{ "@not": {"@eq": { "COUNTRY": "United States" } }}]}
     """
 
     query = dspy.InputField(desc="user query")
