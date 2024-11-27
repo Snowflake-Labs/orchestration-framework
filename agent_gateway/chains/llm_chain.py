@@ -133,7 +133,7 @@ class LLMChain(Chain):
                     callbacks=run_manager.get_child() if run_manager else None,
                     **self.llm_kwargs,
                 )
-            except:
+            except Exception:
                 text = prompts[0].text
                 # Try removing in-context examples
                 first_index = text.find("Question:")
@@ -167,7 +167,7 @@ class LLMChain(Chain):
                     callbacks=run_manager.get_child() if run_manager else None,
                     **self.llm_kwargs,
                 )
-            except:
+            except Exception:
                 text = prompts[0].text
                 # Try removing in-context examples
                 first_index = text.find("Question:")
