@@ -216,17 +216,21 @@ class Planner:
     ):
         self.llm = llm
         self.session = session
+        self.tools = tools
+
+        tools_without_summarizer = [i for i in self.tools if (i.name != "summarize")]
+
         self.system_prompt = generate_gateway_prompt(
-            tools=tools,
+            tools=tools_without_summarizer,
             example_prompt=example_prompt,
             is_replan=False,
         )
         self.system_prompt_replan = generate_gateway_prompt(
-            tools=tools,
+            tools=tools_without_summarizer,
             example_prompt=example_prompt_replan,
             is_replan=True,
         )
-        self.tools = tools
+        # self.tools = tools
         self.output_parser = GatewayPlanParser(tools=tools)
         self.stop = stop
 
