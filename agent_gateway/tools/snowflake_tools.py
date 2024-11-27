@@ -101,7 +101,7 @@ class CortexSearchTool(Tool):
         gateway_logger.log(logging.DEBUG, f"Cortex Search Response:{response_json}")
         try:
             return response_json["results"]
-        except:
+        except Exception:
             raise SnowflakeError(message=response_json["message"])
 
     def _prepare_request(self, query):
@@ -326,9 +326,7 @@ class CortexAnalystTool(Tool):
         self.FILE = semantic_model
         self.STAGE = stage
 
-        gateway_logger.log(
-            logging.INFO, "Cortex Analyst Tool successfully initialized"
-        )
+        gateway_logger.log(logging.INFO, "Cortex Analyst Tool successfully initialized")
 
     def __call__(self, prompt) -> Any:
         return self.asearch(query=prompt)
@@ -365,7 +363,7 @@ class CortexAnalystTool(Tool):
                 else:
                     break
 
-            except:
+            except Exception:
                 raise SnowflakeError(message=json_response["message"])
 
         gateway_logger.log(logging.DEBUG, f"Cortex Analyst Response:{query_response}")

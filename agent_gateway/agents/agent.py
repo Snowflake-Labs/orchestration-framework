@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import yaml
 from chains.llm_chain import LLMChain
-from langchain.agents.agent import AgentOutputParser, BaseSingleActionAgent
+from langchain.agents.agent import BaseSingleActionAgent
 from langchain.agents.agent_types import AgentType
 from langchain.callbacks.base import BaseCallbackManager
 from langchain.callbacks.manager import Callbacks
@@ -129,7 +129,7 @@ class Agent(BaseSingleActionAgent):
             full_inputs = self.get_full_inputs(intermediate_steps, **kwargs)
             full_output = self.llm_chain.predict(callbacks=callbacks, **full_inputs)
             return self.output_parser.parse(full_output)
-        except Exception as e:
+        except Exception:
             full_inputs["agent_scratchpad"] = (
                 full_inputs["agent_scratchpad"] + full_output + "\nAction: "
             )
@@ -160,7 +160,7 @@ class Agent(BaseSingleActionAgent):
                 callbacks=callbacks, **full_inputs
             )
             agent_output = await self.output_parser.aparse(full_output)
-        except Exception as e:
+        except Exception:
             full_inputs["agent_scratchpad"] = (
                 full_inputs["agent_scratchpad"] + full_output + "\nAction: "
             )

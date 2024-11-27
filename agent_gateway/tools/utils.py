@@ -40,7 +40,7 @@ class Headers(TypedDict):
 
 def _determine_runtime():
     try:
-        from _stored_proc_restful import StoredProcRestful
+        from _stored_proc_restful import StoredProcRestful  # noqa: F401
 
         return True
     except ImportError:

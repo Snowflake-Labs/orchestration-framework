@@ -68,7 +68,7 @@ class CortexCompleteAgent:
         try:
             snowflake_response = self._parse_snowflake_response(response_text)
             return snowflake_response
-        except:
+        except Exception:
             raise AgentGatewayError(
                 message=f"Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
             )

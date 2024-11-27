@@ -30,7 +30,6 @@ from langchain.callbacks.manager import (
 )
 from langchain.pydantic_v1 import root_validator
 from langchain.schema import AgentAction, AgentFinish, OutputParserException
-from langchain.tools import BaseTool
 from langchain.utilities.asyncio import asyncio_timeout
 from langchain.utils.input import get_color_mapping
 
