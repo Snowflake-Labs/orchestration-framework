@@ -280,7 +280,6 @@ class Planner:
             json_objects = data_str.split("\ndata: ")
             json_list = []
 
-
             # Iterate over each JSON object and parse it safely
             for obj in json_objects:
                 obj = obj.strip()
@@ -295,12 +294,13 @@ class Planner:
                         json_list.append(json_dict)
                     except json.JSONDecodeError as e:
                         self.gateway_logger.log(
-                            logging.ERROR, f"Failed to decode JSON object: {obj}. Error: {e}"
+                            logging.ERROR,
+                            f"Failed to decode JSON object: {obj}. Error: {e}",
                         )
                         continue  # Skip malformed objects
 
             completion = ""
-            choices = {}  
+            choices = {}
 
             for chunk in json_list:
                 try:
@@ -317,7 +317,9 @@ class Planner:
             return completion
 
         except Exception as e:
-            self.gateway_logger.log(logging.ERROR, f"Unexpected error in _parse_snowflake_response: {e}")
+            self.gateway_logger.log(
+                logging.ERROR, f"Unexpected error in _parse_snowflake_response: {e}"
+            )
             return ""  # Return empty string on failure
 
     async def plan(self, inputs: dict, is_replan: bool, **kwargs: Any) -> Optional[str]:
