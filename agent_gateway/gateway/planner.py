@@ -16,11 +16,13 @@ import asyncio
 import json
 import logging
 import re
-from typing import Any, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Any, Optional, Union
 from uuid import UUID
 
 from langchain.callbacks.base import AsyncCallbackHandler
 
+from agent_gateway.executors.schema import Plan
 from agent_gateway.gateway.constants import END_OF_PLAN
 from agent_gateway.gateway.output_parser import (
     ACTION_PATTERN,
@@ -29,7 +31,6 @@ from agent_gateway.gateway.output_parser import (
     instantiate_task,
 )
 from agent_gateway.gateway.task_processor import Task
-from agent_gateway.executors.schema import Plan
 from agent_gateway.tools.base import StructuredTool, Tool
 from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.utils import CortexEndpointBuilder, post_cortex_request
@@ -215,17 +216,20 @@ class Planner:
     ):
         self.llm = llm
         self.session = session
+        self.tools = tools
+
+        tools_without_summarizer = [i for i in self.tools if (i.name != "summarize")]
+
         self.system_prompt = generate_gateway_prompt(
-            tools=tools,
+            tools=tools_without_summarizer,
             example_prompt=example_prompt,
             is_replan=False,
         )
         self.system_prompt_replan = generate_gateway_prompt(
-            tools=tools,
+            tools=tools_without_summarizer,
             example_prompt=example_prompt_replan,
             is_replan=True,
         )
-        self.tools = tools
         self.output_parser = GatewayPlanParser(tools=tools)
         self.stop = stop
 

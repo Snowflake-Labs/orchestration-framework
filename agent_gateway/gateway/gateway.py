@@ -15,7 +15,8 @@ import json
 import logging
 import re
 import threading
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
+from collections.abc import Sequence
+from typing import Any, Dict, List, Mapping, Optional, Union, cast
 
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
@@ -113,6 +114,16 @@ class CortexCompleteAgent:
             )
 
 
+class SummarizationAgent(Tool):
+    def __init__(self, session, agent_llm):
+        tool_name = "summarize"
+        tool_description = "Concisely summarizes cortex search output"
+        summarizer = CortexCompleteAgent(session=session, llm=agent_llm)
+        super().__init__(
+            name=tool_name, func=summarizer.arun, description=tool_description
+        )
+
+
 class Agent(Chain, extra="allow"):
     """Cortex Gateway Multi Agent Class"""
 
@@ -160,12 +171,17 @@ class Agent(Chain, extra="allow"):
         if not planner_example_prompt_replan:
             planner_example_prompt_replan = planner_example_prompt
 
+        summarizer = SummarizationAgent(
+            session=snowflake_connection, agent_llm=agent_llm
+        )
+        tools_with_summarizer = tools + [summarizer]
+
         self.planner = Planner(
             session=snowflake_connection,
             llm=planner_llm,
             example_prompt=planner_example_prompt,
             example_prompt_replan=planner_example_prompt_replan,
-            tools=tools,
+            tools=tools_with_summarizer,
             stop=planner_stop,
         )
 

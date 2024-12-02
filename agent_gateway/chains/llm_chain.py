@@ -14,7 +14,8 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from collections.abc import Sequence
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from langchain.callbacks.manager import (
     AsyncCallbackManager,

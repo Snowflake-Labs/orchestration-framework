@@ -135,6 +135,23 @@ print(answer)
 
 - This library is optimized for client-side orchestration. If you prefer a managed service that does the orchestration inside of Snowflake, we recommend using the Snowflake Chat API.
 
+#### Can I use the Agent Gateway within SPCS or a Snowflake Notebook?
+
+- Yes, the Agent Gateway can run in SPCS and Snowflake notebooks backed by a container
+runtime. To install the library directly from GitHub, you must enable a network rule
+with an external access integration. Here is an example configuration:
+
+```sql
+CREATE NETWORK RULE agent_network_rule
+MODE = EGRESS
+TYPE = HOST_PORT
+VALUE_LIST = ('github.com');
+
+CREATE EXTERNAL ACCESS INTEGRATION agent_network_int
+ALLOWED_NETWORK_RULES = (agent_network_rule)
+ENABLED = true;
+```
+
 #### Does the Agent Gateway work with a Streamlit UI?
 
 - Yes, see the [demo app](https://github.com/Snowflake-Labs/orchestration-framework/blob/main/demo_app/demo_app.py) for an example Streamlit app that uses the Agent Gateway for orchestration across Cortex Search, Cortex Analyst, and Python tools. Note, running the gateway is not yet supported in Stremlit in Snowflake.

@@ -12,7 +12,8 @@
 
 import ast
 import re
-from typing import Any, Sequence, Tuple, Union
+from collections.abc import Sequence
+from typing import Any, Tuple, Union
 
 from langchain.schema import OutputParserException
 
@@ -41,12 +42,12 @@ class GatewayPlanParser:
         # 1. search("Ronaldo number of kids") -> 1, "search", '"Ronaldo number of kids"'
         # pattern = r"(\d+)\. (\w+)\(([^)]+)\)"
         pattern = rf"(?:{THOUGHT_PATTERN}\n)?{ACTION_PATTERN}"
-        # matches = re.findall(pattern, text)
         matches = re.findall(pattern, text, re.DOTALL)
+        final_matches = _update_task_list_with_summarization(matches)
 
         graph_dict = {}
 
-        for match in matches:
+        for match in final_matches:
             # idx = 1, function = "search", args = "Ronaldo number of kids"
             # thought will be the preceding thought, if any, otherwise an empty string
             thought, idx, tool_name, args, _ = match
@@ -68,6 +69,56 @@ class GatewayPlanParser:
 
 
 ### Helper functions
+def _initialize_task_list(matches):
+    new_matches = []
+    current_index = 1
+    index_mapping = {}
+
+    for i, task in enumerate(matches):
+        index_mapping[task[1]] = str(current_index)
+        updated_task = (task[0], str(current_index), task[2], task[3])
+        new_matches.append(updated_task)
+
+        if "cortexsearch" in task[2] and i != len(matches) - 2:
+            new_step = _create_summarization_step(task[3], current_index)
+            new_matches.append(new_step)
+            current_index += 1
+            index_mapping[task[1]] = str(current_index)
+
+        current_index += 1
+
+    return new_matches, index_mapping
+
+
+def _create_summarization_step(context, index):
+    summarization_prompt = f"Concisely give me {context} ONLY using the following context: ${index}. DO NOT include any other rationale."
+    return (
+        "I need to concisely summarize the cortex search output",
+        str(index + 1),
+        "summarize",
+        summarization_prompt,
+        "",
+    )
+
+
+def _update_task_references(task, index_mapping):
+    updated_string = task[3]
+    updated_string = re.sub(
+        r"\$(\d+)",
+        lambda m: f"${index_mapping.get(m.group(1), m.group(1))}",
+        updated_string,
+    )
+    return (task[0], task[1], task[2], updated_string, "")
+
+
+def _update_task_list_with_summarization(matches):
+    new_matches, index_mapping = _initialize_task_list(matches)
+    updated_final_matches = [
+        _update_task_references(task, index_mapping) for task in new_matches
+    ]
+    return updated_final_matches
+
+
 def _parse_llm_compiler_action_args(args: str) -> Union[Tuple[Any, ...], Tuple[str]]:
     """Parse arguments from a string."""
     args = args.strip()
