@@ -94,18 +94,32 @@ class CortexCompleteAgent:
                     # Remove the 'data: ' prefix if it exists
                     if obj.startswith("data: "):
                         obj = obj[6:]
-                    # Load the JSON object into a Python dictionary
-                    json_dict = json.loads(obj, strict=False)
-                    # Append the JSON dictionary to the list
-                    json_list.append(json_dict)
+                    try:
+                        # Load the JSON object into a Python dictionary
+                        json_dict = json.loads(obj, strict=False)
+                        # Append the JSON dictionary to the list
+                        json_list.append(json_dict)
+                    except json.JSONDecodeError as e:
+                        gateway_logger.log(
+                            logging.ERROR,
+                            f"Failed to parse JSON object: {obj}. Error: {e}",
+                        )
+                        continue
 
             completion = ""
             choices = {}
             for chunk in json_list:
-                choices = chunk["choices"][0]
+                # Ensure 'choices' key exists in the chunk
+                if "choices" in chunk and chunk["choices"]:
+                    choices = chunk["choices"][0]
 
-                if "content" in choices["delta"].keys():
-                    completion += choices["delta"]["content"]
+                    # Ensure 'delta' key exists in choices and it contains 'content'
+                    if "delta" in choices and "content" in choices["delta"]:
+                        completion += choices["delta"]["content"]
+                else:
+                    gateway_logger.log(
+                        logging.WARNING, f"Missing or empty 'choices' in chunk: {chunk}"
+                    )
 
             return completion
         except KeyError as e:
