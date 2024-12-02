@@ -13,6 +13,7 @@
 import asyncio
 import io
 import json
+import logging
 import os
 import queue
 import re
@@ -113,8 +114,6 @@ def create_prompt(prompt_key: str):
 
 
 source_list = []
-
-import logging
 
 
 class StreamlitLogHandler(logging.Handler):

@@ -188,7 +188,7 @@ def instantiate_task(
     args = _parse_llm_compiler_action_args(args)
     if tool_name == "fuse":
         # fuse does not have a tool
-        tool_func = lambda x: None
+        tool_func = lambda x: None  # noqa: E731
         stringify_rule = None
     else:
         tool = _find_tool(tool_name, tools)
