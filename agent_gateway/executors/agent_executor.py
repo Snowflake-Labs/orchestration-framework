@@ -13,7 +13,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
@@ -35,8 +34,6 @@ from langchain.utils.input import get_color_mapping
 
 from agent_gateway.chains.chain import Chain
 from agent_gateway.tools.base import BaseTool
-
-logger = logging.getLogger(__name__)
 
 
 class ExceptionTool(BaseTool):
@@ -439,7 +436,8 @@ class AgentExecutor(Chain):
 
         # Use asyncio.gather to run multiple tool.arun() calls concurrently
         result = await asyncio.gather(
-            *[_aperform_agent_action(agent_action) for agent_action in actions]
+            *[_aperform_agent_action(agent_action) for agent_action in actions],
+            return_exceptions=True,
         )
 
         return list(result)

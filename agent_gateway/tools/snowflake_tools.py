@@ -343,12 +343,16 @@ class CortexAnalystTool(Tool):
             )
             json_response = json.loads(response_text)
 
+            gateway_logger.log(
+                logging.DEBUG, f"Cortex Analyst Raw Response:{json_response}"
+            )
+
             try:
-                query_response = self._process_message(
+                query_response = self._process_analyst_message(
                     json_response["message"]["content"]
                 )
 
-                if query_response == "Invalid Query":
+                if "Unable to generate valid SQL Query" in query_response:
                     lm = dspy.Snowflake(
                         session=Session.builder.config(
                             "connection", self.connection
@@ -357,7 +361,8 @@ class CortexAnalystTool(Tool):
                     )
                     dspy.settings.configure(lm=lm)
                     rephrase_prompt = dspy.ChainOfThought(PromptRephrase)
-                    current_query = rephrase_prompt(user_prompt=current_query)[
+                    prompt = f"Original Query: {current_query}. Previous Response Context: {query_response}"
+                    current_query = rephrase_prompt(user_prompt=prompt)[
                         "rephrased_prompt"
                     ]
                 else:
@@ -366,7 +371,6 @@ class CortexAnalystTool(Tool):
             except Exception:
                 raise SnowflakeError(message=json_response["message"])
 
-        gateway_logger.log(logging.DEBUG, f"Cortex Analyst Response:{query_response}")
         return query_response
 
     def _prepare_analyst_request(self, prompt):
@@ -383,20 +387,39 @@ class CortexAnalystTool(Tool):
 
         return url, headers, data
 
-    def _process_message(self, response):
-        # ensure valid sql query is present in response
-        if response[1].get("type") != "sql":
-            return "Invalid Query"
+    def _process_analyst_message(self, response):
+        if isinstance(response, list) and len(response) > 0:
+            first_item = response[0]
 
-        # execute sql query
-        sql_query = response[1]["statement"]
-        gateway_logger.log(logging.DEBUG, f"Cortex Analyst SQL Query:{sql_query}")
-        table = self.connection.cursor().execute(sql_query).fetch_arrow_all()
+            if "type" in first_item:
+                if first_item["type"] == "text":
+                    _ = None
+                    for item in response:
+                        _ = item
+                        if item["type"] == "suggestions":
+                            raise SnowflakeError(
+                                message=f"Your request is unclear. Consider rephrasing your request to one of the following suggestions:{item['suggestions']}"
+                            )
+                        elif item["type"] == "sql":
+                            sql_query = item["statement"]
+                            table = (
+                                self.connection.cursor()
+                                .execute(sql_query)
+                                .fetch_arrow_all()
+                            )
 
-        if table is not None:
-            return str(table.to_pydict())
-        else:
-            return "No Results Found"
+                            if table is not None:
+                                return str(table.to_pydict())
+                            else:
+                                raise SnowflakeError(
+                                    message="No results found. Consider rephrasing your request"
+                                )
+
+                    raise SnowflakeError(
+                        message=f"Unable to generate a valid SQL Query. {_['text']}"
+                    )
+
+        return SnowflakeError(message="Invalid Cortex Analyst Response")
 
     def _prepare_analyst_description(
         self, name, service_topic, data_source_description

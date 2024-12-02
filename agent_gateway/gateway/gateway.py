@@ -224,6 +224,9 @@ class Agent(Chain, extra="allow"):
         answer = self._extract_answer(raw_answer)
         is_replan = True if FUSION_REPLAN in answer else False
 
+        if is_replan:
+            answer = "We couldn't find the information you're looking for. You can try rephrasing your request or validate that the provided tools contain sufficient information."
+
         return thought, answer, is_replan
 
     def _extract_answer(self, raw_answer):
@@ -247,7 +250,11 @@ class Agent(Chain, extra="allow"):
             return answer
         else:
             if replan_index != 1:
-                print("....replanning...")
+                gateway_logger.log(
+                    logging.INFO,
+                    "Unable to answer the request. Replanning....",
+                    block=True,
+                )
                 return "Replan required. Consider rephrasing your question."
             else:
                 return None
@@ -322,28 +329,49 @@ class Agent(Chain, extra="allow"):
             input (str): user's natural language request
         """
         result = []
-        thread = threading.Thread(target=self.run_async, args=(input, result))
+        error = []
+        thread = threading.Thread(target=self.run_async, args=(input, result, error))
         thread.start()
         thread.join()
-        try:
-            return result[0]["output"]
-        except IndexError:
-            raise AgentGatewayError(
-                message="Unable to retrieve response. Please check each of your Cortex tools and ensure all connections are valid."
-            )
+
+        if error:
+            raise error[0]
+
+        if not result:
+            raise AgentGatewayError("Unable to retrieve response. Result is empty.")
+
+        return result[0]
 
     def handle_exception(self, loop, context):
-        exception = context.get("exception")
-        if exception:
-            print(f"Caught unhandled exception: {exception}")
-            loop.default_exception_handler(context)
-            loop.stop()
+        loop.default_exception_handler(context)
+        loop.stop()
 
-    def run_async(self, input, result):
+    def run_async(self, input, result, error):
         loop = asyncio.new_event_loop()
         loop.set_exception_handler(self.handle_exception)
         asyncio.set_event_loop(loop)
-        result.append(loop.run_until_complete(self.acall(input)))
+        try:
+            task = loop.run_until_complete(self.acall(input))
+            result.append(task)
+        except asyncio.CancelledError:
+            error.append(AgentGatewayError("Task was cancelled"))
+        except RuntimeError as e:
+            error.append(AgentGatewayError(f"RuntimeError: {str(e)}"))
+        except Exception as e:
+            error.append(AgentGatewayError(f"Gateway Execution Error: {str(e)}"))
+
+        finally:
+            try:
+                # Cancel any pending tasks
+                pending = asyncio.all_tasks(loop)
+                for task in pending:
+                    task.cancel()
+                # Wait for all tasks to be cancelled
+                loop.run_until_complete(
+                    asyncio.gather(*pending, return_exceptions=True)
+                )
+            finally:
+                loop.close()
 
     async def acall(
         self,
@@ -416,4 +444,4 @@ class Agent(Chain, extra="allow"):
             formatted_contexts = self._format_contexts(contexts)
             inputs["context"] = formatted_contexts
 
-        return {self.output_key: answer}
+        return answer
