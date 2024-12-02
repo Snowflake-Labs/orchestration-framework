@@ -1,20 +1,22 @@
-FROM python:3.9-slim
+FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    curl \
-    software-properties-common \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+ENV UV_COMPILE_BYTECODE=1
 
-RUN git clone https://github.com/streamlit/streamlit-example.git .
+ENV UV_LINK_MODE=copy
 
-RUN pip3 install -e ".[streamlit]"
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --extra streamlit
 
-EXPOSE 8501
+ADD . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --extra streamlit
 
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
+ENV PATH="/app/.venv/bin:$PATH"
 
-ENTRYPOINT ["streamlit", "run", "demo_app/streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+ENTRYPOINT []
+
+CMD ["python", "-m", "streamlit", "run", "demo_app/demo_app.py", "--server.port=8510", "--server.address=0.0.0.0"]
