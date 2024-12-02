@@ -101,7 +101,8 @@ class CortexCompleteAgent:
                         json_list.append(json_dict)
                     except json.JSONDecodeError as e:
                         gateway_logger.log(
-                            logging.ERROR, f"Failed to parse JSON object: {obj}. Error: {e}"
+                            logging.ERROR,
+                            f"Failed to parse JSON object: {obj}. Error: {e}",
                         )
                         continue
 
