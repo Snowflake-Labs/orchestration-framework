@@ -243,12 +243,14 @@ class Agent(Chain, extra="allow"):
             else:
                 # If no corresponding closing parenthesis is found
                 return None
-            return raw_answer[start_index:end_index]
+            answer = raw_answer[start_index:end_index]
+            return answer
         else:
-            if replan_index == 1:
+            if replan_index != 1:
+                print("....replanning...")
+                return "Replan required. Consider rephrasing your question."
+            else:
                 return None
-            print("....replanning...")
-            return "Replan required. Consider rephrasing your question."
 
     def _generate_context_for_replanner(
         self, tasks: Mapping[int, Task], fusion_thought: str
