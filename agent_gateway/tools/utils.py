@@ -105,7 +105,7 @@ class CortexEndpointBuilder:
 async def post_cortex_request(url: str, headers: Headers, data: dict):
     """Submit cortex request depending on runtime"""
 
-    if snowflake_runtime := _determine_runtime():
+    if _determine_runtime():
         import _snowflake
 
         resp = _snowflake.send_snow_api_request(
@@ -121,8 +121,8 @@ async def post_cortex_request(url: str, headers: Headers, data: dict):
         return json.dumps(resp)
     else:
         async with aiohttp.ClientSession(
-                    headers=headers,
-                ) as session:
+            headers=headers,
+        ) as session:
             async with session.post(url=url, json=data) as response:
                 return await response.text()
 
