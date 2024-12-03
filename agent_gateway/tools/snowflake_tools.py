@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import asyncio
+import contextlib
 import inspect
 import json
 import logging
@@ -69,7 +70,7 @@ class CortexSearchTool(Tool):
         auto_filter (bool): automatically generate filter based on user's query or not.
         k: number of records to include in results
         """
-        tool_name = service_name.lower() + "_cortexsearch"
+        tool_name = f"{service_name.lower()}_cortexsearch"
         tool_description = self._prepare_search_description(
             name=tool_name,
             service_topic=service_topic,
@@ -170,11 +171,8 @@ class CortexSearchTool(Tool):
         )
 
         pattern = r"FROM\s+([\w\.]+)"
-        match = re.search(pattern, table_def)
-
-        if match:
-            from_value = match.group(1)
-            return from_value
+        if match := re.search(pattern, table_def):
+            return match[1]
         else:
             print("No match found.")
 
@@ -232,13 +230,10 @@ class JSONFilter(BaseModel):
             for substring_length in range(len(json_data), min_length - 1, -1):
                 for start in range(len(json_data) - substring_length + 1):
                     substring = json_data[start : start + substring_length]
-                    try:
-                        res = cls.__pydantic_validator__.validate_json(
+                    with contextlib.suppress(ValidationError):
+                        return cls.__pydantic_validator__.validate_json(
                             substring, strict=strict, context=context
                         )
-                        return res
-                    except ValidationError:
-                        pass
         raise ValueError("Could not find valid json")
 
 

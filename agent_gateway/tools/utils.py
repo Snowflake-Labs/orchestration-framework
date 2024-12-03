@@ -55,10 +55,8 @@ class CortexEndpointBuilder:
         self.BASE_HEADERS = self._set_base_headers()
 
     def _set_base_url(self):
-        scheme = "https"
         con = self.connection
-        if hasattr(con, "scheme"):
-            scheme = con.scheme
+        scheme = con.scheme if hasattr(con, "scheme") else "https"
         host = con.host
         host = host.replace("_", "-")
         host = host.lower()
@@ -107,18 +105,7 @@ class CortexEndpointBuilder:
 async def post_cortex_request(url: str, headers: Headers, data: dict):
     """Submit cortex request depending on runtime"""
 
-    snowflake_runtime = _determine_runtime()
-
-    # if not inside of snowflake, use aiohttp. otherwise use _snowflake
-    if not snowflake_runtime:
-        async with aiohttp.ClientSession(
-            headers=headers,
-        ) as session:
-            async with session.post(url=url, json=data) as response:
-                response_text = await response.text()
-                return response_text
-
-    else:
+    if snowflake_runtime := _determine_runtime():
         import _snowflake
 
         resp = _snowflake.send_snow_api_request(
@@ -132,6 +119,12 @@ async def post_cortex_request(url: str, headers: Headers, data: dict):
         )
 
         return json.dumps(resp)
+    else:
+        async with aiohttp.ClientSession(
+                    headers=headers,
+                ) as session:
+            async with session.post(url=url, json=data) as response:
+                return await response.text()
 
 
 def asyncify(self, sync_func):
