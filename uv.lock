@@ -565,48 +565,6 @@ wheels = [
 ]
 
 [[package]]
-name = "dspy"
-version = "2.5.41"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "anyio" },
-    { name = "asyncer" },
-    { name = "backoff" },
-    { name = "datasets" },
-    { name = "diskcache" },
-    { name = "httpx" },
-    { name = "joblib" },
-    { name = "json-repair" },
-    { name = "litellm" },
-    { name = "magicattr" },
-    { name = "openai" },
-    { name = "optuna" },
-    { name = "pandas" },
-    { name = "pydantic" },
-    { name = "regex" },
-    { name = "requests" },
-    { name = "tenacity" },
-    { name = "tqdm" },
-    { name = "ujson" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/dc/44/4ff003b2b0efb01cc0e8de59f6c079ae8cc7e8511cb30bb8df1dae2a195e/dspy-2.5.41.tar.gz", hash = "sha256:d94b74d39f5c57346ff4090b99688660c9e5fd385cf29d139e4e0ed104c8477b", size = 258727 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/72/82/a86a37f654da2789dbb910e4061749a4865f3fa2087f13d32263b09037b5/dspy-2.5.41-py3-none-any.whl", hash = "sha256:28732210ddc2a47dd3d887d444fd8edf38bdc535c420357fd5d9fbe88d1df286", size = 340372 },
-]
-
-[[package]]
-name = "dspy-ai"
-version = "2.5.41"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "dspy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/d6/25/94659c581e69fe11237294aeadf55785abec09361aa2d3a63bd0abc39d82/dspy-ai-2.5.41.tar.gz", hash = "sha256:a2804434eb3354d6e41f59a448938886914fed0c502eb42503569776a3f2f002", size = 258174 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e5/50/f715b62acfe29718c3575dde16eb35e3ab6a5642652b13fb229bd758c040/dspy_ai-2.5.41-py3-none-any.whl", hash = "sha256:4f366a6b610ee93fd04b92b0dff2f78b24e23ee74c71d20bcf9fedcbf0d7aa97", size = 339737 },
-]
-
-[[package]]
 name = "exceptiongroup"
 version = "1.2.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1460,7 +1418,6 @@ source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "asyncio" },
-    { name = "dspy-ai" },
     { name = "langchain" },
     { name = "pydantic" },
     { name = "snowflake-snowpark-python" },
@@ -1480,7 +1437,6 @@ streamlit = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.10.9" },
     { name = "asyncio", specifier = ">=3.4.3" },
-    { name = "dspy-ai", specifier = ">=2.5.3" },
     { name = "langchain", specifier = ">=0.3.2" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.0.1" },
     { name = "pydantic", specifier = ">=2.9.2" },
