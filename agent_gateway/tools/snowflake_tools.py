@@ -66,7 +66,6 @@ class CortexSearchTool(Tool):
         data_description (str): description of the source data that has been indexed.
         retrieval_columns (list): list of columns to include in Cortex Search results.
         snowflake_connection (object): snowpark connection object
-        auto_filter (bool): automatically generate filter based on user's query or not.
         k: number of records to include in results
         """
         tool_name = f"{service_name.lower()}_cortexsearch"
@@ -78,7 +77,6 @@ class CortexSearchTool(Tool):
         super().__init__(
             name=tool_name, description=tool_description, func=self.asearch
         )
-        self.auto_filter = auto_filter
         self.connection = _get_connection(snowflake_connection)
         self.k = k
         self.retrieval_columns = retrieval_columns
@@ -107,27 +105,11 @@ class CortexSearchTool(Tool):
             self.connection.schema,
             self.service_name,
         )
-        if self.auto_filter:
-            search_attributes, sample_vals = self._get_sample_values(
-                snowflake_connection=Session.builder.config(
-                    "connection", self.connection
-                ),
-                cortex_search_service=self.service_name,
-            )
-            raw_filter = self.filter_generator(
-                query=query,
-                attributes=str(search_attributes),
-                sample_values=str(sample_vals),
-            )["answer"]
-            filter = json.loads(raw_filter)
-        else:
-            filter = None
 
         data = {
             "query": query,
             "columns": self.retrieval_columns,
             "limit": self.k,
-            "filter": filter,
         }
 
         return headers, url, data
