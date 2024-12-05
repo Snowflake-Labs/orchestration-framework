@@ -208,7 +208,7 @@ class Planner:
     def __init__(
         self,
         session: object,
-        llm: str,  # point to dspy
+        llm: str,
         example_prompt: str,
         example_prompt_replan: str,
         tools: Sequence[Union[Tool, StructuredTool]],
