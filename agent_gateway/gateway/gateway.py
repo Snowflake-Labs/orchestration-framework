@@ -260,12 +260,16 @@ class Agent(Chain, extra="allow"):
                 return None
 
     def _extract_replan_message(self, raw_answer):
-        replan_index = raw_answer.find("Action: Replan(") + len("Action: Replan(")
+        replan_start = "Action: Replan("
+        replan_index = raw_answer.find(replan_start)
         if replan_index != -1:
+            replan_index += len(replan_start)
             return raw_answer[replan_index : raw_answer.rfind(")")].strip()
-        else:
-            return "We couldn't find the information you're looking for. You can try rephrasing your request or validate that the provided tools contain sufficient information."
-
+        return (
+            "We couldn't find the information you're looking for. You can try "
+            "rephrasing your request or validate that the provided tools contain "
+            "sufficient information."
+        )
     def _generate_context_for_replanner(
         self, tasks: Mapping[int, Task], fusion_thought: str
     ) -> str:
