@@ -458,8 +458,8 @@ class Agent(Chain, extra="allow"):
             inputs["context"] = formatted_contexts
 
         max_memory = 3  # TODO consider exposing this to users
-
-        if len(self.memory_context) <= max_memory:
-            self.memory_context.append({"Question:": input, "Answer": answer})
+        if self.memory:
+            if len(self.memory_context) <= max_memory:
+                self.memory_context.append({"Question:": input, "Answer": answer})
 
         return answer
