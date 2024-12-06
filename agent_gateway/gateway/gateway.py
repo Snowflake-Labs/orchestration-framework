@@ -51,7 +51,6 @@ class CortexCompleteAgent:
     async def arun(self, prompt: str) -> str:
         """Run the LLM."""
         headers, url, data = self._prepare_llm_request(prompt=prompt)
-        # gateway_logger.log(logging.DEBUG, "Cortex LLM Prompt\n", data, block=True)
 
         try:
             response_text = await post_cortex_request(
