@@ -16,7 +16,7 @@ import json
 import pytest
 
 from agent_gateway import Agent
-from agent_gateway.tools import CortexSearchTool, CortexAnalystTool, PythonTool
+from agent_gateway.tools import CortexAnalystTool, CortexSearchTool, PythonTool
 
 
 @pytest.mark.parametrize(
