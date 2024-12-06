@@ -228,6 +228,11 @@ class Agent(Chain, extra="allow"):
         if is_replan:
             answer = "We couldn't find the information you're looking for. You can try rephrasing your request or validate that the provided tools contain sufficient information."
 
+        if answer is None:
+            raise AgentGatewayError(
+                message="Unable to parse final answer. Raw answer is:{raw_answer}"
+            )
+
         return thought, answer, is_replan
 
     def _extract_answer(self, raw_answer):
