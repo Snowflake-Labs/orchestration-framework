@@ -191,6 +191,9 @@ class Agent(Chain, extra="allow"):
         self.planner_stream = planner_stream
         self.max_retries = max_retries
 
+        # basic memory
+        self.memory = []
+
         # callbacks
         self.planner_callback = None
         self.executor_callback = None
@@ -339,6 +342,10 @@ class Agent(Chain, extra="allow"):
         """
         result = []
         error = []
+
+        if len(self.memory) >= 1:
+            input = f"My previous question/answer was: {self.memory[0]}\n. If needed, use that context and this {input} to answer my question. Otherwise just give me an answer to: {input} "
+
         thread = threading.Thread(target=self.run_async, args=(input, result, error))
         thread.start()
         thread.join()
@@ -348,6 +355,10 @@ class Agent(Chain, extra="allow"):
 
         if not result:
             raise AgentGatewayError("Unable to retrieve response. Result is empty.")
+
+        max_memory = 3  # TODO consider exposing this to users
+        if len(self.memory) <= max_memory:
+            self.memory.append({"Question:": input, "Answer": result[0]})
 
         return result[0]
 
