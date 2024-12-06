@@ -225,7 +225,7 @@ class Agent(Chain, extra="allow"):
         is_replan = FUSION_REPLAN in answer
 
         if is_replan:
-            answer = "We couldn't find the information you're looking for. You can try rephrasing your request or validate that the provided tools contain sufficient information."
+            answer = self._extract_replan_message(raw_answer)
 
         return thought, answer, is_replan
 
@@ -258,6 +258,13 @@ class Agent(Chain, extra="allow"):
                 return "Replan required. Consider rephrasing your question."
             else:
                 return None
+
+    def _extract_replan_message(self, raw_answer):
+        replan_index = raw_answer.find("Action: Replan(") + len("Action: Replan(")
+        if replan_index != -1:
+            return raw_answer[replan_index : raw_answer.rfind(")")].strip()
+        else:
+            return "We couldn't find the information you're looking for. You can try rephrasing your request or validate that the provided tools contain sufficient information."
 
     def _generate_context_for_replanner(
         self, tasks: Mapping[int, Task], fusion_thought: str
