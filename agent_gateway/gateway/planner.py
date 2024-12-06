@@ -39,6 +39,7 @@ from agent_gateway.tools.utils import CortexEndpointBuilder, post_cortex_request
 class AgentGatewayError(Exception):
     def __init__(self, message):
         self.message = message
+        gateway_logger.log(logging.ERROR, message)
         super().__init__(self.message)
 
 
@@ -296,7 +297,7 @@ class Planner:
             if "content" in choices["delta"].keys():
                 completion += choices["delta"]["content"]
 
-        gateway_logger.log(logging.DEBUG, f"Planner response:{completion}")
+        gateway_logger.log(logging.DEBUG, f"LLM Generated Plan:\n{completion}")
         return completion
 
     async def plan(self, inputs: dict, is_replan: bool, **kwargs: Any):

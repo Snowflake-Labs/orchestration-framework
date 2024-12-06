@@ -37,6 +37,7 @@ from agent_gateway.tools.utils import CortexEndpointBuilder, post_cortex_request
 class AgentGatewayError(Exception):
     def __init__(self, message):
         self.message = message
+        gateway_logger.log(logging.ERROR, self.message)
         super().__init__(self.message)
 
 
@@ -50,20 +51,20 @@ class CortexCompleteAgent:
     async def arun(self, prompt: str) -> str:
         """Run the LLM."""
         headers, url, data = self._prepare_llm_request(prompt=prompt)
-        gateway_logger.log(logging.DEBUG, "Cortex Request URL\n", url, block=True)
-        gateway_logger.log(logging.DEBUG, "Cortex Request Data\n", data, block=True)
+        # gateway_logger.log(logging.DEBUG, "Cortex LLM Prompt\n", data, block=True)
 
-        response_text = await post_cortex_request(url=url, headers=headers, data=data)
-        gateway_logger.log(
-            logging.DEBUG,
-            "Cortex Request Response\n",
-            response_text,
-            block=True,
-        )
+        try:
+            response_text = await post_cortex_request(
+                url=url, headers=headers, data=data
+            )
+        except Exception as e:
+            raise AgentGatewayError(
+                message=f"Failed Cortex LLM Request. See details:{str(e)}"
+            ) from e
 
         if "choices" not in response_text:
             raise AgentGatewayError(
-                message=f"Failed Cortex LLM Request. Missing choices in response. See details:{response_text}"
+                message=f"Invalid Cortex LLM Response. See details:{response_text}"
             )
 
         try:
@@ -135,8 +136,8 @@ class Agent(Chain, extra="allow"):
         snowflake_connection: Union[Session, SnowflakeConnection],
         tools: list[Union[Tool, StructuredTool]],
         max_retries: int = 2,
-        planner_llm: str = "mistral-large2",  # replace basellm
-        agent_llm: str = "mistral-large2",  # replace basellm
+        planner_llm: str = "mistral-large2",
+        agent_llm: str = "mistral-large2",
         planner_example_prompt: str = SNOWFLAKE_PLANNER_PROMPT,
         planner_example_prompt_replan: Optional[str] = None,
         planner_stop: Optional[list[str]] = [END_OF_PLAN],
@@ -230,34 +231,27 @@ class Agent(Chain, extra="allow"):
         return thought, answer, is_replan
 
     def _extract_answer(self, raw_answer):
-        start_index = raw_answer.find("Action: Finish(")
-        replan_index = raw_answer.find("Replan")
+        start_marker = "Action: Finish("
+        end_marker = "<END_OF_RESPONSE>"
+        end_parens = raw_answer.rfind(")")
+
+        start_index = raw_answer.find(start_marker)
         if start_index != -1:
-            start_index += len("Action: Finish(")
-            parentheses_count = 1
-            for i, char in enumerate(raw_answer[start_index:], start_index):
-                if char == "(":
-                    parentheses_count += 1
-                elif char == ")":
-                    parentheses_count -= 1
-                    if parentheses_count == 0:
-                        end_index = i
-                        break
+            start_index += len(start_marker)
+            end_index = raw_answer.find(end_marker, start_index)
+
+            if end_index != -1:
+                return raw_answer[start_index:end_index].strip()
+            elif end_parens > start_index:
+                return raw_answer[start_index:end_parens].strip()
             else:
-                # If no corresponding closing parenthesis is found
-                return None
-            answer = raw_answer[start_index:end_index]
-            return answer
-        else:
-            if replan_index != 1:
-                gateway_logger.log(
-                    logging.INFO,
-                    "Unable to answer the request. Replanning....",
-                    block=True,
-                )
-                return "Replan required. Consider rephrasing your question."
-            else:
-                return None
+                return raw_answer[start_index:].strip()
+
+        # Handle "Replan" case
+        if "Replan" in raw_answer:
+            return "Replan required. Consider rephrasing your question."
+
+        return None
 
     def _generate_context_for_replanner(
         self, tasks: Mapping[int, Task], fusion_thought: str
@@ -335,6 +329,7 @@ class Agent(Chain, extra="allow"):
         thread.join()
 
         if error:
+            gateway_logger.log(logging.ERROR, error)
             raise error[0]
 
         if not result:

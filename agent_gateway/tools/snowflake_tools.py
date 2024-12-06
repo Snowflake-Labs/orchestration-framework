@@ -34,6 +34,7 @@ from agent_gateway.tools.utils import (
 class SnowflakeError(Exception):
     def __init__(self, message):
         self.message = message
+        gateway_logger.log(logging.ERROR, message)
         super().__init__(self.message)
 
 

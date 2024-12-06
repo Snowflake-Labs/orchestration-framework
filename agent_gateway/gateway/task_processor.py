@@ -27,6 +27,7 @@ SCHEDULING_INTERVAL = 0.01  # seconds
 class AgentGatewayError(Exception):
     def __init__(self, message):
         self.message = message
+        gateway_logger.log(logging.ERROR, self.message)
         super().__init__(self.message)
 
 
