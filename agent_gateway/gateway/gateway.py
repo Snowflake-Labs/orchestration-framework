@@ -135,8 +135,9 @@ class Agent(Chain, extra="allow"):
         snowflake_connection: Union[Session, SnowflakeConnection],
         tools: list[Union[Tool, StructuredTool]],
         max_retries: int = 2,
-        planner_llm: str = "mistral-large2",  # replace basellm
-        agent_llm: str = "mistral-large2",  # replace basellm
+        planner_llm: str = "mistral-large2",
+        agent_llm: str = "mistral-large2",
+        memory: bool = True,
         planner_example_prompt: str = SNOWFLAKE_PLANNER_PROMPT,
         planner_example_prompt_replan: Optional[str] = None,
         planner_stop: Optional[list[str]] = [END_OF_PLAN],
@@ -155,6 +156,7 @@ class Agent(Chain, extra="allow"):
             max_retries: Maximum number of replans to do. Defaults to 2.
             planner_llm: Name of Snowflake Cortex LLM to use for planning.
             agent_llm: Name of Snowflake Cortex LLM to use for planning.
+            memory: Boolean to turn on memory mechanism or not. Defaults to False.
             planner_example_prompt: Example prompt for planning. Defaults to SNOWFLAKE_PLANNER_PROMPT.
             planner_example_prompt_replan: Example prompt for replanning.
                 Assign this if you want to use different example prompt for replanning.
@@ -192,7 +194,9 @@ class Agent(Chain, extra="allow"):
         self.max_retries = max_retries
 
         # basic memory
-        self.memory = []
+        self.memory = memory
+        if self.memory:
+            self.memory_context = []
 
         # callbacks
         self.planner_callback = None
@@ -334,9 +338,6 @@ class Agent(Chain, extra="allow"):
         result = []
         error = []
 
-        if len(self.memory) >= 1:
-            input = f"My previous question/answer was: {self.memory[0]}\n. If needed, use that context and this {input} to answer my question. Otherwise just give me an answer to: {input} "
-
         thread = threading.Thread(target=self.run_async, args=(input, result, error))
         thread.start()
         thread.join()
@@ -346,10 +347,6 @@ class Agent(Chain, extra="allow"):
 
         if not result:
             raise AgentGatewayError("Unable to retrieve response. Result is empty.")
-
-        max_memory = 3  # TODO consider exposing this to users
-        if len(self.memory) <= max_memory:
-            self.memory.append({"Question:": input, "Answer": result[0]})
 
         return result[0]
 
@@ -387,12 +384,17 @@ class Agent(Chain, extra="allow"):
     async def acall(
         self,
         input: str,
-        # inputs: Dict[str, Any]
     ) -> Dict[str, Any]:
         contexts = []
         fusion_thought = ""
         agent_scratchpad = ""
-        inputs = {"input": input}
+
+        if self.memory:
+            input_with_mem = f"My previous question/answer was: {self.memory_context}\n. If needed, use that context and this {input} to answer my question. Otherwise just give me an answer to: {input} "
+            inputs = {"input": input_with_mem}
+        else:
+            inputs = {"input": input}
+
         for i in range(self.max_retries):
             is_first_iter = i == 0
             is_final_iter = i == self.max_retries - 1
@@ -454,5 +456,10 @@ class Agent(Chain, extra="allow"):
             contexts.append(context)
             formatted_contexts = self._format_contexts(contexts)
             inputs["context"] = formatted_contexts
+
+        max_memory = 3  # TODO consider exposing this to users
+
+        if len(self.memory_context) <= max_memory:
+            self.memory_context.append({"Question:": input, "Answer": answer})
 
         return answer
