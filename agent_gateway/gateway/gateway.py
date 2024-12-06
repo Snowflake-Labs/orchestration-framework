@@ -156,7 +156,7 @@ class Agent(Chain, extra="allow"):
             max_retries: Maximum number of replans to do. Defaults to 2.
             planner_llm: Name of Snowflake Cortex LLM to use for planning.
             agent_llm: Name of Snowflake Cortex LLM to use for planning.
-            memory: Boolean to turn on memory mechanism or not. Defaults to False.
+            memory: Boolean to turn on memory mechanism or not. Defaults to True.
             planner_example_prompt: Example prompt for planning. Defaults to SNOWFLAKE_PLANNER_PROMPT.
             planner_example_prompt_replan: Example prompt for replanning.
                 Assign this if you want to use different example prompt for replanning.
