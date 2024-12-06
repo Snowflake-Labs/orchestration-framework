@@ -334,7 +334,6 @@ class Agent(Chain, extra="allow"):
         thread.join()
 
         if error:
-            gateway_logger.log(logging.ERROR, error)
             raise error[0]
 
         if not result:
