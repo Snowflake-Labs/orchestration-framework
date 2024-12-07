@@ -7,22 +7,21 @@ authors = [
   { name = "Alejandro Herrera", email = "alejandro.herrera@snowflake.com" },
 ]
 readme = "README.md"
-
 dependencies = [
-    "snowflake-snowpark-python>=1.22.1",
-    "langchain>=0.3.2",
+    "snowflake-snowpark-python>=1.22.1,<2.0",
+    "langchain>=0.3.2,<0.4",
     "asyncio>=3.4.3",
-    "aiohttp>=3.10.9",
-    "pydantic>=2.9.2"
+    "aiohttp>=3.10.9,<4.0",
+    "pydantic>=2.9.2,<3.0"
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pre-commit>=4.0.1",
-    "ruff>=0.6.9",
-    "pytest>=8.3.3"
+    "pre-commit>=4.0.1,<5.0",
+    "ruff>=0.6.9,<1.0",
+    "pytest>=8.3.3,<9.0"
 ]
-streamlit = ["streamlit >= 1.39.0"]
+streamlit = ["streamlit>=1.39.0,<2.0"]
 
 [build-system]
 requires = ["hatchling"]
