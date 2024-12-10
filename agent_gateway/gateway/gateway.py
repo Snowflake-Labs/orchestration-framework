@@ -12,7 +12,6 @@
 
 import asyncio
 import json
-import logging
 import re
 import threading
 from collections.abc import Sequence
@@ -37,7 +36,7 @@ from agent_gateway.tools.utils import CortexEndpointBuilder, post_cortex_request
 class AgentGatewayError(Exception):
     def __init__(self, message):
         self.message = message
-        gateway_logger.log(logging.ERROR, self.message)
+        gateway_logger.log("ERROR", self.message)
         super().__init__(self.message)
 
 
@@ -201,7 +200,7 @@ class Agent(Chain, extra="allow"):
         # callbacks
         self.planner_callback = None
         self.executor_callback = None
-        gateway_logger.log(logging.INFO, "Cortex gateway successfully initialized")
+        gateway_logger.log("INFO", "Cortex gateway successfully initialized")
 
     @property
     def input_keys(self) -> List[str]:
@@ -328,8 +327,8 @@ class Agent(Chain, extra="allow"):
 
         response = await self.agent.arun(prompt)
         raw_answer = cast(str, response)
-        gateway_logger.log(logging.DEBUG, "Question: \n", input_query, block=True)
-        gateway_logger.log(logging.DEBUG, "Raw Answer: \n", raw_answer, block=True)
+        gateway_logger.log("DEBUG", "Question: \n", input_query, block=True)
+        gateway_logger.log("DEBUG", "Raw Answer: \n", raw_answer, block=True)
         thought, answer, is_replan = self._parse_fusion_output(raw_answer)
         if is_final:
             # If final, we don't need to replan

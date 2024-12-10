@@ -13,7 +13,6 @@
 import asyncio
 import inspect
 import json
-import logging
 import re
 from typing import Any, Type, Union
 
@@ -34,7 +33,7 @@ from agent_gateway.tools.utils import (
 class SnowflakeError(Exception):
     def __init__(self, message):
         self.message = message
-        gateway_logger.log(logging.ERROR, message)
+        gateway_logger.log("ERROR", message)
         super().__init__(self.message)
 
 
@@ -78,17 +77,17 @@ class CortexSearchTool(Tool):
         self.k = k
         self.retrieval_columns = retrieval_columns
         self.service_name = service_name
-        gateway_logger.log(logging.INFO, "Cortex Search Tool successfully initialized")
+        gateway_logger.log("INFO", "Cortex Search Tool successfully initialized")
 
     def __call__(self, question) -> Any:
         return self.asearch(question)
 
     async def asearch(self, query):
-        gateway_logger.log(logging.DEBUG, f"Cortex Search Query:{query}")
+        gateway_logger.log("DEBUG", f"Cortex Search Query:{query}")
         headers, url, data = self._prepare_request(query=query)
         response_text = await post_cortex_request(url=url, headers=headers, data=data)
         response_json = json.loads(response_text)
-        gateway_logger.log(logging.DEBUG, f"Cortex Search Response:{response_json}")
+        gateway_logger.log("DEBUG", f"Cortex Search Response:{response_json}")
         try:
             return response_json["results"]
         except Exception:
@@ -218,22 +217,20 @@ class CortexAnalystTool(Tool):
         self.FILE = semantic_model
         self.STAGE = stage
 
-        gateway_logger.log(logging.INFO, "Cortex Analyst Tool successfully initialized")
+        gateway_logger.log("INFO", "Cortex Analyst Tool successfully initialized")
 
     def __call__(self, prompt) -> Any:
         return self.asearch(query=prompt)
 
     async def asearch(self, query):
-        gateway_logger.log(logging.DEBUG, f"Cortex Analyst Prompt:{query}")
+        gateway_logger.log("DEBUG", f"Cortex Analyst Prompt:{query}")
 
         url, headers, data = self._prepare_analyst_request(prompt=query)
 
         response_text = await post_cortex_request(url=url, headers=headers, data=data)
         json_response = json.loads(response_text)
 
-        gateway_logger.log(
-            logging.DEBUG, f"Cortex Analyst Raw Response:{json_response}"
-        )
+        gateway_logger.log("DEBUG", f"Cortex Analyst Raw Response:{json_response}")
 
         try:
             query_response = self._process_analyst_message(
@@ -316,7 +313,7 @@ class PythonTool(Tool):
             name=python_func.__name__, func=python_callable, description=desc
         )
         self.python_callable = python_func
-        gateway_logger.log(logging.INFO, "Python Tool successfully initialized")
+        gateway_logger.log("INFO", "Python Tool successfully initialized")
 
     def asyncify(self, sync_func):
         async def async_func(*args, **kwargs):

@@ -13,7 +13,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from collections.abc import Collection
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
@@ -27,7 +26,7 @@ SCHEDULING_INTERVAL = 0.01  # seconds
 class AgentGatewayError(Exception):
     def __init__(self, message):
         self.message = message
-        gateway_logger.log(logging.ERROR, self.message)
+        gateway_logger.log("ERROR", self.message)
         super().__init__(self.message)
 
 
@@ -73,10 +72,10 @@ class Task:
     is_fuse: bool = False
 
     async def __call__(self) -> Any:
-        gateway_logger.log(logging.INFO, f"running {self.name} task")
+        gateway_logger.log("INFO", f"running {self.name} task")
         try:
             x = await self.tool(*self.args)
-            gateway_logger.log(logging.DEBUG, "task successfully completed")
+            gateway_logger.log("DEBUG", "task successfully completed")
             return x
         except SnowflakeError as e:
             return f"Unexpected error during Cortex Gateway Tool request: {str(e)}"

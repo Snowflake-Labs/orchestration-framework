@@ -57,6 +57,8 @@ class Logger:
             self.logger.addHandler(self.file_handler)
 
     def log(self, level, *args, block=False, **kwargs):
+        if isinstance(level, str):
+            level = getattr(logging, level.upper())
         if LOGGING_ENABLED:
             if block:
                 self.logger.log(level, "=" * 80)
@@ -71,9 +73,3 @@ class Logger:
 
 
 gateway_logger = Logger()
-
-# The updated log function
-
-
-def log(level, *args, block=False, **kwargs):
-    gateway_logger.log(level, *args, block=block, **kwargs)
