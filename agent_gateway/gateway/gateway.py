@@ -241,24 +241,20 @@ class Agent(Chain, extra="allow"):
 
         return thought, answer, is_replan
 
-    def _extract_answer(self, raw_answer):
+    @staticmethod
+    def _extract_answer(raw_answer):
         start_marker = "Action: Finish("
         end_marker = "<END_OF_RESPONSE>"
-        end_parens = raw_answer.rfind(")")
 
-        start_index = raw_answer.find(start_marker)
-        if start_index != -1:
-            start_index += len(start_marker)
-            end_index = raw_answer.find(end_marker, start_index)
+        pattern = re.compile(
+            rf"{re.escape(start_marker)}(.*?)(?=\)\s*{re.escape(end_marker)})",
+            re.DOTALL,
+        )
 
-            if end_index != -1:
-                return raw_answer[start_index:end_index].strip()
-            elif end_parens > start_index:
-                return raw_answer[start_index:end_parens].strip()
-            else:
-                return raw_answer[start_index:].strip()
+        match = pattern.search(raw_answer)
+        if match:
+            return match.group(1).strip()
 
-        # Handle "Replan" case
         if "Replan" in raw_answer:
             return "Replan required. Consider rephrasing your question."
 
