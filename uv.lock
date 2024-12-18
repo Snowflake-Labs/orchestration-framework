@@ -1061,7 +1061,7 @@ dependencies = [
     { name = "asyncio" },
     { name = "langchain-core" },
     { name = "pydantic" },
-    { name = "snowflake-snowpark-python" },
+    { name = "snowflake-snowpark-python", extra = ["pandas"] },
 ]
 
 [package.optional-dependencies]
@@ -1085,7 +1085,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.9.2,<3.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.3,<9.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6.9,<1.0" },
-    { name = "snowflake-snowpark-python", specifier = ">=1.22.1,<2.0" },
+    { name = "snowflake-snowpark-python", extras = ["pandas"], specifier = ">=1.22.1,<2.0" },
     { name = "streamlit", marker = "extra == 'streamlit'", specifier = ">=1.39.0,<2.0" },
 ]
 
@@ -2016,6 +2016,12 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/78/e1/4163cb82b9ce1d98ecdef188193ec3f1895b80df07fac75e9c7a650a0446/snowflake_connector_python-3.12.3-cp39-cp39-win_amd64.whl", hash = "sha256:c314749bd0151218b654a7d4646a39067ab650bdc86dfebb1884b056b0bdb4b4", size = 918237 },
 ]
 
+[package.optional-dependencies]
+pandas = [
+    { name = "pandas" },
+    { name = "pyarrow" },
+]
+
 [[package]]
 name = "snowflake-snowpark-python"
 version = "1.25.0"
@@ -2033,6 +2039,11 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/46/0b/8d167516df04914fb26dd3c217c771a5ef746b2319e41ae1accc34487691/snowflake_snowpark_python-1.25.0.tar.gz", hash = "sha256:184b9f6873b4c318af2727c707000998c9f6e24542036e536d86c2e314549e47", size = 1388302 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e3/55/3cbf9670a6cc14690aa9c3cc279a5e6d8dc74ef2deb8ce6f8fb7d8268a35/snowflake_snowpark_python-1.25.0-py3-none-any.whl", hash = "sha256:0b965308eb88568cbe6865164fb5441a336d9cf55bc603291f64ebfe799018d1", size = 1434906 },
+]
+
+[package.optional-dependencies]
+pandas = [
+    { name = "snowflake-connector-python", extra = ["pandas"] },
 ]
 
 [[package]]
