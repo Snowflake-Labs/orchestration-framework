@@ -8,7 +8,7 @@ authors = [
 ]
 readme = "README.md"
 dependencies = [
-    "langchain-core=>=0.3,<0.3.23",
+    "langchain-core>=0.3,<0.3.23",
     "snowflake-snowpark-python[pandas]>=1.22.1,<2.0",
     "asyncio>=3.4.3",
     "aiohttp>=3.10.9,<4.0",
