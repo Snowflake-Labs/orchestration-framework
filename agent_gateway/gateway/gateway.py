@@ -32,9 +32,11 @@ from agent_gateway.tools.snowflake_prompts import (
 )
 from agent_gateway.tools.utils import CortexEndpointBuilder, post_cortex_request
 
-from trulens.apps.custom import instrument
+from trulens.apps.custom import instrument, TruCustomApp
 from trulens.connectors.snowflake import SnowflakeConnector
 from trulens.core import TruSession
+
+from typing import ClassVar
 
 
 class AgentGatewayError(Exception):
@@ -135,9 +137,9 @@ class Agent(Chain, extra="allow"):
 
     input_key: str = "input"
     output_key: str = "output"
-    fuse: Any
-    handle_exception: Any
-    acall: Any
+    fuse: ClassVar[Any]
+    acall: ClassVar[Any]
+    handle_exception: ClassVar[Any]
 
     def __init__(
         self,
@@ -221,7 +223,6 @@ class Agent(Chain, extra="allow"):
     def output_keys(self) -> List[str]:
         return [self.output_key]
 
-    @instrument
     def _parse_fusion_output(self, raw_answer: str) -> str:
         """We expect the fusion output format to be:
         ```
@@ -271,7 +272,6 @@ class Agent(Chain, extra="allow"):
 
         return None
 
-    @instrument
     def _extract_replan_message(self, raw_answer):
         replan_start = "Action: Replan("
         replan_index = raw_answer.find(replan_start)
@@ -349,7 +349,7 @@ class Agent(Chain, extra="allow"):
         return self.__call__(inputs)
 
     @instrument
-    def __call__(self, input: str):
+    def __call__(self, input: str) -> Any:
         """Calls Cortex gateway multi-agent system.
 
         Params:
@@ -485,3 +485,19 @@ class Agent(Chain, extra="allow"):
                 self.memory_context.append({"Question:": input, "Answer": answer})
 
         return answer
+
+
+class TruAgent:
+    def __init__(self, app_name, app_version, **kwargs):
+        self.agent = Agent(**kwargs)
+        self.tru_agent = TruCustomApp(
+            self.agent,
+            app_name=app_name,
+            app_version=app_version,
+        )
+
+    def __call__(self, input):
+        with self.tru_agent:
+            output = self.agent(input)
+
+        return output

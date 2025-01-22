@@ -14,7 +14,7 @@ import asyncio
 import inspect
 import json
 import re
-from typing import Any, Type, Union
+from typing import Any, Type, Union, ClassVar
 
 from pydantic import BaseModel
 from snowflake.connector.connection import SnowflakeConnection
@@ -46,6 +46,7 @@ class CortexSearchTool(Tool):
     retrieval_columns: list = []
     service_name: str = ""
     connection: Union[Session, SnowflakeConnection] = None
+    asearch: ClassVar[Any]
 
     def __init__(
         self,
@@ -85,6 +86,7 @@ class CortexSearchTool(Tool):
     def __call__(self, question) -> Any:
         return self.asearch(question)
 
+    @instrument
     async def asearch(self, query) -> list:
         gateway_logger.log("DEBUG", f"Cortex Search Query:{query}")
         headers, url, data = self._prepare_request(query=query)
@@ -190,6 +192,8 @@ class CortexAnalystTool(Tool):
     STAGE: str = ""
     FILE: str = ""
     connection: Union[Session, SnowflakeConnection] = None
+    asearch: ClassVar[Any]
+    _process_analyst_message: ClassVar[Any]
 
     def __init__(
         self,
@@ -226,6 +230,7 @@ class CortexAnalystTool(Tool):
     def __call__(self, prompt) -> Any:
         return self.asearch(query=prompt)
 
+    @instrument
     async def asearch(self, query):
         gateway_logger.log("DEBUG", f"Cortex Analyst Prompt:{query}")
 
@@ -259,6 +264,7 @@ class CortexAnalystTool(Tool):
 
         return url, headers, data
 
+    @instrument
     def _process_analyst_message(self, response):
         if isinstance(response, list) and len(response) > 0:
             first_item = response[0]

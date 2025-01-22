@@ -147,7 +147,7 @@ class Chain(Serializable, Runnable[Dict[str, Any], Dict[str, Any]], ABC):
 
     @property
     def _chain_type(self) -> str:
-        raise NotImplementedError("Saving not supported for this chain type.")
+        return "chain"
 
     @model_validator(mode="before")
     def raise_callback_manager_deprecation(cls, values: Dict) -> Dict:
@@ -320,6 +320,7 @@ class Chain(Serializable, Runnable[Dict[str, Any], Dict[str, Any]], ABC):
             final_outputs[RUN_KEY] = RunInfo(run_id=run_manager.run_id)
         return final_outputs
 
+    @classmethod
     async def acall(
         self,
         inputs: Union[Dict[str, Any], Any],
@@ -419,6 +420,7 @@ class Chain(Serializable, Runnable[Dict[str, Any], Dict[str, Any]], ABC):
         else:
             return {**inputs, **outputs}
 
+    @classmethod
     def prep_inputs(self, inputs: Union[Dict[str, Any], Any]) -> Dict[str, str]:
         """Validate and prepare chain inputs, including adding inputs from memory.
 
