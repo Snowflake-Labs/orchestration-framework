@@ -32,6 +32,10 @@ from agent_gateway.tools.snowflake_prompts import (
 )
 from agent_gateway.tools.utils import CortexEndpointBuilder, post_cortex_request
 
+from trulens.apps.custom import instrument
+from trulens.connectors.snowflake import SnowflakeConnector
+from trulens.core import TruSession
+
 
 class AgentGatewayError(Exception):
     def __init__(self, message):
@@ -47,6 +51,7 @@ class CortexCompleteAgent:
         self.llm = llm
         self.session = session
 
+    @instrument
     async def arun(self, prompt: str) -> str:
         """Run the LLM."""
         headers, url, data = self._prepare_llm_request(prompt=prompt)
@@ -73,6 +78,7 @@ class CortexCompleteAgent:
                 message=f"Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
             )
 
+    @instrument
     def _prepare_llm_request(self, prompt):
         eb = CortexEndpointBuilder(self.session)
         url = eb.get_complete_endpoint()
@@ -81,6 +87,7 @@ class CortexCompleteAgent:
 
         return headers, url, data
 
+    @instrument
     def _parse_snowflake_response(self, data_str):
         try:
             json_objects = data_str.split("\ndata: ")
@@ -128,6 +135,9 @@ class Agent(Chain, extra="allow"):
 
     input_key: str = "input"
     output_key: str = "output"
+    fuse: Any
+    handle_exception: Any
+    acall: Any
 
     def __init__(
         self,
@@ -168,7 +178,8 @@ class Agent(Chain, extra="allow"):
 
         """
         super().__init__(name="gateway", **kwargs)
-
+        tru_connection = SnowflakeConnector(snowpark_session=snowflake_connection)
+        self.tru_session = TruSession(connector=tru_connection)
         if not planner_example_prompt_replan:
             planner_example_prompt_replan = planner_example_prompt
 
@@ -210,6 +221,7 @@ class Agent(Chain, extra="allow"):
     def output_keys(self) -> List[str]:
         return [self.output_key]
 
+    @instrument
     def _parse_fusion_output(self, raw_answer: str) -> str:
         """We expect the fusion output format to be:
         ```
@@ -259,6 +271,7 @@ class Agent(Chain, extra="allow"):
 
         return None
 
+    @instrument
     def _extract_replan_message(self, raw_answer):
         replan_start = "Action: Replan("
         replan_index = raw_answer.find(replan_start)
@@ -307,6 +320,7 @@ class Agent(Chain, extra="allow"):
         formatted_contexts += "Current Plan:\n\n"
         return formatted_contexts
 
+    @instrument
     async def fuse(
         self, input_query: str, agent_scratchpad: str, is_final: bool
     ) -> str:
@@ -334,6 +348,7 @@ class Agent(Chain, extra="allow"):
     def _call(self, inputs):
         return self.__call__(inputs)
 
+    @instrument
     def __call__(self, input: str):
         """Calls Cortex gateway multi-agent system.
 
@@ -355,6 +370,7 @@ class Agent(Chain, extra="allow"):
 
         return result[0]
 
+    @instrument
     def handle_exception(self, loop, context):
         loop.default_exception_handler(context)
         loop.stop()
@@ -386,6 +402,7 @@ class Agent(Chain, extra="allow"):
             finally:
                 loop.close()
 
+    @instrument
     async def acall(
         self,
         input: str,

@@ -29,6 +29,8 @@ from agent_gateway.tools.utils import (
     post_cortex_request,
 )
 
+from trulens.apps.custom import instrument
+
 
 class SnowflakeError(Exception):
     def __init__(self, message):
@@ -79,10 +81,11 @@ class CortexSearchTool(Tool):
         self.service_name = service_name
         gateway_logger.log("INFO", "Cortex Search Tool successfully initialized")
 
+    @instrument
     def __call__(self, question) -> Any:
         return self.asearch(question)
 
-    async def asearch(self, query):
+    async def asearch(self, query) -> list:
         gateway_logger.log("DEBUG", f"Cortex Search Query:{query}")
         headers, url, data = self._prepare_request(query=query)
         response_text = await post_cortex_request(url=url, headers=headers, data=data)
@@ -219,6 +222,7 @@ class CortexAnalystTool(Tool):
 
         gateway_logger.log("INFO", "Cortex Analyst Tool successfully initialized")
 
+    @instrument
     def __call__(self, prompt) -> Any:
         return self.asearch(query=prompt)
 
