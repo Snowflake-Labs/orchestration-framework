@@ -4,7 +4,7 @@ import asyncio
 import inspect
 import json
 import re
-from typing import Any, Dict, List, Type, Union
+from typing import Any, Dict, List, Type, Union, ClassVar
 
 from pydantic import BaseModel
 from snowflake.connector.connection import SnowflakeConnection
@@ -37,6 +37,7 @@ class CortexSearchTool(Tool):
     retrieval_columns: List[str] = []
     service_name: str = ""
     connection: Union[Session, SnowflakeConnection] = None
+    asearch: ClassVar[Any]
 
     def __init__(
         self,
@@ -67,6 +68,7 @@ class CortexSearchTool(Tool):
     def __call__(self, question) -> Any:
         return self.asearch(question)
 
+    @instrument
     async def asearch(self, query) -> list:
         gateway_logger.log("DEBUG", f"Cortex Search Query:{query}")
         headers, url, data = self._prepare_request(query=query)
@@ -224,6 +226,8 @@ class CortexAnalystTool(Tool):
     STAGE: str = ""
     FILE: str = ""
     connection: Union[Session, SnowflakeConnection] = None
+    asearch: ClassVar[Any]
+    _process_analyst_message: ClassVar[Any]
 
     def __init__(
         self,
@@ -251,8 +255,9 @@ class CortexAnalystTool(Tool):
     def __call__(self, prompt: str) -> Any:
         return self.asearch(query=prompt)
 
-    async def asearch(self, query: str) -> Dict[str, Any]:
-        gateway_logger.log("DEBUG", f"Cortex Analyst Prompt: {query}")
+    @instrument
+    async def asearch(self, query):
+        gateway_logger.log("DEBUG", f"Cortex Analyst Prompt:{query}")
 
         url, headers, data = self._prepare_analyst_request(prompt=query)
 
@@ -290,10 +295,10 @@ class CortexAnalystTool(Tool):
 
         return url, headers, data
 
-    def _process_analyst_message(
-        self, response: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        if response and isinstance(response, list):
+    @instrument
+    def _process_analyst_message(self, response)-> Dict[str, Any]:
+        if isinstance(response, List[Dict[str, Any]]) and len(response) > 0:
+                   
             gateway_logger.log("DEBUG", response)
             sql_exists = any(item.get("type") == "sql" for item in response)
 

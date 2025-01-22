@@ -37,9 +37,11 @@ from agent_gateway.tools.utils import (
     _determine_runtime,
 )
 
-from trulens.apps.custom import instrument
+from trulens.apps.custom import instrument, TruCustomApp
 from trulens.connectors.snowflake import SnowflakeConnector
 from trulens.core import TruSession
+
+from typing import ClassVar
 
 
 class AgentGatewayError(Exception):
@@ -145,9 +147,9 @@ class Agent:
 
     input_key: str = "input"
     output_key: str = "output"
-    fuse: Any
-    handle_exception: Any
-    acall: Any
+    fuse: ClassVar[Any]
+    acall: ClassVar[Any]
+    handle_exception: ClassVar[Any]
 
     def __init__(
         self,
@@ -231,7 +233,6 @@ class Agent:
     def output_keys(self) -> List[str]:
         return [self.output_key]
 
-    @instrument
     def _parse_fusion_output(self, raw_answer: str) -> str:
         """We expect the fusion output format to be:
         ```
@@ -281,7 +282,6 @@ class Agent:
         match = pattern.search(raw_answer)
         return match.group(1).strip() if match else None
 
-    @instrument
     def _extract_replan_message(self, raw_answer):
         replan_start = "Action: Replan("
         replan_index = raw_answer.find(replan_start)
@@ -433,7 +433,7 @@ class Agent:
         return self.__call__(inputs)
 
     @instrument
-    def __call__(self, input: str):
+    def __call__(self, input: str) -> Any:
         """Calls Cortex gateway multi-agent system.
 
         Params:
