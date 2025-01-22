@@ -31,6 +31,11 @@ from agent_gateway.tools.snowflake_prompts import (
     PLANNER_PROMPT as SNOWFLAKE_PLANNER_PROMPT,
 )
 from agent_gateway.tools.utils import CortexEndpointBuilder, post_cortex_request
+from agent_gateway.tools.snowflake_tools import (
+    CortexAnalystTool,
+    PythonTool,
+    CortexSearchTool,
+)
 
 from trulens.apps.custom import instrument, TruCustomApp
 from trulens.connectors.snowflake import SnowflakeConnector
@@ -144,7 +149,9 @@ class Agent(Chain, extra="allow"):
     def __init__(
         self,
         snowflake_connection: Union[Session, SnowflakeConnection],
-        tools: list[Union[Tool, StructuredTool]],
+        tools: list[
+            Union[Tool, StructuredTool, CortexAnalystTool, CortexSearchTool, PythonTool]
+        ],
         max_retries: int = 2,
         planner_llm: str = "mistral-large2",
         agent_llm: str = "mistral-large2",
