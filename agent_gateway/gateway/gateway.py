@@ -34,7 +34,13 @@ from agent_gateway.tools.snowflake_prompts import (
 from agent_gateway.tools.utils import (
     CortexEndpointBuilder,
     post_cortex_request,
-    _determine_runtime,
+    _determine_runtime
+)
+
+from agent_gateway.tools.snowflake_tools import (
+    CortexAnalystTool,
+    PythonTool,
+    CortexSearchTool,
 )
 
 from trulens.apps.custom import instrument, TruCustomApp
@@ -154,7 +160,9 @@ class Agent:
     def __init__(
         self,
         snowflake_connection: Union[Session, SnowflakeConnection],
-        tools: list[Union[Tool, StructuredTool]],
+        tools: list[
+            Union[Tool, StructuredTool, CortexAnalystTool, CortexSearchTool, PythonTool]
+        ],
         max_retries: int = 2,
         planner_llm: str = "mistral-large2",
         agent_llm: str = "mistral-large2",
