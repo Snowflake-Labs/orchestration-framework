@@ -12,6 +12,8 @@ dependencies = [
     "asyncio>=3.4.3",
     "aiohttp>=3.10.9,<4.0",
     "pydantic>=2.9.2,<3.0",
+    "trulens>=1.3.2",
+    "trulens-connectors-snowflake",
 ]
 
 [project.optional-dependencies]
