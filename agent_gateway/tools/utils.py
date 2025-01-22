@@ -24,6 +24,8 @@ import pkg_resources
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
 
+from trulens.apps.custom import instrument
+
 
 def _get_connection(
     connection: Union[Session, SnowflakeConnection],
@@ -103,6 +105,7 @@ class CortexEndpointBuilder:
         return self.BASE_HEADERS | {"Accept": "application/json"}
 
 
+@instrument
 async def post_cortex_request(url: str, headers: Headers, data: dict):
     """Submit cortex request depending on runtime"""
 
