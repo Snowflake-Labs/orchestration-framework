@@ -19,15 +19,8 @@ logging_enabled = os.getenv("LOGGING_ENABLED")
 if logging_enabled is None:
     LOGGING_ENABLED = True
 
-logging_level = os.getenv("LOGGING_LEVEL")
-if logging_level is None:
-    logging_level = logging.INFO
-elif logging_level == "INFO":
-    logging_level = logging.INFO
-elif logging_level == "DEBUG":
-    logging_level = logging.DEBUG
-else:
-    logging_level = logging.DEBUG
+logging_level = os.getenv("LOGGING_LEVEL", "INFO").upper()
+logging_level = getattr(logging, logging_level, logging.DEBUG)
 
 logging.basicConfig(level=logging.WARNING)
 
