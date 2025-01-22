@@ -38,6 +38,10 @@ from agent_gateway.tools.snowflake_tools import (
 )
 
 from trulens.apps.custom import instrument, TruCustomApp
+<<<<<<< HEAD
+=======
+from trulens.connectors.snowflake import SnowflakeConnector
+>>>>>>> eb725e8 (adding tool instrumentation)
 from trulens.core import TruSession
 
 from typing import ClassVar
@@ -146,8 +150,11 @@ class Agent:
     fuse: ClassVar[Any]
     acall: ClassVar[Any]
     handle_exception: ClassVar[Any]
+<<<<<<< HEAD
     run_async: ClassVar[Any]
     search_tool: Optional[CortexSearchTool] = None
+=======
+>>>>>>> eb725e8 (adding tool instrumentation)
 
     def __init__(
         self,
