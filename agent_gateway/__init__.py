@@ -1,3 +1,3 @@
-from agent_gateway.gateway.gateway import Agent
+from agent_gateway.gateway.gateway import Agent, TruAgent
 
-__all__ = ["Agent"]
+__all__ = ["Agent", "TruAgent"]
