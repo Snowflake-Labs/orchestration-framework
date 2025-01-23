@@ -468,6 +468,6 @@ class Agent(Chain, extra="allow"):
                 self.memory_context.append({"Question:": input, "Answer": answer})
 
         if ~is_replan and is_final_iter:
-            return f"Unable to respond to your request with the available tools. {answer} Consider rephrasing your request or providing additional tools."
+            return f"{answer} Unable to respond to your request with the available tools.  Consider rephrasing your request or providing additional tools."
         else:
             return answer
