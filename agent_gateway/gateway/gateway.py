@@ -467,4 +467,7 @@ class Agent(Chain, extra="allow"):
             if len(self.memory_context) <= max_memory:
                 self.memory_context.append({"Question:": input, "Answer": answer})
 
-        return answer
+        if ~is_replan and is_final_iter:
+            return f"Unable to respond to your request with the available tools. {answer} Consider rephrasing your request or providing additional tools."
+        else:
+            return answer
