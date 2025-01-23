@@ -145,6 +145,7 @@ class Agent(Chain, extra="allow"):
     fuse: ClassVar[Any]
     acall: ClassVar[Any]
     handle_exception: ClassVar[Any]
+    run_async: ClassVar[Any]
 
     def __init__(
         self,
@@ -382,6 +383,7 @@ class Agent(Chain, extra="allow"):
         loop.default_exception_handler(context)
         loop.stop()
 
+    @instrument
     def run_async(self, input, result, error):
         loop = asyncio.new_event_loop()
         loop.set_exception_handler(self.handle_exception)
