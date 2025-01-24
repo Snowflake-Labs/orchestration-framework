@@ -55,9 +55,11 @@ class CortexSearchTool(Tool):
             service_topic=service_topic,
             data_source_description=data_description,
         )
-        super().__init__(
-            name=tool_name, description=tool_description, func=self.asearch
-        )
+
+        def search_call(query: str):
+            return self.asearch(query)
+
+        super().__init__(name=tool_name, description=tool_description, func=search_call)
         self.connection = _get_connection(snowflake_connection)
         self.k = k
         self.retrieval_columns = retrieval_columns
@@ -245,7 +247,10 @@ class CortexAnalystTool(Tool):
             data_source_description=data_description,
         )
 
-        super().__init__(name=tname, func=self.asearch, description=tool_description)
+        def analyst_call(query: str):
+            return self.asearch(query)
+
+        super().__init__(name=tname, func=analyst_call, description=tool_description)
         self.connection = _get_connection(snowflake_connection)
         self.FILE = semantic_model
         self.STAGE = stage
