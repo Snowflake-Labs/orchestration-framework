@@ -145,6 +145,7 @@ class Agent(Chain, extra="allow"):
     acall: ClassVar[Any]
     handle_exception: ClassVar[Any]
     run_async: ClassVar[Any]
+    search_tool: Optional[CortexSearchTool] = None
 
     def __init__(
         self,
