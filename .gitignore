@@ -337,3 +337,6 @@ docs/docs_skeleton/node_modules
 docs/docs_skeleton/yarn.lock
 
 *.ipynb
+
+# TruLens local database
+default.sqlite
