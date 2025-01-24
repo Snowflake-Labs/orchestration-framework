@@ -38,7 +38,6 @@ from agent_gateway.tools.snowflake_tools import (
 )
 
 from trulens.apps.custom import instrument, TruCustomApp
-from trulens.connectors.snowflake import SnowflakeConnector
 from trulens.core import TruSession
 
 from typing import ClassVar
@@ -188,8 +187,29 @@ class Agent(Chain, extra="allow"):
 
         """
         super().__init__(name="gateway", **kwargs)
-        tru_connection = SnowflakeConnector(snowpark_session=snowflake_connection)
-        self.tru_session = TruSession(connector=tru_connection)
+
+        # hack to add tools to observability
+        def _unused_tool():
+            pass
+
+        self._unused_search_tool = CortexSearchTool(
+            service_name="",
+            service_topic="",
+            data_description="",
+            retrieval_columns="",
+            snowflake_connection=snowflake_connection,
+        )
+        self._unused_analyst_tool = CortexAnalystTool(
+            semantic_model="",
+            stage="",
+            service_topic="",
+            data_description="",
+            snowflake_connection=snowflake_connection,
+        )
+        self._unused_python_tool = PythonTool(
+            python_func=_unused_tool, tool_description="", output_description=""
+        )
+
         if not planner_example_prompt_replan:
             planner_example_prompt_replan = planner_example_prompt
 
@@ -497,13 +517,14 @@ class Agent(Chain, extra="allow"):
 
 
 class TruAgent:
-    def __init__(self, app_name, app_version, **kwargs):
+    def __init__(self, app_name, app_version, trulens_snowflake_connection, **kwargs):
         self.agent = Agent(**kwargs)
         self.tru_agent = TruCustomApp(
             self.agent,
             app_name=app_name,
             app_version=app_version,
         )
+        self.tru_session = TruSession(connector=trulens_snowflake_connection)
 
     def __call__(self, input):
         with self.tru_agent:
