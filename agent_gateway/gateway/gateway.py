@@ -523,12 +523,12 @@ class Agent(Chain, extra="allow"):
 class TruAgent:
     def __init__(self, app_name, app_version, trulens_snowflake_connection, **kwargs):
         self.agent = Agent(**kwargs)
+        self.tru_session = TruSession(connector=trulens_snowflake_connection)
         self.tru_agent = TruCustomApp(
             self.agent,
             app_name=app_name,
             app_version=app_version,
         )
-        self.tru_session = TruSession(connector=trulens_snowflake_connection)
 
     def __call__(self, input):
         with self.tru_agent:
