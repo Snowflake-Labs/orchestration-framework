@@ -13,6 +13,7 @@
 import logging
 import os
 import pprint
+import sys
 
 # Global variable to toggle logging
 logging_enabled = os.getenv("LOGGING_ENABLED")
@@ -41,13 +42,17 @@ class Logger:
         if not self.logger.handlers:
             self.file_handler = logging.FileHandler("logs.log", mode="a")
             self.file_handler.setLevel(logging_level)  # Log all levels
+            self.stream_handler = logging.StreamHandler(sys.stdout)
+            self.stream_handler.setLevel(logging_level)
 
             formatter = logging.Formatter(
                 "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
             )
             self.file_handler.setFormatter(formatter)
+            self.stream_handler.setFormatter(formatter)
 
             self.logger.addHandler(self.file_handler)
+            self.logger.addHandler(self.stream_handler)
 
     def log(self, level, *args, block=False, **kwargs):
         if isinstance(level, str):
