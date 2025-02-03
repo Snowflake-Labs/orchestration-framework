@@ -64,10 +64,10 @@ def generate_gateway_prompt(
 
     # Tools
     for i, tool in enumerate(tools):
-        prefix += f"{i+1}. {tool.description}\n"
+        prefix += f"{i + 1}. {tool.description}\n"
 
     # FUSE operation
-    prefix += f"{i+2}. {FUSE_DESCRIPTION}\n\n"
+    prefix += f"{i + 2}. {FUSE_DESCRIPTION}\n\n"
 
     # Guidelines
     prefix += (

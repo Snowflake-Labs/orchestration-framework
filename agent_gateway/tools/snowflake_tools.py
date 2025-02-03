@@ -293,7 +293,7 @@ class CortexAnalystTool(Tool):
         self, name, service_topic, data_source_description
     ):
         base_analyst_description = f"""{name}(prompt: str) -> str:\n
-                  - takes a user's question about {service_topic } and queries {data_source_description}\n
+                  - takes a user's question about {service_topic} and queries {data_source_description}\n
                   - Returns the relevant metrics about {service_topic}\n"""
 
         return base_analyst_description
