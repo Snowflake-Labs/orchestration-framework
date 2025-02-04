@@ -193,23 +193,32 @@ class Agent(Chain, extra="allow"):
         def _unused_tool():
             pass
 
-        self._unused_search_tool = CortexSearchTool(
+        self._search_tool_placeholder = CortexSearchTool(
             service_name="",
             service_topic="",
             data_description="",
             retrieval_columns="",
             snowflake_connection=snowflake_connection,
         )
-        self._unused_analyst_tool = CortexAnalystTool(
+        self._analyst_tool_placeholder = CortexAnalystTool(
             semantic_model="",
             stage="",
             service_topic="",
             data_description="",
             snowflake_connection=snowflake_connection,
         )
-        self._unused_python_tool = PythonTool(
+        self._python_tool_placeholder = PythonTool(
             python_func=_unused_tool, tool_description="", output_description=""
         )
+
+        self._planner_placheholder = Planner(
+            session="test",
+            llm="deepseek-r1",
+            example_prompt="blah",
+            example_prompt_replan="blah",
+            tools=[self._analyst_tool_placeholder],
+            stop=["stop"],
+        ).plan(inputs={}, is_replan=False)
 
         if not planner_example_prompt_replan:
             planner_example_prompt_replan = planner_example_prompt
