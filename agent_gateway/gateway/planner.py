@@ -38,6 +38,8 @@ from agent_gateway.tools.utils import (
     _determine_runtime,
 )
 
+from trulens.apps.custom import instrument
+
 
 class AgentGatewayError(Exception):
     def __init__(self, message):
@@ -267,6 +269,7 @@ class Planner:
         gateway_logger.log("DEBUG", f"LLM Generated Plan:\n{completion}")
         return completion
 
+    @instrument
     async def plan(self, inputs: dict, is_replan: bool, **kwargs: Any):
         llm_response = await self.run_llm(
             inputs=inputs,
