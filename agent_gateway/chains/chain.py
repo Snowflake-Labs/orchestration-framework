@@ -321,7 +321,6 @@ class Chain(Serializable, Runnable[Dict[str, Any], Dict[str, Any]], ABC):
             final_outputs[RUN_KEY] = RunInfo(run_id=run_manager.run_id)
         return final_outputs
 
-    @classmethod
     async def acall(
         self,
         inputs: Union[Dict[str, Any], Any],

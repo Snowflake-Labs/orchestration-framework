@@ -212,16 +212,13 @@ class Agent(Chain, extra="allow"):
         )
 
         self._planner_placheholder = Planner(
-            session="test",
-            llm="deepseek-r1",
-            example_prompt="blah",
-            example_prompt_replan="blah",
+            session="",
+            llm="",
+            example_prompt="",
+            example_prompt_replan="",
             tools=[self._analyst_tool_placeholder],
             stop=["stop"],
         ).plan(inputs={}, is_replan=False)
-
-        if not planner_example_prompt_replan:
-            planner_example_prompt_replan = planner_example_prompt
 
         summarizer = SummarizationAgent(
             session=snowflake_connection, agent_llm=agent_llm
@@ -480,9 +477,6 @@ class Agent(Chain, extra="allow"):
                 tasks = await self.planner.plan(
                     inputs=inputs,
                     is_replan=not is_first_iter,
-                    callbacks=(
-                        [self.planner_callback] if self.planner_callback else None
-                    ),
                 )
 
                 task_processor.set_tasks(tasks)
