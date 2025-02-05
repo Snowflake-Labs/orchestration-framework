@@ -102,8 +102,9 @@ def generate_gateway_prompt(
         )
 
     # Examples
-    prefix += "Here are some examples:\n\n"
-    prefix += example_prompt
+    if example_prompt:
+        prefix += "Here are some examples:\n\n"
+        prefix += example_prompt
 
     return prefix
 
@@ -270,12 +271,16 @@ class Planner:
         return completion
 
     @instrument
-    async def plan(self, inputs: dict, is_replan: bool, **kwargs: Any):
+    async def plan(
+        self, inputs: dict, is_replan: bool, **kwargs: Any
+    ) -> dict[str, Task]:
         llm_response = await self.run_llm(
             inputs=inputs,
             is_replan=is_replan,
         )
         llm_response = llm_response + "\n"
+
+        # This now returns a dict[str, Task]
         plan_response = self.output_parser.parse(llm_response)
         return plan_response
 

@@ -40,17 +40,21 @@ def _default_stringify_rule_for_arguments(args):
 
 
 def _replace_arg_mask_with_real_value(
-    args, dependencies: List[int], tasks: Dict[str, Task]
+    args, dependencies: List[str], tasks: Dict[str, Task]
 ):
+    """
+    Recursively replace placeholders $1, $2, etc. with the 'observation' of
+    the corresponding tasks in 'tasks', where tasks keys/dependencies are str.
+    """
     if isinstance(args, (list, tuple)):
         return type(args)(
             _replace_arg_mask_with_real_value(item, dependencies, tasks)
             for item in args
         )
     elif isinstance(args, str):
-        for dependency in sorted(dependencies, reverse=True):
-            # consider both ${1} and $1 (in case planner makes a mistake)
-            for arg_mask in ["${" + str(dependency) + "}", "$" + str(dependency)]:
+        # Sort dependencies by integer value descending, so $12 is replaced before $1
+        for dependency in sorted(dependencies, key=int, reverse=True):
+            for arg_mask in [f"${{{dependency}}}", f"${dependency}"]:
                 if arg_mask in args:
                     if tasks[dependency].observation is not None:
                         args = args.replace(
@@ -63,11 +67,11 @@ def _replace_arg_mask_with_real_value(
 
 @dataclass
 class Task:
-    idx: int
+    idx: str  # Now a string
     name: str
     tool: Callable
     args: Collection[Any]
-    dependencies: Collection[int]
+    dependencies: Collection[str]  # list of string IDs
     stringify_rule: Optional[Callable] = None
     thought: Optional[str] = None
     observation: Optional[str] = None
@@ -88,23 +92,34 @@ class Task:
     def get_thought_action_observation(
         self, include_action=True, include_thought=True, include_action_idx=False
     ) -> str:
+        """
+        e.g.
+        Thought: ...
+        1. search('some query')
+        Observation: ...
+        """
         thought_action_observation = ""
         if self.thought and include_thought:
             thought_action_observation = f"Thought: {self.thought}\n"
+
         if include_action:
-            idx = f"{self.idx}. " if include_action_idx else ""
+            # If we want to show something like "1. search('some query')"
+            idx_prefix = f"{self.idx}. " if include_action_idx else ""
             if self.stringify_rule:
-                # If the user has specified a custom stringify rule for the
-                # function argument, use it
-                thought_action_observation += f"{idx}{self.stringify_rule(self.args)}\n"
-            else:
-                # Otherwise, we have a default stringify rule
+                # If the user has specified a custom stringify rule
                 thought_action_observation += (
-                    f"{idx}{self.name}"
+                    f"{idx_prefix}{self.stringify_rule(self.args)}\n"
+                )
+            else:
+                # Use the default rule
+                thought_action_observation += (
+                    f"{idx_prefix}{self.name}"
                     f"{_default_stringify_rule_for_arguments(self.args)}\n"
                 )
+
         if self.observation is not None:
             thought_action_observation += f"Observation: {self.observation}\n"
+
         return thought_action_observation
 
 
@@ -118,7 +133,8 @@ class TaskProcessor:
         self.tasks_done = {}
         self.remaining_tasks = set()
 
-    def set_tasks(self, tasks: dict[str, Any]):
+    def set_tasks(self, tasks: dict[str, Task]):
+        # tasks is already keyed by string
         self.tasks.update(tasks)
         self.tasks_done.update({task_idx: asyncio.Event() for task_idx in tasks})
         self.remaining_tasks.update(set(tasks.keys()))
@@ -131,17 +147,20 @@ class TaskProcessor:
             task_name
             for task_name in self.remaining_tasks
             if all(
-                self.tasks_done[d].is_set() for d in self.tasks[task_name].dependencies
+                self.tasks_done[dep].is_set()
+                for dep in self.tasks[task_name].dependencies
             )
         ]
 
     def _preprocess_args(self, task: Task):
-        """Replace dependency placeholders, i.e. ${1}, in task.args with the actual observation."""
-        args = []
+        # Replace placeholders in each arg with the actual observation from dependencies
+        new_args = []
         for arg in task.args:
-            arg = _replace_arg_mask_with_real_value(arg, task.dependencies, self.tasks)
-            args.append(arg)
-        task.args = args
+            arg = _replace_arg_mask_with_real_value(
+                arg, list(task.dependencies), self.tasks
+            )
+            new_args.append(arg)
+        task.args = new_args
 
     async def _run_task(self, task: Task):
         self._preprocess_args(task)
@@ -157,9 +176,7 @@ class TaskProcessor:
 
     async def schedule(self):
         """Run all tasks in self.tasks in parallel, respecting dependencies."""
-        # run until all tasks are done
         while not self._all_tasks_done():
-            # Find tasks with no dependencies or with all dependencies met
             executable_tasks = self._get_all_executable_tasks()
 
             for task_name in executable_tasks:
@@ -170,21 +187,16 @@ class TaskProcessor:
 
     async def aschedule(self, task_queue: asyncio.Queue[Optional[Task]], func):
         """Asynchronously listen to task_queue and schedule tasks as they arrive."""
-        no_more_tasks = False  # Flag to check if all tasks are received
+        no_more_tasks = False
 
         while True:
             if not no_more_tasks:
-                # Wait for a new task to be added to the queue
                 task = await task_queue.get()
-
-                # Check for sentinel value indicating end of tasks
                 if task is None:
                     no_more_tasks = True
                 else:
-                    # Parse and set the new tasks
                     self.set_tasks({task.idx: task})
 
-            # Schedule and run executable tasks
             executable_tasks = self._get_all_executable_tasks()
 
             if executable_tasks:
@@ -192,8 +204,6 @@ class TaskProcessor:
                     asyncio.create_task(self._run_task(self.tasks[task_name]))
                     self.remaining_tasks.remove(task_name)
             elif no_more_tasks and self._all_tasks_done():
-                # Exit the loop if no more tasks are expected and all tasks are done
                 break
             else:
-                # If no executable tasks are found, sleep for the SCHEDULING_INTERVAL
                 await asyncio.sleep(SCHEDULING_INTERVAL)
