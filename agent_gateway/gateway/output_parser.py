@@ -51,7 +51,6 @@ class GatewayPlanParser:
             # idx = 1, function = "search", args = "Ronaldo number of kids"
             # thought will be the preceding thought, if any, otherwise an empty string
             thought, idx, tool_name, args, _ = match
-            # idx = int(idx)
 
             task = instantiate_task(
                 tools=self.tools,
