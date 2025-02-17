@@ -16,9 +16,7 @@ import pprint
 import sys
 
 # Global variable to toggle logging
-logging_enabled = os.getenv("LOGGING_ENABLED")
-if logging_enabled is None:
-    LOGGING_ENABLED = True
+LOGGING_ENABLED = os.getenv("LOGGING_ENABLED", "True").lower() in ("true", "1", "t")
 
 logging_level = os.getenv("LOGGING_LEVEL", "INFO").upper()
 logging_level = getattr(logging, logging_level, logging.DEBUG)
@@ -38,6 +36,7 @@ class Logger:
     def init(self):
         self.logger = logging.getLogger("AgentGatewayLogger")
         self.logger.setLevel(logging_level)
+        self.logger.propagate = False
 
         if not self.logger.handlers:
             self.file_handler = logging.FileHandler("logs.log", mode="a")
