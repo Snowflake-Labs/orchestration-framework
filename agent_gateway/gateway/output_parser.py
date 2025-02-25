@@ -9,6 +9,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import ast
 import re
@@ -71,6 +72,7 @@ class GatewayPlanParser:
 ### Helper functions
 def _initialize_task_list(matches):
     new_matches = []
+    new_match_idx = []
     current_index = 1
     index_mapping = {}
 
@@ -82,12 +84,13 @@ def _initialize_task_list(matches):
         if "cortexsearch" in task[2] and i != len(matches) - 2:
             new_step = _create_summarization_step(task[3], current_index)
             new_matches.append(new_step)
+            new_match_idx.append(new_step[1])
             current_index += 1
             index_mapping[task[1]] = str(current_index)
 
         current_index += 1
 
-    return new_matches, index_mapping
+    return new_matches, index_mapping, new_match_idx
 
 
 def _create_summarization_step(context, index):
@@ -101,20 +104,24 @@ def _create_summarization_step(context, index):
     )
 
 
-def _update_task_references(task, index_mapping):
-    updated_string = task[3]
-    updated_string = re.sub(
-        r"\$(\d+)",
-        lambda m: f"${index_mapping.get(m.group(1), m.group(1))}",
-        updated_string,
-    )
-    return (task[0], task[1], task[2], updated_string, "")
+def _update_task_references(task, index_mapping, new_match_ids):
+    if task[1] in new_match_ids:
+        return task
+    else:
+        updated_string = task[3]
+        updated_string = re.sub(
+            r"\$(\d+)",
+            lambda m: f"${index_mapping.get(m.group(1), m.group(1))}",
+            updated_string,
+        )
+        return (task[0], task[1], task[2], updated_string, "")
 
 
 def _update_task_list_with_summarization(matches):
-    new_matches, index_mapping = _initialize_task_list(matches)
+    new_matches, index_mapping, new_match_ids = _initialize_task_list(matches)
     updated_final_matches = [
-        _update_task_references(task, index_mapping) for task in new_matches
+        _update_task_references(task, index_mapping, new_match_ids)
+        for task in new_matches
     ]
     return updated_final_matches
 
@@ -188,7 +195,7 @@ def instantiate_task(
     args = _parse_llm_compiler_action_args(args)
     if tool_name == "fuse":
         # fuse does not have a tool
-        tool_func = lambda x: None
+        tool_func = lambda x: None  # noqa: E731
         stringify_rule = None
     else:
         tool = _find_tool(tool_name, tools)

@@ -16,7 +16,7 @@ import json
 import pytest
 
 from agent_gateway import Agent
-from agent_gateway.tools import CortexSearchTool, CortexAnalystTool, PythonTool
+from agent_gateway.tools import CortexAnalystTool, CortexSearchTool, PythonTool
 
 
 @pytest.mark.parametrize(
@@ -139,6 +139,59 @@ def test_gateway_agent(session, question, answer_contains):
     news_search = PythonTool(**python_config)
     agent = Agent(
         snowflake_connection=session, tools=[annual_reports, sp500, news_search]
+    )
+    response = agent(question)
+    assert answer_contains in response
+
+
+@pytest.mark.parametrize(
+    "question, answer_contains",
+    [
+        pytest.param(
+            "What is the market cap of Apple?",
+            "$3,019,131,060,224",
+            id="market_cap",
+        ),
+        pytest.param(
+            "When is Apple releasing a new chip?",
+            "May 7",
+            id="product_revenue",
+        ),
+    ],
+)
+def test_gateway_agent_without_memory(session, question, answer_contains):
+    search_config = {
+        "service_name": "SEC_SEARCH_SERVICE",
+        "service_topic": "Snowflake's business,product offerings,and performance",
+        "data_description": "Snowflake annual reports",
+        "retrieval_columns": ["CHUNK"],
+        "snowflake_connection": session,
+    }
+    analyst_config = {
+        "semantic_model": "sp500_semantic_model.yaml",
+        "stage": "ANALYST",
+        "service_topic": "S&P500 company and stock metrics",
+        "data_description": "a table with stock and financial metrics about S&P500 companies ",
+        "snowflake_connection": session,
+    }
+
+    def get_news(_) -> dict:
+        with open("tests/data/response.json") as f:
+            d = json.load(f)
+        return d
+
+    python_config = {
+        "tool_description": "searches for relevant news based on user query",
+        "output_description": "relevant articles",
+        "python_func": get_news,
+    }
+    annual_reports = CortexSearchTool(**search_config)
+    sp500 = CortexAnalystTool(**analyst_config)
+    news_search = PythonTool(**python_config)
+    agent = Agent(
+        snowflake_connection=session,
+        tools=[annual_reports, sp500, news_search],
+        memory=False,
     )
     response = agent(question)
     assert answer_contains in response

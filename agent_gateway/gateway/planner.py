@@ -10,11 +10,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 """Cortex gateway Planner"""
+
+from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import re
 from collections.abc import Sequence
 from typing import Any, Optional, Union
@@ -39,6 +41,7 @@ from agent_gateway.tools.utils import CortexEndpointBuilder, post_cortex_request
 class AgentGatewayError(Exception):
     def __init__(self, message):
         self.message = message
+        gateway_logger.log("ERROR", message)
         super().__init__(self.message)
 
 
@@ -64,10 +67,10 @@ def generate_gateway_prompt(
 
     # Tools
     for i, tool in enumerate(tools):
-        prefix += f"{i+1}. {tool.description}\n"
+        prefix += f"{i + 1}. {tool.description}\n"
 
     # FUSE operation
-    prefix += f"{i+2}. {FUSE_DESCRIPTION}\n\n"
+    prefix += f"{i + 2}. {FUSE_DESCRIPTION}\n\n"
 
     # Guidelines
     prefix += (
@@ -208,7 +211,7 @@ class Planner:
     def __init__(
         self,
         session: object,
-        llm: str,  # point to dspy
+        llm: str,
         example_prompt: str,
         example_prompt_replan: str,
         tools: Sequence[Union[Tool, StructuredTool]],
@@ -259,7 +262,7 @@ class Planner:
         try:
             snowflake_response = self._parse_snowflake_response(response_text)
             return snowflake_response
-        except:
+        except Exception:
             raise AgentGatewayError(
                 message=f"Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
             )
@@ -296,7 +299,7 @@ class Planner:
             if "content" in choices["delta"].keys():
                 completion += choices["delta"]["content"]
 
-        gateway_logger.log(logging.DEBUG, f"Planner response:{completion}")
+        gateway_logger.log("DEBUG", f"LLM Generated Plan:\n{completion}")
         return completion
 
     async def plan(self, inputs: dict, is_replan: bool, **kwargs: Any):

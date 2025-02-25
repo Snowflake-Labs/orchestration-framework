@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 END_OF_PLAN = "<END_OF_PLAN>"
 FUSION_FINISH = "Finish"
 FUSION_REPLAN = "Replan"

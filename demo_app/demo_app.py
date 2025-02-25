@@ -13,6 +13,7 @@
 import asyncio
 import io
 import json
+import logging
 import os
 import queue
 import re
@@ -114,8 +115,6 @@ def create_prompt(prompt_key: str):
 
 source_list = []
 
-import logging
-
 
 class StreamlitLogHandler(logging.Handler):
     def __init__(self):
@@ -179,7 +178,7 @@ def run_acall(prompt, message_queue, analyst):
             message_queue.put(line)
 
     # Ensure the final output is correctly added to the queue
-    message_queue.put({"output": response["output"]})
+    message_queue.put({"output": response})
 
 
 def process_message(prompt_id: str):
@@ -194,7 +193,7 @@ def process_message(prompt_id: str):
         asyncio.set_event_loop(loop)
         response = loop.run_until_complete(analyst.acall(prompt))
         loop.close()
-        message_queue.put({"output": response["output"]})
+        message_queue.put({"output": response})
 
     thread = threading.Thread(target=run_analysis)
     thread.start()

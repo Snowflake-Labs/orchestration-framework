@@ -190,7 +190,7 @@ tool_result = await my_cortex_search_tool("This is a sample cortex search questi
 
 #### How does it work?
 
-- This framework utilizes a dedicated planner LLM to generate a sequence of tool calls that can be executed in parallel. While the orchestration is done on the client-side, Snowflake compute is leveraged for plan generation and tooling execution. We leverage the LLM Compiler architecture from Berekeley AI Research Lab. Kim, S., Moon, S., Tabrizi, R., Lee, N., Mahoney, M. W., Keutzer, K., and Gholami, A. An LLM Compiler for Parallel Function Calling, 2024.
+- This framework utilizes a dedicated planner LLM to generate a sequence of tool calls that can be executed in parallel. While the orchestration is done on the client-side, Snowflake compute is leveraged for plan generation and tooling execution. We leverage the LLM Compiler architecture from Berkeley AI Research Lab. Kim, S., Moon, S., Tabrizi, R., Lee, N., Mahoney, M. W., Keutzer, K., and Gholami, A. An LLM Compiler for Parallel Function Calling, 2024.
 
 # Bug Reports, Feedback, or Other Questions
 

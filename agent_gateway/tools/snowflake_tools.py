@@ -9,16 +9,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import asyncio
 import inspect
 import json
-import logging
 import re
 from typing import Any, Type, Union
 
-import dspy
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
@@ -35,6 +34,7 @@ from agent_gateway.tools.utils import (
 class SnowflakeError(Exception):
     def __init__(self, message):
         self.message = message
+        gateway_logger.log("ERROR", message)
         super().__init__(self.message)
 
 
@@ -45,8 +45,6 @@ class CortexSearchTool(Tool):
     retrieval_columns: list = []
     service_name: str = ""
     connection: Union[Session, SnowflakeConnection] = None
-    auto_filter: bool = False
-    filter_generator: object = None
 
     def __init__(
         self,
@@ -55,7 +53,6 @@ class CortexSearchTool(Tool):
         data_description,
         retrieval_columns,
         snowflake_connection,
-        auto_filter=False,
         k=5,
     ):
         """Parameters
@@ -66,10 +63,9 @@ class CortexSearchTool(Tool):
         data_description (str): description of the source data that has been indexed.
         retrieval_columns (list): list of columns to include in Cortex Search results.
         snowflake_connection (object): snowpark connection object
-        auto_filter (bool): automatically generate filter based on user's query or not.
         k: number of records to include in results
         """
-        tool_name = service_name.lower() + "_cortexsearch"
+        tool_name = f"{service_name.lower()}_cortexsearch"
         tool_description = self._prepare_search_description(
             name=tool_name,
             service_topic=service_topic,
@@ -78,30 +74,24 @@ class CortexSearchTool(Tool):
         super().__init__(
             name=tool_name, description=tool_description, func=self.asearch
         )
-        self.auto_filter = auto_filter
         self.connection = _get_connection(snowflake_connection)
-        if self.auto_filter:
-            self.filter_generator = SmartSearch()
-            lm = dspy.Snowflake(session=self.session, model="mixtral-8x7b")
-            dspy.settings.configure(lm=lm)
-
         self.k = k
         self.retrieval_columns = retrieval_columns
         self.service_name = service_name
-        gateway_logger.log(logging.INFO, "Cortex Search Tool successfully initialized")
+        gateway_logger.log("INFO", "Cortex Search Tool successfully initialized")
 
     def __call__(self, question) -> Any:
         return self.asearch(question)
 
     async def asearch(self, query):
-        gateway_logger.log(logging.DEBUG, f"Cortex Search Query:{query}")
+        gateway_logger.log("DEBUG", f"Cortex Search Query:{query}")
         headers, url, data = self._prepare_request(query=query)
         response_text = await post_cortex_request(url=url, headers=headers, data=data)
         response_json = json.loads(response_text)
-        gateway_logger.log(logging.DEBUG, f"Cortex Search Response:{response_json}")
+        gateway_logger.log("DEBUG", f"Cortex Search Response:{response_json}")
         try:
             return response_json["results"]
-        except:
+        except Exception:
             raise SnowflakeError(message=response_json["message"])
 
     def _prepare_request(self, query):
@@ -112,27 +102,11 @@ class CortexSearchTool(Tool):
             self.connection.schema,
             self.service_name,
         )
-        if self.auto_filter:
-            search_attributes, sample_vals = self._get_sample_values(
-                snowflake_connection=Session.builder.config(
-                    "connection", self.connection
-                ),
-                cortex_search_service=self.service_name,
-            )
-            raw_filter = self.filter_generator(
-                query=query,
-                attributes=str(search_attributes),
-                sample_values=str(sample_vals),
-            )["answer"]
-            filter = json.loads(raw_filter)
-        else:
-            filter = None
 
         data = {
             "query": query,
             "columns": self.retrieval_columns,
             "limit": self.k,
-            "filter": filter,
         }
 
         return headers, url, data
@@ -170,11 +144,8 @@ class CortexSearchTool(Tool):
         )
 
         pattern = r"FROM\s+([\w\.]+)"
-        match = re.search(pattern, table_def)
-
-        if match:
-            from_value = match.group(1)
-            return from_value
+        if match := re.search(pattern, table_def):
+            return match[1]
         else:
             print("No match found.")
 
@@ -209,85 +180,6 @@ def get_min_length(model: Type[BaseModel]):
             min_length += get_min_length(field.annotation)
         min_length += len(key)
     return min_length
-
-
-class JSONFilter(BaseModel):
-    answer: str = Field(description="The filter_query in valid JSON format")
-
-    @classmethod
-    def model_validate_json(
-        cls,
-        json_data: str,
-        *,
-        strict: bool | None = None,
-        context: dict[str, Any] | None = None,
-    ):
-        __tracebackhide__ = True
-        try:
-            return cls.__pydantic_validator__.validate_json(
-                json_data, strict=strict, context=context
-            )
-        except ValidationError:
-            min_length = get_min_length(cls)
-            for substring_length in range(len(json_data), min_length - 1, -1):
-                for start in range(len(json_data) - substring_length + 1):
-                    substring = json_data[start : start + substring_length]
-                    try:
-                        res = cls.__pydantic_validator__.validate_json(
-                            substring, strict=strict, context=context
-                        )
-                        return res
-                    except ValidationError:
-                        pass
-        raise ValueError("Could not find valid json")
-
-
-class GenerateFilter(dspy.Signature):
-    """Given a query, attributes in the data, and example values of each attribute, generate a filter in valid JSON format.
-    Ensure the filter only uses valid operators: @eq, @contains,@and,@or,@not
-    Ensure only the valid JSON is output with no other reasoning.
-
-    ---
-    Query: What was the sentiment of CEOs between 2021 and 2024?
-    Attributes: industry,hq,date
-    Sample Values: {"industry":["biotechnology","healthcare","agriculture"],"HQ":["NY, US","CA,US","FL,US"],"date":["01/01,1999","01/01/2024"]}
-    Answer: {"@or":[{"@eq":{"year":"2021"}},{"@eq":{"year":"2022"}},{"@eq":{"year":"2023"}},{"@eq":{"year":"2024"}}]}
-
-    Query: What is the sentiment of Biotech CEOs of companies based in New York?
-    Attributes: industry,hq,date
-    Sample Values: {"industry":["biotechnology","healthcare","agriculture"],"HQ":["NY, US","CA,US","FL,US"],"date":["01/01,1999","01/01/2024"]}
-    Answer: {"@and":[{ "@eq": { "industry": "biotechnology" } },{"@not":{"@eq":{"HQ":"CA,US"}}}]}
-
-    Query: What is the sentiment of Biotech CEOs outside of California?
-    Attributes: industry,hq,date
-    Sample Values: {"industry":["biotechnology","healthcare","agriculture"],"HQ":["NY, US","CA,US","FL,US"],"date":["01/01,1999","01/01/2024"]}
-    Answer: {"@and":[{ "@eq": { "industry": "biotechnology" } },{"@not":{"@eq":{"HQ":"CA,US"}}}]}
-
-    Query: What is sentiment towards ag and biotech companies based outside of the US?
-    Attributes: industry,hq,date
-    Sample Values: {"industry":["biotechnology","healthcare","agriculture"],"COUNTRY":["United States","Ireland","Russia","Georgia","Spain"],"month":["01","02","03","06","11","12"],"year":["2022","2023","2024"]}
-    Answer: {"@and": [{ "@or": [{"@eq":{ "industry": "biotechnology" } },{"@eq":{"industry":"agriculture"}}]},{ "@not": {"@eq": { "COUNTRY": "United States" } }}]}
-    """
-
-    query = dspy.InputField(desc="user query")
-    attributes = dspy.InputField(desc="attributes to filter on")
-    sample_values = dspy.InputField(desc="examples of values per attribute")
-    answer: JSONFilter = dspy.OutputField(
-        desc="filter query in valid JSON format. ONLY output the filter query in JSON, no reasoning"
-    )
-
-
-class SmartSearch(dspy.Module):
-    def __init__(self):
-        super().__init__()
-        self.filter_gen = dspy.ChainOfThought(GenerateFilter)
-
-    def forward(self, query, attributes, sample_values):
-        filter_query = self.filter_gen(
-            query=query, attributes=attributes, sample_values=sample_values
-        )
-
-        return filter_query
 
 
 class CortexAnalystTool(Tool):
@@ -326,47 +218,28 @@ class CortexAnalystTool(Tool):
         self.FILE = semantic_model
         self.STAGE = stage
 
-        gateway_logger.log(logging.INFO, "Cortex Analyst Tool successfully initialized")
+        gateway_logger.log("INFO", "Cortex Analyst Tool successfully initialized")
 
     def __call__(self, prompt) -> Any:
         return self.asearch(query=prompt)
 
     async def asearch(self, query):
-        gateway_logger.log(logging.DEBUG, f"Cortex Analyst Prompt:{query}")
+        gateway_logger.log("DEBUG", f"Cortex Analyst Prompt:{query}")
 
-        for _ in range(3):
-            current_query = query
-            url, headers, data = self._prepare_analyst_request(prompt=query)
+        url, headers, data = self._prepare_analyst_request(prompt=query)
 
-            response_text = await post_cortex_request(
-                url=url, headers=headers, data=data
+        response_text = await post_cortex_request(url=url, headers=headers, data=data)
+        json_response = json.loads(response_text)
+
+        gateway_logger.log("DEBUG", f"Cortex Analyst Raw Response:{json_response}")
+
+        try:
+            query_response = self._process_analyst_message(
+                json_response["message"]["content"]
             )
-            json_response = json.loads(response_text)
+        except Exception:
+            raise SnowflakeError(message=json_response["message"])
 
-            try:
-                query_response = self._process_message(
-                    json_response["message"]["content"]
-                )
-
-                if query_response == "Invalid Query":
-                    lm = dspy.Snowflake(
-                        session=Session.builder.config(
-                            "connection", self.connection
-                        ).getOrCreate(),
-                        model="llama3.2-1b",
-                    )
-                    dspy.settings.configure(lm=lm)
-                    rephrase_prompt = dspy.ChainOfThought(PromptRephrase)
-                    current_query = rephrase_prompt(user_prompt=current_query)[
-                        "rephrased_prompt"
-                    ]
-                else:
-                    break
-
-            except:
-                raise SnowflakeError(message=json_response["message"])
-
-        gateway_logger.log(logging.DEBUG, f"Cortex Analyst Response:{query_response}")
         return query_response
 
     def _prepare_analyst_request(self, prompt):
@@ -383,40 +256,48 @@ class CortexAnalystTool(Tool):
 
         return url, headers, data
 
-    def _process_message(self, response):
-        # ensure valid sql query is present in response
-        if response[1].get("type") != "sql":
-            return "Invalid Query"
+    def _process_analyst_message(self, response):
+        if isinstance(response, list) and len(response) > 0:
+            first_item = response[0]
 
-        # execute sql query
-        sql_query = response[1]["statement"]
-        gateway_logger.log(logging.DEBUG, f"Cortex Analyst SQL Query:{sql_query}")
-        table = self.connection.cursor().execute(sql_query).fetch_arrow_all()
+            if "type" in first_item:
+                if first_item["type"] == "text":
+                    _ = None
+                    for item in response:
+                        _ = item
+                        if item["type"] == "suggestions":
+                            raise SnowflakeError(
+                                message=f"Your request is unclear. Consider rephrasing your request to one of the following suggestions:{item['suggestions']}"
+                            )
+                        elif item["type"] == "sql":
+                            sql_query = item["statement"]
+                            table = (
+                                self.connection.cursor()
+                                .execute(sql_query)
+                                .fetch_arrow_all()
+                            )
 
-        if table is not None:
-            return str(table.to_pydict())
-        else:
-            return "No Results Found"
+                            if table is not None:
+                                return str(table.to_pydict())
+                            else:
+                                raise SnowflakeError(
+                                    message="No results found. Consider rephrasing your request"
+                                )
+
+                    raise SnowflakeError(
+                        message=f"Unable to generate a valid SQL Query. {_['text']}"
+                    )
+
+        return SnowflakeError(message="Invalid Cortex Analyst Response")
 
     def _prepare_analyst_description(
         self, name, service_topic, data_source_description
     ):
         base_analyst_description = f"""{name}(prompt: str) -> str:\n
-                  - takes a user's question about {service_topic } and queries {data_source_description}\n
+                  - takes a user's question about {service_topic} and queries {data_source_description}\n
                   - Returns the relevant metrics about {service_topic}\n"""
 
         return base_analyst_description
-
-
-class PromptRephrase(dspy.Signature):
-    """Takes in a prompt and rephrases it using context into to a single concise, and specific question.
-    If there are references to entities that are not clear or consistent with the question being asked, make the references more appropriate.
-    """
-
-    user_prompt = dspy.InputField(desc="original user prompt")
-    rephrased_prompt = dspy.OutputField(
-        desc="rephrased prompt with more clear and specific intent"
-    )
 
 
 class PythonTool(Tool):
@@ -433,7 +314,7 @@ class PythonTool(Tool):
             name=python_func.__name__, func=python_callable, description=desc
         )
         self.python_callable = python_func
-        gateway_logger.log(logging.INFO, "Python Tool successfully initialized")
+        gateway_logger.log("INFO", "Python Tool successfully initialized")
 
     def asyncify(self, sync_func):
         async def async_func(*args, **kwargs):

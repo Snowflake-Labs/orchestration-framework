@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import langchain
+import langchain.globals
 import yaml
 from langchain.callbacks.base import BaseCallbackManager
 from langchain.callbacks.manager import (
@@ -42,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 
 def _get_verbosity() -> bool:
-    return langchain.verbose
+    return langchain.globals.get_verbose()
 
 
 class Chain(Serializable, Runnable[Dict[str, Any], Dict[str, Any]], ABC):

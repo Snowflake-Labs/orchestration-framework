@@ -9,10 +9,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import re
 import threading
 from collections.abc import Sequence
@@ -37,6 +37,7 @@ from agent_gateway.tools.utils import CortexEndpointBuilder, post_cortex_request
 class AgentGatewayError(Exception):
     def __init__(self, message):
         self.message = message
+        gateway_logger.log("ERROR", self.message)
         super().__init__(self.message)
 
 
@@ -50,26 +51,25 @@ class CortexCompleteAgent:
     async def arun(self, prompt: str) -> str:
         """Run the LLM."""
         headers, url, data = self._prepare_llm_request(prompt=prompt)
-        gateway_logger.log(logging.DEBUG, "Cortex Request URL\n", url, block=True)
-        gateway_logger.log(logging.DEBUG, "Cortex Request Data\n", data, block=True)
 
-        response_text = await post_cortex_request(url=url, headers=headers, data=data)
-        gateway_logger.log(
-            logging.DEBUG,
-            "Cortex Request Response\n",
-            response_text,
-            block=True,
-        )
+        try:
+            response_text = await post_cortex_request(
+                url=url, headers=headers, data=data
+            )
+        except Exception as e:
+            raise AgentGatewayError(
+                message=f"Failed Cortex LLM Request. See details:{str(e)}"
+            ) from e
 
         if "choices" not in response_text:
             raise AgentGatewayError(
-                message=f"Failed Cortex LLM Request. Missing choices in response. See details:{response_text}"
+                message=f"Invalid Cortex LLM Response. See details:{response_text}"
             )
 
         try:
             snowflake_response = self._parse_snowflake_response(response_text)
             return snowflake_response
-        except:
+        except Exception:
             raise AgentGatewayError(
                 message=f"Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
             )
@@ -135,8 +135,9 @@ class Agent(Chain, extra="allow"):
         snowflake_connection: Union[Session, SnowflakeConnection],
         tools: list[Union[Tool, StructuredTool]],
         max_retries: int = 2,
-        planner_llm: str = "mistral-large2",  # replace basellm
-        agent_llm: str = "mistral-large2",  # replace basellm
+        planner_llm: str = "mistral-large2",
+        agent_llm: str = "mistral-large2",
+        memory: bool = True,
         planner_example_prompt: str = SNOWFLAKE_PLANNER_PROMPT,
         planner_example_prompt_replan: Optional[str] = None,
         planner_stop: Optional[list[str]] = [END_OF_PLAN],
@@ -155,6 +156,7 @@ class Agent(Chain, extra="allow"):
             max_retries: Maximum number of replans to do. Defaults to 2.
             planner_llm: Name of Snowflake Cortex LLM to use for planning.
             agent_llm: Name of Snowflake Cortex LLM to use for planning.
+            memory: Boolean to turn on memory mechanism or not. Defaults to True.
             planner_example_prompt: Example prompt for planning. Defaults to SNOWFLAKE_PLANNER_PROMPT.
             planner_example_prompt_replan: Example prompt for replanning.
                 Assign this if you want to use different example prompt for replanning.
@@ -191,10 +193,15 @@ class Agent(Chain, extra="allow"):
         self.planner_stream = planner_stream
         self.max_retries = max_retries
 
+        # basic memory
+        self.memory = memory
+        if self.memory:
+            self.memory_context = []
+
         # callbacks
         self.planner_callback = None
         self.executor_callback = None
-        gateway_logger.log(logging.INFO, "Cortex gateway successfully initialized")
+        gateway_logger.log("INFO", "Cortex gateway successfully initialized")
 
     @property
     def input_keys(self) -> List[str]:
@@ -222,35 +229,48 @@ class Agent(Chain, extra="allow"):
 
         # Extracting the Answer
         answer = self._extract_answer(raw_answer)
-        is_replan = True if FUSION_REPLAN in answer else False
+        is_replan = FUSION_REPLAN in answer
+
+        if is_replan:
+            answer = self._extract_replan_message(raw_answer)
+
+        if answer is None:
+            raise AgentGatewayError(
+                message="Unable to parse final answer. Raw answer is:{raw_answer}"
+            )
 
         return thought, answer, is_replan
 
-    def _extract_answer(self, raw_answer):
-        start_index = raw_answer.find("Action: Finish(")
-        replan_index = raw_answer.find("Replan")
-        if start_index != -1:
-            start_index += len("Action: Finish(")
-            parentheses_count = 1
-            for i, char in enumerate(raw_answer[start_index:], start_index):
-                if char == "(":
-                    parentheses_count += 1
-                elif char == ")":
-                    parentheses_count -= 1
-                    if parentheses_count == 0:
-                        end_index = i
-                        break
-            else:
-                # If no corresponding closing parenthesis is found
-                return None
-            answer = raw_answer[start_index:end_index]
-            return answer
-        else:
-            if replan_index != 1:
-                print("....replanning...")
-                return "Replan required. Consider rephrasing your question."
-            else:
-                return None
+    @staticmethod
+    def _extract_answer(raw_answer):
+        start_marker = "Action: Finish("
+        end_marker = "<END_OF_RESPONSE>"
+
+        pattern = re.compile(
+            rf"{re.escape(start_marker)}(.*?)(?=\)\s*{re.escape(end_marker)})",
+            re.DOTALL,
+        )
+
+        match = pattern.search(raw_answer)
+        if match:
+            return match.group(1).strip()
+
+        if "Replan" in raw_answer:
+            return "Replan required. Consider rephrasing your question."
+
+        return None
+
+    def _extract_replan_message(self, raw_answer):
+        replan_start = "Action: Replan("
+        replan_index = raw_answer.find(replan_start)
+        if replan_index != -1:
+            replan_index += len(replan_start)
+            return raw_answer[replan_index : raw_answer.rfind(")")].strip()
+        return (
+            "We couldn't find the information you're looking for. You can try "
+            "rephrasing your request or validate that the provided tools contain "
+            "sufficient information."
+        )
 
     def _generate_context_for_replanner(
         self, tasks: Mapping[int, Task], fusion_thought: str
@@ -304,8 +324,8 @@ class Agent(Chain, extra="allow"):
 
         response = await self.agent.arun(prompt)
         raw_answer = cast(str, response)
-        gateway_logger.log(logging.DEBUG, "Question: \n", input_query, block=True)
-        gateway_logger.log(logging.DEBUG, "Raw Answer: \n", raw_answer, block=True)
+        gateway_logger.log("DEBUG", "Question: \n", input_query, block=True)
+        gateway_logger.log("DEBUG", "Raw Answer: \n", raw_answer, block=True)
         thought, answer, is_replan = self._parse_fusion_output(raw_answer)
         if is_final:
             # If final, we don't need to replan
@@ -322,38 +342,65 @@ class Agent(Chain, extra="allow"):
             input (str): user's natural language request
         """
         result = []
-        thread = threading.Thread(target=self.run_async, args=(input, result))
+        error = []
+
+        thread = threading.Thread(target=self.run_async, args=(input, result, error))
         thread.start()
         thread.join()
-        try:
-            return result[0]["output"]
-        except IndexError:
-            raise AgentGatewayError(
-                message="Unable to retrieve response. Please check each of your Cortex tools and ensure all connections are valid."
-            )
+
+        if error:
+            raise error[0]
+
+        if not result:
+            raise AgentGatewayError("Unable to retrieve response. Result is empty.")
+
+        return result[0]
 
     def handle_exception(self, loop, context):
-        exception = context.get("exception")
-        if exception:
-            print(f"Caught unhandled exception: {exception}")
-            loop.default_exception_handler(context)
-            loop.stop()
+        loop.default_exception_handler(context)
+        loop.stop()
 
-    def run_async(self, input, result):
+    def run_async(self, input, result, error):
         loop = asyncio.new_event_loop()
         loop.set_exception_handler(self.handle_exception)
         asyncio.set_event_loop(loop)
-        result.append(loop.run_until_complete(self.acall(input)))
+        try:
+            task = loop.run_until_complete(self.acall(input))
+            result.append(task)
+        except asyncio.CancelledError:
+            error.append(AgentGatewayError("Task was cancelled"))
+        except RuntimeError as e:
+            error.append(AgentGatewayError(f"RuntimeError: {str(e)}"))
+        except Exception as e:
+            error.append(AgentGatewayError(f"Gateway Execution Error: {str(e)}"))
+
+        finally:
+            try:
+                # Cancel any pending tasks
+                pending = asyncio.all_tasks(loop)
+                for task in pending:
+                    task.cancel()
+                # Wait for all tasks to be cancelled
+                loop.run_until_complete(
+                    asyncio.gather(*pending, return_exceptions=True)
+                )
+            finally:
+                loop.close()
 
     async def acall(
         self,
         input: str,
-        # inputs: Dict[str, Any]
     ) -> Dict[str, Any]:
         contexts = []
         fusion_thought = ""
         agent_scratchpad = ""
-        inputs = {"input": input}
+
+        if self.memory:
+            input_with_mem = f"My previous question/answer was: {self.memory_context}\n. If needed, use that context and this {input} to answer my question. Otherwise just give me an answer to: {input} "
+            inputs = {"input": input_with_mem}
+        else:
+            inputs = {"input": input}
+
         for i in range(self.max_retries):
             is_first_iter = i == 0
             is_final_iter = i == self.max_retries - 1
@@ -416,4 +463,12 @@ class Agent(Chain, extra="allow"):
             formatted_contexts = self._format_contexts(contexts)
             inputs["context"] = formatted_contexts
 
-        return {self.output_key: answer}
+        max_memory = 3  # TODO consider exposing this to users
+        if self.memory:
+            if len(self.memory_context) <= max_memory:
+                self.memory_context.append({"Question:": input, "Answer": answer})
+
+        if ~is_replan and is_final_iter:
+            return f"{answer} Unable to respond to your request with the available tools.  Consider rephrasing your request or providing additional tools."
+        else:
+            return answer

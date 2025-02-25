@@ -9,25 +9,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import logging
 import os
 import pprint
+import sys
 
 # Global variable to toggle logging
-logging_enabled = os.getenv("LOGGING_ENABLED")
-if logging_enabled is None:
-    LOGGING_ENABLED = True
+LOGGING_ENABLED = os.getenv("LOGGING_ENABLED", "True").lower() in ("true", "1", "t")
 
-logging_level = os.getenv("LOGGING_LEVEL")
-if logging_level is None:
-    logging_level = logging.INFO
-elif logging_level == "INFO":
-    logging_level = logging.INFO
-elif logging_level == "DEBUG":
-    logging_level = logging.DEBUG
-else:
-    logging_level = logging.DEBUG
+logging_level = os.getenv("LOGGING_LEVEL", "INFO").upper()
+logging_level = getattr(logging, logging_level, logging.DEBUG)
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -44,19 +37,26 @@ class Logger:
     def init(self):
         self.logger = logging.getLogger("AgentGatewayLogger")
         self.logger.setLevel(logging_level)
+        self.logger.propagate = False
 
         if not self.logger.handlers:
             self.file_handler = logging.FileHandler("logs.log", mode="a")
             self.file_handler.setLevel(logging_level)  # Log all levels
+            self.stream_handler = logging.StreamHandler(sys.stdout)
+            self.stream_handler.setLevel(logging_level)
 
             formatter = logging.Formatter(
                 "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
             )
             self.file_handler.setFormatter(formatter)
+            self.stream_handler.setFormatter(formatter)
 
             self.logger.addHandler(self.file_handler)
+            self.logger.addHandler(self.stream_handler)
 
     def log(self, level, *args, block=False, **kwargs):
+        if isinstance(level, str):
+            level = getattr(logging, level.upper())
         if LOGGING_ENABLED:
             if block:
                 self.logger.log(level, "=" * 80)
@@ -71,9 +71,3 @@ class Logger:
 
 
 gateway_logger = Logger()
-
-# The updated log function
-
-
-def log(level, *args, block=False, **kwargs):
-    gateway_logger.log(level, *args, block=block, **kwargs)

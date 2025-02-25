@@ -13,19 +13,20 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from collections.abc import Collection
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
 
 from agent_gateway.tools.logger import gateway_logger
+from agent_gateway.tools.snowflake_tools import SnowflakeError
 
 SCHEDULING_INTERVAL = 0.01  # seconds
 
 
-class agent_gatewayError(Exception):
+class AgentGatewayError(Exception):
     def __init__(self, message):
         self.message = message
+        gateway_logger.log("ERROR", self.message)
         super().__init__(self.message)
 
 
@@ -71,15 +72,15 @@ class Task:
     is_fuse: bool = False
 
     async def __call__(self) -> Any:
-        gateway_logger.log(logging.INFO, f"running {self.name} task")
+        gateway_logger.log("INFO", f"running {self.name} task")
         try:
             x = await self.tool(*self.args)
-            gateway_logger.log(logging.DEBUG, "task successfully completed")
+            gateway_logger.log("DEBUG", "task successfully completed")
             return x
+        except SnowflakeError as e:
+            return f"Unexpected error during Cortex Gateway Tool request: {str(e)}"
         except Exception as e:
-            raise agent_gatewayError(
-                f"Unexpected error during Cortex gateway Tool request: {str(e)}"
-            ) from e
+            return f"Unexpected error during Cortex Gateway Tool request: {str(e)}"
 
     def get_thought_action_observation(
         self, include_action=True, include_thought=True, include_action_idx=False
@@ -145,8 +146,10 @@ class TaskProcessor:
             try:
                 observation = await task()
                 task.observation = observation
+            except SnowflakeError as e:
+                return f"SnowflakeError in task: {str(e)}"
             except Exception as e:
-                raise agent_gatewayError(f"{str(e)}") from e
+                return f"Unexpected Error in task: {str(e)}"
         self.tasks_done[task.idx].set()
 
     async def schedule(self):
