@@ -56,6 +56,7 @@ class CortexCompleteAgent:
             response_text = await post_cortex_request(
                 url=url, headers=headers, data=data
             )
+
         except Exception as e:
             raise AgentGatewayError(
                 message=f"Failed Cortex LLM Request. See details:{str(e)}"
@@ -68,6 +69,7 @@ class CortexCompleteAgent:
 
         try:
             snowflake_response = self._parse_snowflake_response(response_text)
+            gateway_logger.log("DEBUG", f"RAW COMPLETE RESPONSE: {snowflake_response}")
             return snowflake_response
         except Exception:
             raise AgentGatewayError(
@@ -228,37 +230,33 @@ class Agent(Chain, extra="allow"):
         thought = thought_match.group(1) if thought_match else None
 
         # Extracting the Answer
-        answer = self._extract_answer(raw_answer)
-        is_replan = FUSION_REPLAN in answer
+        is_replan = FUSION_REPLAN in raw_answer
 
         if is_replan:
             answer = self._extract_replan_message(raw_answer)
+        else:
+            answer = self._extract_answer(raw_answer)
 
         if answer is None:
             raise AgentGatewayError(
-                message="Unable to parse final answer. Raw answer is:{raw_answer}"
+                message=f"Unable to parse final answer. Raw answer is:{raw_answer}"
             )
 
         return thought, answer, is_replan
 
     @staticmethod
     def _extract_answer(raw_answer):
-        start_marker = "Action: Finish("
+        start_marker = "Action: Finish"
         end_marker = "<END_OF_RESPONSE>"
 
+        # Match both parenthesized and non-parenthesized versions
         pattern = re.compile(
-            rf"{re.escape(start_marker)}(.*?)(?=\)\s*{re.escape(end_marker)})",
+            rf"{re.escape(start_marker)}[(\s]*(.*?)(?:\s*\))?\s*{re.escape(end_marker)}",
             re.DOTALL,
         )
 
         match = pattern.search(raw_answer)
-        if match:
-            return match.group(1).strip()
-
-        if "Replan" in raw_answer:
-            return "Replan required. Consider rephrasing your question."
-
-        return None
+        return match.group(1).strip() if match else None
 
     def _extract_replan_message(self, raw_answer):
         replan_start = "Action: Replan("
@@ -349,7 +347,9 @@ class Agent(Chain, extra="allow"):
         thread.join()
 
         if error:
-            raise error[0]
+            gateway_logger.log("DEBUG", f"ERROR NoneType: {error}")
+            gateway_logger.log("DEBUG", f"NONETYPe result: {result}")
+            raise AgentGatewayError(message=str(error[0]))
 
         if not result:
             raise AgentGatewayError("Unable to retrieve response. Result is empty.")
