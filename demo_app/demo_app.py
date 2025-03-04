@@ -12,7 +12,6 @@
 
 import asyncio
 import io
-import json
 import logging
 import os
 import queue
@@ -22,13 +21,12 @@ import threading
 import uuid
 import warnings
 
-import requests
 import streamlit as st
 from dotenv import load_dotenv
 from snowflake.snowpark import Session
 
 from agent_gateway import Agent
-from agent_gateway.tools import CortexAnalystTool, CortexSearchTool, PythonTool
+from agent_gateway.tools import CortexAnalystTool, CortexSearchTool
 from agent_gateway.tools.utils import parse_log_message
 
 warnings.filterwarnings("ignore")
@@ -36,35 +34,13 @@ load_dotenv("../.env")
 st.set_page_config(page_title="Snowflake Cortex Cube")
 
 connection_parameters = {
+    "host": os.getenv("SNOWFLAKE_HOST"),
     "account": os.getenv("SNOWFLAKE_ACCOUNT"),
-    "user": os.getenv("SNOWFLAKE_USER"),
-    "password": os.getenv("SNOWFLAKE_PASSWORD"),
-    "role": os.getenv("SNOWFLAKE_ROLE"),
+    "authenticator": "oauth",
+    "token": open("/snowflake/session/token", "r").read(),
     "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
     "database": os.getenv("SNOWFLAKE_DATABASE"),
     "schema": os.getenv("SNOWFLAKE_SCHEMA"),
-}
-
-os.environ["NEWS_API_TOKEN"] = os.getenv("NEWS_API_TOKEN")
-
-
-class NewsTool:
-    def __init__(self, token, limit) -> None:
-        self.api_token = token
-        self.limit = limit
-
-    def news_search(self, news_query: str) -> str:
-        news_request = f"""https://api.thenewsapi.com/v1/news/all?api_token={self.api_token}&search={news_query}&language=en&limit={self.limit}"""
-        response = requests.get(news_request)
-        json_response = json.loads(response.content)["data"]
-
-        return str(json_response)
-
-
-python_config = {
-    "tool_description": "searches for relevant news based on user query",
-    "output_description": "relevant articles",
-    "python_func": NewsTool(token=os.getenv("NEWS_API_TOKEN"), limit=3).news_search,
 }
 
 if "prompt_history" not in st.session_state:
@@ -92,11 +68,9 @@ if "snowpark" not in st.session_state or st.session_state.snowpark is None:
     # Tools Config
     st.session_state.annual_reports = CortexSearchTool(**search_config)
     st.session_state.sp500 = CortexAnalystTool(**analyst_config)
-    st.session_state.news_search = PythonTool(**python_config)
     st.session_state.snowflake_tools = [
         st.session_state.annual_reports,
         st.session_state.sp500,
-        st.session_state.news_search,
     ]
 
 
@@ -245,7 +219,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.logo("SIT_logo_white.png")
+st.logo("/app/demo_app/SIT_logo_white.png")
 
 st.markdown(
     "<h1>🧠 Snowflake Cortex<sup style='font-size:.8em;'>3</sup></h1>",

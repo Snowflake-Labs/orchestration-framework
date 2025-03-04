@@ -8,12 +8,12 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project --no-dev
+    uv sync --frozen --no-install-project --no-dev --extra streamlit
 
 COPY . .
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+    uv sync --frozen --extra streamlit
 
 FROM python:3.11-slim-bookworm
 
@@ -24,4 +24,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 ENTRYPOINT []
 
-CMD ["python", "-m", "streamlit", "run", "demo_app/demo_app.py", "--server.port=8510", "--server.address=0.0.0.0"]
+CMD ["python", "-m", "streamlit", "run", "/app/demo_app/demo_app.py", "--server.port=8501", "--server.address=0.0.0.0"]

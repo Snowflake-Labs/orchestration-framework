@@ -24,7 +24,10 @@ dev = [
     "pytest>=8.3.3,<9.0",
     "coverage>=7.6.9,<8.0"
 ]
-streamlit = ["streamlit>=1.39.0,<2.0"]
+streamlit = [
+    "streamlit>=1.39.0,<2.0",
+    "python-dotenv>=1.0.1"
+]
 
 [build-system]
 requires = ["hatchling"]
