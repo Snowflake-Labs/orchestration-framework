@@ -104,6 +104,11 @@ class Task:
             thought_action_observation += f"Observation: {self.observation}\n"
         return thought_action_observation
 
+    # def __repr__(self):
+    #     return (
+    #         f"Task(idx={self.idx}, name={self.name})"
+    #     )
+
 
 class TaskProcessor:
     tasks: Dict[str, Task]

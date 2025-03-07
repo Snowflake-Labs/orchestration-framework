@@ -272,6 +272,9 @@ class Agent(Chain, extra="allow"):
             "sufficient information."
         )
 
+    def _parse_sources(self, tasks):
+        pass
+
     def _generate_context_for_replanner(
         self, tasks: Mapping[int, Task], fusion_thought: str
     ) -> str:
@@ -327,10 +330,50 @@ class Agent(Chain, extra="allow"):
         gateway_logger.log("DEBUG", "Question: \n", input_query, block=True)
         gateway_logger.log("DEBUG", "Raw Answer: \n", raw_answer, block=True)
         thought, answer, is_replan = self._parse_fusion_output(raw_answer)
+        sources = self._extract_sources(agent_scratchpad)
         if is_final:
             # If final, we don't need to replan
             is_replan = False
-        return thought, answer, is_replan
+        return thought, answer, sources, is_replan
+
+    def _extract_sources(self, text):
+        raw_array = self._parse_sources(text)
+        if not raw_array:
+            return None
+
+        # Convert Python dict to JSON
+        json_str = raw_array.replace("'", '"')  # Fix quotes
+        try:
+            return json.loads(json_str)  # Valid JSON wrapper
+        except json.JSONDecodeError:
+            return None
+
+    def _parse_sources(self, text):
+        start = text.find("'sources': [") + len("'sources': ")
+        depth = 0
+        json_start = None
+
+        # Find array start
+        for i in range(start, len(text)):
+            if text[i] == "[":
+                json_start = i
+                depth = 1
+                break
+
+        if not json_start:
+            return None
+
+        # Track bracket depth
+        for j in range(json_start + 1, len(text)):
+            if text[j] == "[":
+                depth += 1
+            elif text[j] == "]":
+                depth -= 1
+
+            if depth == 0:
+                return text[json_start : j + 1]  # Stop at closing ]
+
+        return None  # Unclosed array
 
     def _call(self, inputs):
         return self.__call__(inputs)
@@ -391,6 +434,7 @@ class Agent(Chain, extra="allow"):
         self,
         input: str,
     ) -> Dict[str, Any]:
+        sources = []
         contexts = []
         fusion_thought = ""
         agent_scratchpad = ""
@@ -445,9 +489,10 @@ class Agent(Chain, extra="allow"):
                     if not task.is_fuse
                 ]
             )
+
             agent_scratchpad = agent_scratchpad.strip()
 
-            fusion_thought, answer, is_replan = await self.fuse(
+            fusion_thought, answer, sources, is_replan = await self.fuse(
                 input,
                 agent_scratchpad=agent_scratchpad,
                 is_final=is_final_iter,
@@ -471,4 +516,4 @@ class Agent(Chain, extra="allow"):
         if ~is_replan and is_final_iter:
             return f"{answer} Unable to respond to your request with the available tools.  Consider rephrasing your request or providing additional tools."
         else:
-            return answer
+            return {"output": answer, "sources": sources}

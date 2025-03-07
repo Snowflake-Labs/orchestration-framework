@@ -87,10 +87,15 @@ class CortexSearchTool(Tool):
         gateway_logger.log("DEBUG", f"Cortex Search Query:{query}")
         headers, url, data = self._prepare_request(query=query)
         response_text = await post_cortex_request(url=url, headers=headers, data=data)
+
         response_json = json.loads(response_text)
+        cols = self._get_search_column(self.service_name)
+        citations = self._get_citations(response_json["results"], cols)
+
         gateway_logger.log("DEBUG", f"Cortex Search Response:{response_json}")
+
         try:
-            return response_json["results"]
+            return {"chunks": response_json["results"], "sources": citations}
         except Exception:
             raise SnowflakeError(message=response_json["message"])
 
@@ -111,12 +116,45 @@ class CortexSearchTool(Tool):
 
         return headers, url, data
 
+    def _get_citations(self, raw_response: json, search_column: list) -> dict:
+        # iterate through each record
+        citation_elements = [
+            {k: v for k, v in d.items() if k not in search_column} for d in raw_response
+        ]
+
+        # remove duplicate citations
+        seen = set()
+        citations = []
+        for c in citation_elements:
+            identifier = tuple(sorted(c.items()))
+            if identifier not in seen:
+                seen.add(identifier)
+                citations.append(c)
+
+        return citations
+
     def _prepare_search_description(self, name, service_topic, data_source_description):
         base_description = f""""{name}(query: str) -> list:\n
                  - Executes a search for relevant information about {service_topic}.\n
                  - Returns a list of relevant passages from {data_source_description}.\n"""
 
         return base_description
+
+    def _get_search_column(self, search_service_name) -> list:
+        snowflake_connection = Session.builder.config(
+            "connection", self.connection
+        ).create()
+        df = snowflake_connection.sql("SHOW CORTEX SEARCH SERVICES")
+        raw_atts = (
+            df.where(col('"name"') == search_service_name)
+            .select('"search_column"')
+            .to_pandas()
+            .loc[0]
+            .values[0]
+        )
+        attribute_list = raw_atts.split(",")
+
+        return attribute_list
 
     def _get_search_attributes(self, search_service_name):
         snowflake_connection = Session.builder.config("connection", self.connection)
@@ -278,7 +316,12 @@ class CortexAnalystTool(Tool):
                             )
 
                             if table is not None:
-                                return str(table.to_pydict())
+                                tables = self._extract_tables(sql_query)
+
+                                return {
+                                    "output": str(table.to_pydict()),
+                                    "sources": tables,
+                                }
                             else:
                                 raise SnowflakeError(
                                     message="No results found. Consider rephrasing your request"
@@ -298,6 +341,30 @@ class CortexAnalystTool(Tool):
                   - Returns the relevant metrics about {service_topic}\n"""
 
         return base_analyst_description
+
+    def _extract_tables(self, sql):
+        # Remove SQL comments to avoid false positives
+        cleaned_sql = re.sub(r"--.*", "", sql)  # Strip line comments
+        cleaned_sql = re.sub(
+            r"/\*.*?\*/", "", cleaned_sql, flags=re.DOTALL
+        )  # Strip block comments
+
+        # Extract CTE names if present
+        cte_names = set()
+        if re.search(r"^\s*WITH\s+", cleaned_sql, re.IGNORECASE | re.MULTILINE):
+            cte_matches = re.findall(
+                r"\b(\w+)\s+AS\s*\(", cleaned_sql, re.IGNORECASE | re.DOTALL
+            )
+            cte_names.update(cte_matches)
+
+        # Find all table references in FROM clauses
+        from_tables = re.findall(r"\bFROM\s+([^\s\(\)\,]+)", cleaned_sql, re.IGNORECASE)
+
+        # Filter out CTE aliases and deduplicate
+        tables = [table for table in from_tables if table not in cte_names]
+        unique_tables = sorted(list(set(tables)))
+
+        return unique_tables
 
 
 class PythonTool(Tool):
