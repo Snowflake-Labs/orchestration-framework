@@ -89,8 +89,8 @@ class CortexSearchTool(Tool):
         response_text = await post_cortex_request(url=url, headers=headers, data=data)
 
         response_json = json.loads(response_text)
-        cols = self._get_search_column(self.service_name)
-        citations = self._get_citations(response_json["results"], cols)
+        search_col = self._get_search_column(self.service_name)
+        citations = self._get_citations(response_json["results"], search_col)
 
         gateway_logger.log("DEBUG", f"Cortex Search Response:{response_json}")
 
@@ -118,20 +118,34 @@ class CortexSearchTool(Tool):
 
     def _get_citations(self, raw_response: json, search_column: list) -> dict:
         # iterate through each record
+        # citation_elements = [
+        #     {k: v for k, v in d.items() if k not in search_column and k is not None} for d in raw_response
+        # ]
+
         citation_elements = [
-            {k: v for k, v in d.items() if k not in search_column} for d in raw_response
+            filtered_dict
+            for d in raw_response
+            if (
+                filtered_dict := {
+                    k: v
+                    for k, v in d.items()
+                    if k is not None and k not in search_column
+                }
+            )
         ]
 
-        # remove duplicate citations
-        seen = set()
-        citations = []
-        for c in citation_elements:
-            identifier = tuple(sorted(c.items()))
-            if identifier not in seen:
-                seen.add(identifier)
-                citations.append(c)
+        if len(citation_elements) < 1:
+            return [self.service_name]
+        else:
+            seen = set()
+            citations = []
+            for c in citation_elements:
+                identifier = tuple(sorted(c.items()))
+                if identifier not in seen:
+                    seen.add(identifier)
+                    citations.append(c)
 
-        return citations
+            return citations
 
     def _prepare_search_description(self, name, service_topic, data_source_description):
         base_description = f""""{name}(query: str) -> list:\n
@@ -386,7 +400,11 @@ class PythonTool(Tool):
     def asyncify(self, sync_func):
         async def async_func(*args, **kwargs):
             loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(None, sync_func, *args, **kwargs)
+            result = await loop.run_in_executor(None, sync_func, *args, **kwargs)
+            return {
+                "output": result,
+                "sources": [f"{self.python_callable.__name__} tool"],
+            }
 
         return async_func
 

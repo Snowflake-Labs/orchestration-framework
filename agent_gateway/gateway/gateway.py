@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import ast
 import re
 import threading
 from collections.abc import Sequence
@@ -337,43 +338,33 @@ class Agent(Chain, extra="allow"):
         return thought, answer, sources, is_replan
 
     def _extract_sources(self, text):
-        raw_array = self._parse_sources(text)
-        if not raw_array:
+        raw_matches = self._parse_sources(text)
+        if not raw_matches:
             return None
 
-        # Convert Python dict to JSON
-        json_str = raw_array.replace("'", '"')  # Fix quotes
-        try:
-            return json.loads(json_str)  # Valid JSON wrapper
-        except json.JSONDecodeError:
-            return None
+        sources = set()
+
+        for raw_match in raw_matches:
+            try:
+                parsed_sources = ast.literal_eval(raw_match)
+                if isinstance(parsed_sources, list):
+                    for src in parsed_sources:
+                        sources.add(self.source_to_string(src))
+            except (ValueError, SyntaxError):
+                continue
+
+        return list(sources) if sources else None
+
+    def source_to_string(self, src):
+        if isinstance(src, dict):
+            # Sort keys alphabetically for consistency, then format as key: value pairs
+            return ", ".join(f"{key}: {src[key]}" for key in sorted(src))
+        return str(src)
 
     def _parse_sources(self, text):
-        start = text.find("'sources': [") + len("'sources': ")
-        depth = 0
-        json_start = None
-
-        # Find array start
-        for i in range(start, len(text)):
-            if text[i] == "[":
-                json_start = i
-                depth = 1
-                break
-
-        if not json_start:
-            return None
-
-        # Track bracket depth
-        for j in range(json_start + 1, len(text)):
-            if text[j] == "[":
-                depth += 1
-            elif text[j] == "]":
-                depth -= 1
-
-            if depth == 0:
-                return text[json_start : j + 1]  # Stop at closing ]
-
-        return None  # Unclosed array
+        pattern = r"'sources':\s*(\[[^\]]*\])"
+        matches = re.findall(pattern, text, re.DOTALL)
+        return matches if matches else None
 
     def _call(self, inputs):
         return self.__call__(inputs)
