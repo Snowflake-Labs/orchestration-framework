@@ -249,6 +249,10 @@ class Agent(Chain, extra="allow"):
         start_marker = "Action: Finish"
         end_marker = "<END_OF_RESPONSE>"
 
+        # if end market not in response, inject it
+        if end_marker not in raw_answer:
+            raw_answer += end_marker
+
         # Match both parenthesized and non-parenthesized versions
         pattern = re.compile(
             rf"{re.escape(start_marker)}[(\s]*(.*?)(?:\s*\))?\s*{re.escape(end_marker)}",
