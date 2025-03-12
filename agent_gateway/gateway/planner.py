@@ -21,7 +21,7 @@ import re
 from collections.abc import Sequence
 from typing import Any, Optional, Union
 
-from agent_gateway.executors.schema import Plan
+from agent_gateway.tools.schema import Plan
 from agent_gateway.gateway.constants import END_OF_PLAN
 from agent_gateway.gateway.output_parser import (
     ACTION_PATTERN,

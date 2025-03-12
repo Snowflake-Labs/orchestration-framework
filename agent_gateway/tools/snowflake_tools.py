@@ -22,7 +22,7 @@ from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 
-from agent_gateway.agents.tools import Tool
+from agent_gateway.tools.tools import Tool
 from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.utils import (
     CortexEndpointBuilder,
