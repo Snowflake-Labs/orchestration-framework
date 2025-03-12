@@ -16,15 +16,8 @@ import asyncio
 import inspect
 from functools import partial
 from inspect import signature
-from typing import Any, Awaitable, Callable, Dict, Optional, Tuple, Type, Union
-
-from langchain.callbacks.manager import (
-    AsyncCallbackManagerForToolRun,
-    CallbackManagerForToolRun,
-)
-from langchain.schema.runnable import RunnableConfig
-from langchain.tools import BaseTool
-from pydantic import BaseModel, Extra, Field, create_model, validate_arguments
+from typing import Any, Awaitable, Callable, Dict, Optional, Tuple, Type, Union, Literal
+from pydantic import BaseModel, Field, create_model, validate_arguments
 
 
 class SchemaAnnotationError(TypeError):
@@ -37,7 +30,7 @@ def _create_subset_model(
     """Create a pydantic model with only a subset of model's fields."""
     fields = {}
     for field_name in field_names:
-        field = model.__fields__[field_name]
+        field = model.model_fields[field_name]
         fields[field_name] = (field.outer_type_, field.field_info)
     return create_model(name, **fields)  # type: ignore
 
@@ -55,7 +48,7 @@ def _get_filtered_args(
 class _SchemaConfig:
     """Configuration for the pydantic model."""
 
-    extra: Any = Extra.forbid
+    extra: Any = Literal["forbid"]
     arbitrary_types_allowed: bool = True
 
 
@@ -113,16 +106,15 @@ class Tool:
     async def ainvoke(
         self,
         input: Union[str, Dict],
-        config: Optional[RunnableConfig] = None,
         **kwargs: Any,
     ) -> Any:
         if not self.coroutine:
             # If the tool does not implement async, fall back to default implementation
             return await asyncio.get_running_loop().run_in_executor(
-                None, partial(self.invoke, input, config, **kwargs)
+                None, partial(self.invoke, input, **kwargs)
             )
 
-        return self.invoke(input, config, **kwargs)
+        return self.invoke(input, **kwargs)
 
     # --- Tool ---
 
@@ -149,7 +141,6 @@ class Tool:
     def _run(
         self,
         *args: Any,
-        run_manager: Optional[CallbackManagerForToolRun] = None,
         **kwargs: Any,
     ) -> Any:
         """Use the tool."""
@@ -158,7 +149,6 @@ class Tool:
             return (
                 self.func(
                     *args,
-                    callbacks=run_manager.get_child() if run_manager else None,
                     **kwargs,
                 )
                 if new_argument_supported
@@ -169,7 +159,6 @@ class Tool:
     async def _arun(
         self,
         *args: Any,
-        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
         **kwargs: Any,
     ) -> Any:
         """Use the tool asynchronously."""
@@ -180,7 +169,6 @@ class Tool:
             return (
                 await self.coroutine(
                     *args,
-                    callbacks=run_manager.get_child() if run_manager else None,
                     **kwargs,
                 )
                 if new_argument_supported
@@ -188,7 +176,7 @@ class Tool:
             )
         else:
             return await asyncio.get_running_loop().run_in_executor(
-                None, partial(self._run, run_manager=run_manager, **kwargs), *args
+                None, partial(self._run, **kwargs), *args
             )
 
     def __init__(
@@ -244,16 +232,15 @@ class StructuredTool:
     async def ainvoke(
         self,
         input: Union[str, Dict],
-        config: Optional[RunnableConfig] = None,
         **kwargs: Any,
     ) -> Any:
         if not self.coroutine:
             # If the tool does not implement async, fall back to default implementation
             return await asyncio.get_running_loop().run_in_executor(
-                None, partial(self.invoke, input, config, **kwargs)
+                None, partial(self.invoke, input, **kwargs)
             )
 
-        return super().ainvoke(input, config, **kwargs)
+        return super().ainvoke(input, **kwargs)
 
     # --- Tool ---
 
@@ -265,7 +252,6 @@ class StructuredTool:
     def _run(
         self,
         *args: Any,
-        run_manager: Optional[CallbackManagerForToolRun] = None,
         **kwargs: Any,
     ) -> Any:
         """Use the tool."""
@@ -274,7 +260,6 @@ class StructuredTool:
             return (
                 self.func(
                     *args,
-                    callbacks=run_manager.get_child() if run_manager else None,
                     **kwargs,
                 )
                 if new_argument_supported
@@ -285,7 +270,6 @@ class StructuredTool:
     async def _arun(
         self,
         *args: Any,
-        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
         **kwargs: Any,
     ) -> str:
         """Use the tool asynchronously."""
@@ -296,7 +280,6 @@ class StructuredTool:
             return (
                 await self.coroutine(
                     *args,
-                    callbacks=run_manager.get_child() if run_manager else None,
                     **kwargs,
                 )
                 if new_argument_supported
@@ -305,7 +288,7 @@ class StructuredTool:
         return await asyncio.get_running_loop().run_in_executor(
             None,
             self._run,
-            partial(self._run, run_manager=run_manager, **kwargs),
+            partial(self._run, **kwargs),
             *args,
         )
 
@@ -418,7 +401,7 @@ def tool(
     """
 
     def _make_with_name(tool_name: str) -> Callable:
-        def _make_tool(dec_func: Callable) -> BaseTool:
+        def _make_tool(dec_func: Callable) -> Tool:
             if inspect.iscoroutinefunction(dec_func):
                 coroutine = dec_func
                 func = None
@@ -463,7 +446,7 @@ def tool(
     elif len(args) == 0:
         # if there are no arguments, then we use the function name as the tool name
         # Example usage: @tool(return_direct=True)
-        def _partial(func: Callable[[str], str]) -> BaseTool:
+        def _partial(func: Callable[[str], str]) -> Tool:
             return _make_with_name(func.__name__)(func)
 
         return _partial

@@ -16,14 +16,21 @@ import re
 from collections.abc import Sequence
 from typing import Any, Tuple, Union
 
-from langchain.schema import OutputParserException
-
 from agent_gateway.gateway.task_processor import Task
 from agent_gateway.tools.base import StructuredTool, Tool
+
+from agent_gateway.tools.logger import gateway_logger
 
 THOUGHT_PATTERN = r"Thought: ([^\n]*)"
 ACTION_PATTERN = r"\n*(\d+)\. (\w+)\((.*?)\)(\s*#\w+\n)?"
 ID_PATTERN = r"\$\{?(\d+)\}?"
+
+
+class AgentGatewayError(Exception):
+    def __init__(self, message):
+        self.message = message
+        gateway_logger.log("ERROR", self.message)
+        super().__init__(self.message)
 
 
 def default_dependency_rule(idx, args: str):
@@ -167,7 +174,7 @@ def _find_tool(
     for tool in tools:
         if tool.name == tool_name:
             return tool
-    raise OutputParserException(f"Tool {tool_name} not found.")
+    raise AgentGatewayError(message=f"Tool {tool_name} not found.")
 
 
 def _get_dependencies_from_graph(
