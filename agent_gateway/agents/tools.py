@@ -16,7 +16,6 @@ from typing import List
 from agent_gateway.tools.base import Tool, tool
 
 
-# class InvalidTool(BaseTool):
 class InvalidTool:
     """Tool that is run when invalid tool name is encountered by agent."""
 
