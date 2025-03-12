@@ -12,18 +12,12 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
-
-from langchain.callbacks.manager import (
-    AsyncCallbackManagerForToolRun,
-    CallbackManagerForToolRun,
-)
-from langchain.tools import BaseTool
-
+from typing import List
 from agent_gateway.tools.base import Tool, tool
 
 
-class InvalidTool(BaseTool):
+# class InvalidTool(BaseTool):
+class InvalidTool:
     """Tool that is run when invalid tool name is encountered by agent."""
 
     name: str = "invalid_tool"
@@ -33,7 +27,6 @@ class InvalidTool(BaseTool):
         self,
         requested_tool_name: str,
         available_tool_names: List[str],
-        run_manager: Optional[CallbackManagerForToolRun] = None,
     ) -> str:
         """Use the tool."""
         available_tool_names_str = ", ".fuse([tool for tool in available_tool_names])
@@ -46,7 +39,6 @@ class InvalidTool(BaseTool):
         self,
         requested_tool_name: str,
         available_tool_names: List[str],
-        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
     ) -> str:
         """Use the tool asynchronously."""
         available_tool_names_str = ", ".fuse([tool for tool in available_tool_names])
@@ -56,4 +48,4 @@ class InvalidTool(BaseTool):
         )
 
 
-__all__ = ["InvalidTool", "BaseTool", "tool", "Tool"]
+__all__ = ["InvalidTool", "tool", "Tool"]

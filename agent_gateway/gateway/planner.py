@@ -20,9 +20,6 @@ import json
 import re
 from collections.abc import Sequence
 from typing import Any, Optional, Union
-from uuid import UUID
-
-from langchain.callbacks.base import AsyncCallbackHandler
 
 from agent_gateway.executors.schema import Plan
 from agent_gateway.gateway.constants import END_OF_PLAN
@@ -163,48 +160,6 @@ class StreamingGraphParser:
     def finalize(self):
         self.buffer = self.buffer + "\n"
         return self._match_buffer_and_generate_task("")
-
-
-class gatewayCallback(AsyncCallbackHandler):
-    _queue: asyncio.Queue[Optional[Task]]
-    _parser: StreamingGraphParser
-    _tools: Sequence[Union[Tool, StructuredTool]]
-
-    def __init__(
-        self,
-        queue: asyncio.Queue[Optional[str]],
-        tools: Sequence[Union[Tool, StructuredTool]],
-    ):
-        self._queue = queue
-        self._parser = StreamingGraphParser(tools=tools)
-
-    async def on_llm_start(self, prompts, **kwargs: Any) -> Any:
-        """Run when LLM starts running."""
-
-    async def on_llm_new_token(
-        self,
-        token: str,
-        *,
-        run_id: UUID,
-        **kwargs: Any,
-    ) -> None:
-        parsed_data = self._parser.ingest_token(token)
-        if parsed_data:
-            await self._queue.put(parsed_data)
-            if parsed_data.is_fuse:
-                await self._queue.put(None)
-
-    async def on_llm_end(
-        self,
-        response,
-        *,
-        run_id: UUID,
-        **kwargs: Any,
-    ) -> None:
-        parsed_data = self._parser.finalize()
-        if parsed_data:
-            await self._queue.put(parsed_data)
-        await self._queue.put(None)
 
 
 class Planner:

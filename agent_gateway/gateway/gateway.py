@@ -21,7 +21,6 @@ from typing import Any, Dict, List, Mapping, Optional, Union, cast
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
 
-from agent_gateway.chains.chain import Chain
 from agent_gateway.gateway.constants import END_OF_PLAN, FUSION_REPLAN
 from agent_gateway.gateway.planner import Planner
 from agent_gateway.gateway.task_processor import Task, TaskProcessor
@@ -126,7 +125,7 @@ class SummarizationAgent(Tool):
         )
 
 
-class Agent(Chain, extra="allow"):
+class Agent:
     """Cortex Gateway Multi Agent Class"""
 
     input_key: str = "input"
@@ -170,8 +169,6 @@ class Agent(Chain, extra="allow"):
             planner_stream: Whether to stream the planning.
 
         """
-        super().__init__(name="gateway", **kwargs)
-
         if not planner_example_prompt_replan:
             planner_example_prompt_replan = planner_example_prompt
 

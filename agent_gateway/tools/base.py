@@ -98,7 +98,7 @@ class ToolException(Exception):
     pass
 
 
-class Tool(BaseTool):
+class Tool:
     """Tool that takes in function or coroutine directly."""
 
     description: str = ""
@@ -122,7 +122,7 @@ class Tool(BaseTool):
                 None, partial(self.invoke, input, config, **kwargs)
             )
 
-        return super().ainvoke(input, config, **kwargs)
+        return self.invoke(input, config, **kwargs)
 
     # --- Tool ---
 
@@ -191,12 +191,14 @@ class Tool(BaseTool):
                 None, partial(self._run, run_manager=run_manager, **kwargs), *args
             )
 
-    # TODO: this is for backwards compatibility, remove in future
     def __init__(
         self, name: str, func: Optional[Callable], description: str, **kwargs: Any
     ) -> None:
         """Initialize tool."""
-        super().__init__(name=name, func=func, description=description, **kwargs)
+        self.name = name
+        self.func = func
+        self.description = description
+        self.kwargs = kwargs
 
     @classmethod
     def from_function(
@@ -225,7 +227,7 @@ class Tool(BaseTool):
         )
 
 
-class StructuredTool(BaseTool):
+class StructuredTool:
     """Tool that can operate on any number of inputs."""
 
     description: str = ""
