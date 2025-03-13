@@ -101,6 +101,7 @@ class Tool:
     coroutine: Optional[Callable[..., Awaitable[str]]] = None
     """The asynchronous version of the function."""
     stringify_rule: Optional[Callable[..., str]] = None
+    args_schema = None
 
     # --- Runnable ---
 
