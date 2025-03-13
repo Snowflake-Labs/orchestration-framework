@@ -301,8 +301,6 @@ class CortexAnalystTool(Tool):
 
 
 class PythonTool(Tool):
-    # python_callable: object = None
-
     def __init__(self, python_func, tool_description, output_description) -> None:
         self.python_callable = self.asyncify(python_func)
         self.desc = self._generate_description(
@@ -313,7 +311,7 @@ class PythonTool(Tool):
         super().__init__(
             name=python_func.__name__, func=self.python_callable, description=self.desc
         )
-        # self.python_callable = python_func
+
         gateway_logger.log("INFO", "Python Tool successfully initialized")
 
     def __call__(self, *args):
