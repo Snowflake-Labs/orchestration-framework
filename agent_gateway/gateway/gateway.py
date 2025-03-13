@@ -198,7 +198,6 @@ class Agent:
             planner_stream: Whether to stream the planning.
 
         """
-        super().__init__(name="gateway", **kwargs)
 
         # hack to add tools to observability
         def _unused_tool():
@@ -613,3 +612,24 @@ class Agent:
             }
         else:
             return {"output": answer, "sources": sources}
+
+
+
+class TruAgent:
+    def __init__(self, app_name, app_version, trulens_snowflake_connection, **kwargs):
+        self.agent = Agent(**kwargs)
+        self.tru_session = TruSession(connector=trulens_snowflake_connection)
+
+        self.tru_agent = TruCustomApp(
+            self.agent,
+            app_name=app_name,
+            app_version=app_version,
+        )
+        
+
+    def __call__(self, input):
+        with self.tru_agent:
+            output = self.agent(input)
+
+        return output
+
