@@ -1,6 +1,7 @@
 # Agentic Orchestration Framework
 
-The Agent Gateway is an agentic orchestration framework that offers native support for Snowflake tools.
+The Agent Gateway is an agentic orchestration framework that offers native support for
+Snowflake tools.
 
 Instead of requiring users or developers to choose between RAG with Cortex Search or
 Text2SQL with Cortex Analyst, the Agent Gateway orchestrates the request to the
@@ -14,15 +15,18 @@ Text2SQL access pattern.
 - **Python Tool**: For supporting custom user operations (i.e. sending API requests to
 third party services), which requires calling arbitrary python.
 
-The Agent Gateway supports multi-step and multi-tool workflows. Users have the flexibility to create multiple Cortex Search and Cortex Analyst tools for use with the Agent Gateway. For a walkthrough of how to configure and run a system with all 3 types of tools, see the [Quickstart](Quickstart.ipynb) notebook.
-
-This library is optimized for client-side orchestration. If you prefer a managed service, we recommend the Snowflake Chat API.
+The Agent Gateway supports multi-step and multi-tool workflows. Users have the
+flexibility to create multiple Cortex Search and Cortex Analyst tools for use with the
+Agent Gateway. For a walkthrough of how to configure and run a system with all 3 types
+of tools, see the [Quickstart](Quickstart.ipynb) notebook.
 
 # Getting Started
 
 ## Installation
 
-In a new virtual environment with Python 3.10 or 3.11, install the latest version of this framework.
+In a new virtual environment with Python 3.10 or 3.11, install the latest version of this
+framework.
+
 ```sh
 pip install orchestration-framework@git+https://github.com/Snowflake-Labs/orchestration-framework.git
 ```
