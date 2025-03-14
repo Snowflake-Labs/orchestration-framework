@@ -34,10 +34,9 @@ load_dotenv("../.env")
 st.set_page_config(page_title="Snowflake Cortex Cube")
 
 connection_parameters = {
-    "host": os.getenv("SNOWFLAKE_HOST"),
     "account": os.getenv("SNOWFLAKE_ACCOUNT"),
-    "authenticator": "oauth",
-    "token": open("/snowflake/session/token", "r").read(),
+    "user": os.getenv("SNOWFLAKE_USER"),
+    "password": os.getenv("SNOWFLAKE_PASSWORD"),
     "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
     "database": os.getenv("SNOWFLAKE_DATABASE"),
     "schema": os.getenv("SNOWFLAKE_SCHEMA"),
@@ -47,7 +46,9 @@ if "prompt_history" not in st.session_state:
     st.session_state["prompt_history"] = {}
 
 if "snowpark" not in st.session_state or st.session_state.snowpark is None:
-    st.session_state.snowpark = Session.builder.configs(connection_parameters).create()
+    st.session_state.snowpark = Session.builder.configs(
+        connection_parameters
+    ).getOrCreate()
 
     search_config = {
         "service_name": "SEC_SEARCH_SERVICE",
@@ -176,7 +177,7 @@ def process_message(prompt_id: str):
         try:
             response = message_queue.get(timeout=0.1)
             if isinstance(response, dict) and "output" in response:
-                final_response = f"{response['output']}"
+                final_response = f"{response['output']['output']}"
                 st.session_state["prompt_history"][prompt_id]["response"] = (
                     final_response
                 )
@@ -219,7 +220,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.logo("/app/demo_app/SIT_logo_white.png")
+st.logo("demo_app/SIT_logo_white.png")
 
 st.markdown(
     "<h1>🧠 Snowflake Cortex<sup style='font-size:.8em;'>3</sup></h1>",
