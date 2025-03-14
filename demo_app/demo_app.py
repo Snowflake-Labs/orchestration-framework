@@ -30,13 +30,14 @@ from agent_gateway.tools import CortexAnalystTool, CortexSearchTool
 from agent_gateway.tools.utils import parse_log_message
 
 warnings.filterwarnings("ignore")
-load_dotenv("../.env")
-st.set_page_config(page_title="Snowflake Cortex Cube")
+load_dotenv()
+st.set_page_config(page_title="Cortex Cube")
 
 connection_parameters = {
     "account": os.getenv("SNOWFLAKE_ACCOUNT"),
     "user": os.getenv("SNOWFLAKE_USER"),
     "password": os.getenv("SNOWFLAKE_PASSWORD"),
+    "role": os.getenv("SNOWFLAKE_ROLE"),
     "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
     "database": os.getenv("SNOWFLAKE_DATABASE"),
     "schema": os.getenv("SNOWFLAKE_SCHEMA"),
@@ -67,16 +68,17 @@ if "snowpark" not in st.session_state or st.session_state.snowpark is None:
     }
 
     # Tools Config
-    st.session_state.annual_reports = CortexSearchTool(**search_config)
-    st.session_state.sp500 = CortexAnalystTool(**analyst_config)
+    # st.session_state.google_news = PythonTool(**python_config)
+    st.session_state.search = CortexSearchTool(**search_config)
+    st.session_state.analyst = CortexAnalystTool(**analyst_config)
+
     st.session_state.snowflake_tools = [
-        st.session_state.annual_reports,
-        st.session_state.sp500,
+        st.session_state.search,
+        st.session_state.analyst,
     ]
 
-
-if "analyst" not in st.session_state:
-    st.session_state.analyst = Agent(
+if "agent" not in st.session_state:
+    st.session_state.agent = Agent(
         snowflake_connection=st.session_state.snowpark,
         tools=st.session_state.snowflake_tools,
     )
@@ -105,8 +107,16 @@ class StreamlitLogHandler(logging.Handler):
     def get_logs(self):
         return self.log_buffer.getvalue()
 
+    def process_logs(self):
+        raw_logs = self.get_logs()
+        lines = raw_logs.strip().split("\n")
+        log_output = [parse_log_message(line.strip()) for line in lines if line.strip()]
+        cleaned_output = [line for line in log_output if line is not None]
+        all_logs = "\n".join(cleaned_output)
+        return all_logs
+
     def clear_logs(self):
-        self.log_area.empty()
+        self.log_buffer = io.StringIO()
 
 
 def setup_logging():
@@ -124,9 +134,11 @@ def setup_logging():
 # Set up logging
 if "logging_setup" not in st.session_state:
     st.session_state.logging_setup = setup_logging()
+    st.logger = logging.getLogger("AgentGatewayLogger")
+    st.logger.propagate = True
 
 
-def run_acall(prompt, message_queue, analyst):
+def run_acall(prompt, message_queue, agent):
     old_stdout = sys.stdout
     new_stdout = io.StringIO()
     sys.stdout = new_stdout
@@ -134,7 +146,7 @@ def run_acall(prompt, message_queue, analyst):
     asyncio.set_event_loop(loop)
 
     # Run the async call
-    response = loop.run_until_complete(analyst.acall(prompt))
+    response = loop.run_until_complete(agent.acall(prompt))
     loop.close()
 
     # Restore stdout
@@ -153,47 +165,49 @@ def run_acall(prompt, message_queue, analyst):
             message_queue.put(line)
 
     # Ensure the final output is correctly added to the queue
-    message_queue.put({"output": response})
+    message_queue.put(response)
 
 
 def process_message(prompt_id: str):
     prompt = st.session_state["prompt_history"][prompt_id].get("prompt")
     message_queue = queue.Queue()
-    analyst = st.session_state.analyst
+    agent = st.session_state.agent
     log_container = st.empty()
     log_handler = setup_logging()
 
     def run_analysis():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        response = loop.run_until_complete(analyst.acall(prompt))
+        response = loop.run_until_complete(agent.acall(prompt))
         loop.close()
-        message_queue.put({"output": response})
+        message_queue.put(response)
 
     thread = threading.Thread(target=run_analysis)
     thread.start()
 
     while True:
         try:
-            response = message_queue.get(timeout=0.1)
+            response = message_queue.get(timeout=1)
             if isinstance(response, dict) and "output" in response:
-                final_response = f"{response['output']['output']}"
+                final_response = f"{response['output']}"
                 st.session_state["prompt_history"][prompt_id]["response"] = (
                     final_response
                 )
-                log_container.code(parse_log_message(log_handler.get_logs()))
+                logs = log_handler.process_logs()
+                if logs:
+                    log_container.code(logs)
                 log_container.empty()
                 yield final_response
                 break
             else:
-                # Handle other logs
-                pass
+                logs = log_handler.process_logs()
+                if logs:
+                    log_container.code(logs)
+
         except queue.Empty:
-            log_output = parse_log_message(log_handler.get_logs())
-            if log_output is not None:
-                log_container.code(log_output)
-            # with st.spinner("Awaiting Response..."):
-            #     pass
+            logs = log_handler.process_logs()
+            if logs:
+                log_container.code(logs)
     st.rerun()
 
 
@@ -220,46 +234,31 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.logo("demo_app/SIT_logo_white.png")
+st.markdown("## 🧠 Snowflake Agent Gateway \n\n\n")
 
-st.markdown(
-    "<h1>🧠 Snowflake Cortex<sup style='font-size:.8em;'>3</sup></h1>",
-    unsafe_allow_html=True,
-)
-st.caption(
-    "A Multi-Agent System with access to Cortex, Cortex Search, Cortex Analyst, and more."
-)
 
-for id in st.session_state.prompt_history:
-    current_prompt = st.session_state.prompt_history.get(id)
+with st.container(height=800, border=False):
+    for id in st.session_state.prompt_history:
+        current_prompt = st.session_state.prompt_history.get(id)
 
-    with st.chat_message("user"):
-        st.write(current_prompt.get("prompt"))
+        with st.chat_message("user"):
+            st.write(current_prompt.get("prompt"))
 
-    with st.chat_message("assistant"):
-        if current_prompt.get("response") == "waiting":
-            # Create containers for tool selection and response
-            tool_info_container = st.empty()
+        with st.chat_message("assistant"):
             response_container = st.empty()
+            if current_prompt.get("response") == "waiting":
+                # Start processing messages
+                message_generator = process_message(prompt_id=id)
 
-            # Start processing messages
-            message_generator = process_message(prompt_id=id)
-
-            # Use a spinner while processing
-            with st.spinner("Awaiting Response..."):
-                for response in message_generator:
-                    if "Using" in response:
-                        tool_info_container.markdown(f"**{response}**")
-                    else:
-                        # Clear tool info once final response is ready
-                        tool_info_container.empty()
+                with st.spinner("Awaiting Response..."):
+                    for response in message_generator:
                         response_container.markdown(response)
-        else:
-            # Display the final response
-            st.markdown(
-                st.session_state["prompt_history"][id]["response"],
-                unsafe_allow_html=True,
-            )
+            else:
+                # Display the final response
+                response_container.markdown(
+                    current_prompt["response"],
+                    unsafe_allow_html=True,
+                )
 
 st.chat_input(
     "Ask Anything", on_submit=create_prompt, key="chat_input", args=["chat_input"]
