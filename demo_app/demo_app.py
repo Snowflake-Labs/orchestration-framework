@@ -189,9 +189,12 @@ def process_message(prompt_id: str):
         try:
             response = message_queue.get(timeout=1)
             if isinstance(response, dict) and "output" in response:
-                final_response = f"{response['output']}"
+                final_response = response
                 st.session_state["prompt_history"][prompt_id]["response"] = (
-                    final_response
+                    final_response["output"]
+                )
+                st.session_state["prompt_history"][prompt_id]["sources"] = (
+                    final_response["sources"]
                 )
                 logs = log_handler.process_logs()
                 if logs:
@@ -235,9 +238,20 @@ st.markdown(
 )
 
 st.markdown("## 🧠 Snowflake Agent Gateway \n\n\n")
+st.markdown("</div>", unsafe_allow_html=True)
 
-
-with st.container(height=800, border=False):
+with st.container(border=False):
+    st.markdown(
+        """
+    <style>
+    [data-testid="stContainer"] {
+        height: 70vh !important;
+        overflow-y: auto;
+    }
+    </style>
+    """,
+        unsafe_allow_html=True,
+    )
     for id in st.session_state.prompt_history:
         current_prompt = st.session_state.prompt_history.get(id)
 
@@ -252,13 +266,28 @@ with st.container(height=800, border=False):
 
                 with st.spinner("Awaiting Response..."):
                     for response in message_generator:
-                        response_container.markdown(response)
+                        response_container.text(response)
             else:
                 # Display the final response
                 response_container.markdown(
                     current_prompt["response"],
                     unsafe_allow_html=True,
                 )
+                # Add sources section aligned to the right
+                if current_prompt.get("sources") is not None:
+                    citations = [
+                        source["metadata"] for source in current_prompt.get("sources")
+                    ]
+                    flattened = [str(item) for sublist in citations for item in sublist]
+                    sources = ", ".join(flattened)
+                    st.markdown(
+                        """
+                        <div style="text-align: right; font-size: 0.8em; font-style: italic; margin-top: 5px;">
+                            Sources: {sources}
+                        </div>
+                        """.format(sources=sources),
+                        unsafe_allow_html=True,
+                    )
 
 st.chat_input(
     "Ask Anything", on_submit=create_prompt, key="chat_input", args=["chat_input"]
