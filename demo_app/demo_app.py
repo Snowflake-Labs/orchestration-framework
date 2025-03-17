@@ -20,13 +20,14 @@ import sys
 import threading
 import uuid
 import warnings
+import requests
 
 import streamlit as st
 from dotenv import load_dotenv
 from snowflake.snowpark import Session
 
 from agent_gateway import Agent
-from agent_gateway.tools import CortexAnalystTool, CortexSearchTool
+from agent_gateway.tools import CortexAnalystTool, CortexSearchTool, PythonTool
 from agent_gateway.tools.utils import parse_log_message
 
 warnings.filterwarnings("ignore")
@@ -43,6 +44,19 @@ connection_parameters = {
     "schema": os.getenv("SNOWFLAKE_SCHEMA"),
 }
 
+
+def html_crawl(url):
+    response = requests.get(url)
+    return response.text
+
+
+python_crawler_config = {
+    "tool_description": "reads the html from a given URL or website",
+    "output_description": "html of a webpage",
+    "python_func": html_crawl,
+}
+
+
 if "prompt_history" not in st.session_state:
     st.session_state["prompt_history"] = {}
 
@@ -55,7 +69,7 @@ if "snowpark" not in st.session_state or st.session_state.snowpark is None:
         "service_name": "SEC_SEARCH_SERVICE",
         "service_topic": "Snowflake's business,product offerings,and performance",
         "data_description": "Snowflake annual reports",
-        "retrieval_columns": ["CHUNK"],
+        "retrieval_columns": ["CHUNK", "RELATIVE_PATH"],
         "snowflake_connection": st.session_state.snowpark,
     }
 
@@ -68,7 +82,7 @@ if "snowpark" not in st.session_state or st.session_state.snowpark is None:
     }
 
     # Tools Config
-    # st.session_state.google_news = PythonTool(**python_config)
+    st.session_state.google_news = PythonTool(**python_crawler_config)
     st.session_state.search = CortexSearchTool(**search_config)
     st.session_state.analyst = CortexAnalystTool(**analyst_config)
 
@@ -275,17 +289,19 @@ with st.container(border=False):
                 )
                 # Add sources section aligned to the right
                 if current_prompt.get("sources") is not None:
-                    citations = [
+                    sources = []
+                    citations_metadata = [
                         source["metadata"] for source in current_prompt.get("sources")
                     ]
-                    flattened = [str(item) for sublist in citations for item in sublist]
-                    sources = ", ".join(flattened)
+                    for i in citations_metadata:
+                        sources.append(list(i[0].values())[0])
+
                     st.markdown(
                         """
                         <div style="text-align: right; font-size: 0.8em; font-style: italic; margin-top: 5px;">
-                            Sources: {sources}
+                            <b>Sources</b>: {sources}
                         </div>
-                        """.format(sources=sources),
+                        """.format(sources=", ".join(sources)),
                         unsafe_allow_html=True,
                     )
 
