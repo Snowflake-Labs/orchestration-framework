@@ -301,9 +301,8 @@ class CortexAnalystTool(Tool):
         return url, headers, data
 
     @instrument
-    def _process_analyst_message(self, response)-> Dict[str, Any]:
-        if isinstance(response, List[Dict[str, Any]]) and len(response) > 0:
-                   
+    def _process_analyst_message(self, response) -> Dict[str, Any]:
+        if isinstance(response, list) and len(response) > 0:
             gateway_logger.log("DEBUG", response)
             sql_exists = any(item.get("type") == "sql" for item in response)
 

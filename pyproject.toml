@@ -12,8 +12,6 @@ dependencies = [
     "asyncio>=3.4.3",
     "aiohttp>=3.10.9,<4.0",
     "pydantic>=2.9.2,<3.0",
-    "langchain-text-splitters>=0.3.2",
-    "langchain>=0.3.10",
     "trulens>=1.4.5",
     "trulens-connectors-snowflake",
 ]

@@ -34,7 +34,7 @@ from agent_gateway.tools.snowflake_prompts import (
 from agent_gateway.tools.utils import (
     CortexEndpointBuilder,
     post_cortex_request,
-    _determine_runtime
+    _determine_runtime,
 )
 
 from agent_gateway.tools.snowflake_tools import (
@@ -614,8 +614,7 @@ class Agent:
             return {"output": answer, "sources": sources}
 
 
-
-class TruAgent:
+class TruAgent(Agent):
     def __init__(self, app_name, app_version, trulens_snowflake_connection, **kwargs):
         self.agent = Agent(**kwargs)
         self.tru_session = TruSession(connector=trulens_snowflake_connection)
@@ -625,11 +624,9 @@ class TruAgent:
             app_name=app_name,
             app_version=app_version,
         )
-        
 
     def __call__(self, input):
         with self.tru_agent:
             output = self.agent(input)
 
         return output
-
