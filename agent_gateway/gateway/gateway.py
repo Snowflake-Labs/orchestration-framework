@@ -614,7 +614,7 @@ class Agent:
             return {"output": answer, "sources": sources}
 
 
-class TruAgent(Agent):
+class TruAgent:
     def __init__(self, app_name, app_version, trulens_snowflake_connection, **kwargs):
         self.agent = Agent(**kwargs)
         self.tru_session = TruSession(connector=trulens_snowflake_connection)
@@ -630,3 +630,6 @@ class TruAgent(Agent):
             output = self.agent(input)
 
         return output
+
+    async def acall(self, input):
+        return await self.agent.acall(input)
