@@ -164,7 +164,7 @@ class CortexSearchTool(Tool):
             .fetchall()
         )
         df = pd.DataFrame(df)
-        raw_atts = df.loc[df["name"] == search_service_name, attribute][0]
+        raw_atts = df.loc[df["name"] == search_service_name, attribute].loc[0]
 
         return raw_atts.split(",")
 
@@ -175,7 +175,7 @@ class CortexSearchTool(Tool):
             .fetch_pandas_all()
         )
         df = pd.DataFrame(df)
-        table_def = df.loc[df["name"] == search_service_name, "definition"][0]
+        table_def = df.loc[df["name"] == search_service_name, "definition"].loc[0]
 
         pattern = r"FROM\s+([\w\.]+)"
         match = re.search(pattern, table_def)
