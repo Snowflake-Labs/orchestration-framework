@@ -164,8 +164,7 @@ class CortexSearchTool(Tool):
             .fetchall()
         )
         df = pd.DataFrame(df)
-        raw_atts = df.loc[df["name"] == search_service_name, attribute].loc[0]
-
+        raw_atts = df.loc[df["name"] == search_service_name, attribute].iloc[0]
         return raw_atts.split(",")
 
     def _get_search_table(self, search_service_name: str) -> str:
