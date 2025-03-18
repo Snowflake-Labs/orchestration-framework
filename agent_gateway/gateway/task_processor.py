@@ -20,7 +20,7 @@ from typing import Any, Callable, Dict, List, Optional
 from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.snowflake_tools import SnowflakeError
 
-from trulens.apps.custom import instrument
+from trulens.apps.app import instrument
 
 SCHEDULING_INTERVAL = 0.01  # seconds
 

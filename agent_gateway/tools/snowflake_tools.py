@@ -5,11 +5,12 @@ import inspect
 import json
 import re
 from typing import Any, Dict, List, Type, Union, ClassVar
+import pandas as pd
 
 from pydantic import BaseModel
 from snowflake.connector.connection import SnowflakeConnection
+from snowflake.connector import DictCursor
 from snowflake.snowpark import Session
-from snowflake.snowpark.functions import col
 
 from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.tools import Tool
@@ -18,9 +19,10 @@ from agent_gateway.tools.utils import (
     _get_connection,
     post_cortex_request,
     _determine_runtime,
+    get_tag,
 )
 
-from trulens.apps.custom import instrument
+from trulens.apps.app import instrument
 
 
 class SnowflakeError(Exception):
@@ -61,6 +63,9 @@ class CortexSearchTool(Tool):
 
         super().__init__(name=tool_name, description=tool_description, func=search_call)
         self.connection = _get_connection(snowflake_connection)
+        self.connection.cursor().execute(
+            f"alter session set query_tag='{get_tag('CortexSearchTool')}'"
+        )
         self.k = k
         self.retrieval_columns = retrieval_columns
         self.service_name = service_name
@@ -85,7 +90,7 @@ class CortexSearchTool(Tool):
                 search_response = response_json["results"]
         except KeyError:
             raise SnowflakeError(
-                message=f"unable to parse Cortex Search response {search_response.get('message', 'Unknown error')}"
+                message=f"unable to parse Cortex Search response {response_json.get('message', 'Unknown error')}"
             )
 
         search_col = self._get_search_column(self.service_name)
@@ -150,67 +155,43 @@ class CortexSearchTool(Tool):
         )
 
     def _get_search_column(self, search_service_name: str) -> List[str]:
-        return self._get_search_service_attribute(search_service_name, "search_column")
-
-    def _get_search_attributes(self, search_service_name: str) -> List[str]:
-        return self._get_search_service_attribute(
-            search_service_name, "attribute_columns"
+        column = self._get_search_service_attribute(
+            search_service_name, "search_column"
         )
+        if column is not None:
+            return column
+        else:
+            raise SnowflakeError(
+                message="unable to identify index column in Cortex Search"
+            )
 
     def _get_search_service_attribute(
         self, search_service_name: str, attribute: str
     ) -> List[str]:
-        snowflake_connection = Session.builder.config(
-            "connection", self.connection
-        ).create()
-        df = snowflake_connection.sql("SHOW CORTEX SEARCH SERVICES")
-        raw_atts = (
-            df.where(col('"name"') == search_service_name)
-            .select(f'"{attribute}"')
-            .to_pandas()
-            .loc[0]
-            .values[0]
+        df = (
+            self.connection.cursor(cursor_class=DictCursor)
+            .execute("SHOW CORTEX SEARCH SERVICES")
+            .fetchall()
         )
-        return raw_atts.split(",")
+        df = pd.DataFrame(df)
+
+        if not df.empty:
+            raw_atts = df.loc[df["name"] == search_service_name, attribute].iloc[0]
+            return raw_atts.split(",")
+        else:
+            return None
 
     def _get_search_table(self, search_service_name: str) -> str:
-        snowflake_connection = Session.builder.config(
-            "connection", self.connection
-        ).create()
-        df = snowflake_connection.sql("SHOW CORTEX SEARCH SERVICES")
-        table_def = (
-            df.where(col('"name"') == search_service_name)
-            .select('"definition"')
-            .to_pandas()
-            .loc[0]
-            .values[0]
+        df = (
+            self.connection.cursor(cursor_class=DictCursor)
+            .execute("SHOW CORTEX SEARCH SERVICES")
+            .fetch_pandas_all()
         )
-
+        df = pd.DataFrame(df)
+        table_def = df.loc[df["name"] == search_service_name, "definition"].iloc[0]
         pattern = r"FROM\s+([\w\.]+)"
         match = re.search(pattern, table_def)
         return match[1] if match else "No match found."
-
-    def _get_sample_values(
-        self,
-        snowflake_connection: Union[Session, SnowflakeConnection],
-        cortex_search_service: str,
-        max_samples: int = 10,
-    ) -> tuple:
-        attributes = self._get_search_attributes(cortex_search_service)
-        table_name = self._get_search_table(cortex_search_service)
-
-        sample_values = {
-            attribute: list(
-                snowflake_connection.sql(
-                    f"SELECT DISTINCT({attribute}) FROM {table_name} LIMIT {max_samples}"
-                )
-                .to_pandas()[attribute]
-                .values
-            )
-            for attribute in attributes
-        }
-
-        return attributes, sample_values
 
 
 def get_min_length(model: Type[BaseModel]) -> int:
@@ -252,6 +233,9 @@ class CortexAnalystTool(Tool):
 
         super().__init__(name=tname, func=analyst_call, description=tool_description)
         self.connection = _get_connection(snowflake_connection)
+        self.connection.cursor().execute(
+            f"alter session set query_tag='{get_tag('CortexAnalystTool')}'"
+        )
         self.FILE = semantic_model
         self.STAGE = stage
 

@@ -24,7 +24,7 @@ import pkg_resources
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
 
-from trulens.apps.custom import instrument
+from trulens.apps.app import instrument
 
 
 def _get_connection(
@@ -267,3 +267,13 @@ def teardown_demo_services(session: Session) -> str:
     con = session.connection
     deque(con.execute_stream(teardown_objects), maxlen=0)
     return "Demo objects have been dropped."
+
+
+def get_tag(component: str) -> str:
+    query_tag = {
+        "origin": "sf_sit",
+        "name": "orchestration-framework",
+        "version": {"major": 0, "minor": 1},
+        "attributes": {"component": component},
+    }
+    return json.dumps(query_tag)

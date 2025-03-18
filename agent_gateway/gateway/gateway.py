@@ -33,8 +33,9 @@ from agent_gateway.tools.snowflake_prompts import (
 )
 from agent_gateway.tools.utils import (
     CortexEndpointBuilder,
-    post_cortex_request,
     _determine_runtime,
+    post_cortex_request,
+    get_tag,
 )
 
 from agent_gateway.tools.snowflake_tools import (
@@ -43,7 +44,8 @@ from agent_gateway.tools.snowflake_tools import (
     CortexSearchTool,
 )
 
-from trulens.apps.custom import instrument, TruCustomApp
+from trulens.apps.app import instrument
+from trulens.apps.custom import TruCustomApp
 from trulens.core import TruSession
 
 from typing import ClassVar
@@ -62,6 +64,9 @@ class CortexCompleteAgent:
     def __init__(self, session, llm) -> None:
         self.llm = llm
         self.session = session
+        self.session.connection.cursor().execute(
+            f"alter session set query_tag='{get_tag('CortexAnalystTool')}'"
+        )
 
     @instrument
     async def arun(self, prompt: str) -> str:

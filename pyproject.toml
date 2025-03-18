@@ -1,12 +1,17 @@
 [project]
 name = "orchestration-framework"
-version = "0.1.0"
+version = "0.1.2"
 requires-python = ">=3.9"
-description = "Multi-agent framework for Snowflake"
+description = "A multi-agent framework with native support for Snowflake services"
 authors = [
   { name = "Alejandro Herrera", email = "alejandro.herrera@snowflake.com" },
 ]
+maintainers = [
+  { name = "Alejandro Herrera", email = "alejandro.herrera@snowflake.com" },
+  { name = "Tyler White", email = "tyler.white@snowflake.com" },
+]
 readme = "README.md"
+license = {file = "LICENSE"}
 dependencies = [
     "snowflake-snowpark-python[pandas]>=1.22.1,<2.0",
     "asyncio>=3.4.3",
@@ -16,12 +21,17 @@ dependencies = [
     "trulens-connectors-snowflake",
 ]
 
+[project.urls]
+Repository = "https://github.com/Snowflake-Labs/orchestration-framework.git"
+Issues = "https://github.com/Snowflake-Labs/orchestration-framework/issues"
+
 [project.optional-dependencies]
 dev = [
     "pre-commit>=4.0.1,<5.0",
     "ruff>=0.6.9,<1.0",
     "pytest>=8.3.3,<9.0",
-    "coverage>=7.6.9,<8.0"
+    "coverage>=7.6.9,<8.0",
+    "ipython>=8.18.1",
 ]
 streamlit = [
     "streamlit>=1.39.0,<2.0",
@@ -34,8 +44,3 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["agent_gateway"]
-
-[dependency-groups]
-dev = [
-    "ipython>=8.18.1",
-]

@@ -2147,7 +2147,7 @@ wheels = [
 
 [[package]]
 name = "orchestration-framework"
-version = "0.1.0"
+version = "0.1.2"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -2161,6 +2161,7 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "coverage" },
+    { name = "ipython" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "ruff" },
@@ -2170,16 +2171,12 @@ streamlit = [
     { name = "streamlit" },
 ]
 
-[package.dev-dependencies]
-dev = [
-    { name = "ipython" },
-]
-
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.10.9,<4.0" },
     { name = "asyncio", specifier = ">=3.4.3" },
     { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.6.9,<8.0" },
+    { name = "ipython", marker = "extra == 'dev'", specifier = ">=8.18.1" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.0.1,<5.0" },
     { name = "pydantic", specifier = ">=2.9.2,<3.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.3,<9.0" },
@@ -2190,9 +2187,6 @@ requires-dist = [
     { name = "trulens", specifier = ">=1.4.5" },
     { name = "trulens-connectors-snowflake" },
 ]
-
-[package.metadata.requires-dev]
-dev = [{ name = "ipython", specifier = ">=8.18.1" }]
 
 [[package]]
 name = "overrides"
