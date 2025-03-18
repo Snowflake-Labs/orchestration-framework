@@ -33,8 +33,8 @@ from agent_gateway.tools.snowflake_prompts import (
 )
 from agent_gateway.tools.utils import (
     CortexEndpointBuilder,
-    post_cortex_request,
     _determine_runtime,
+    post_cortex_request,
 )
 
 

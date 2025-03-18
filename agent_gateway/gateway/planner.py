@@ -34,8 +34,8 @@ from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.schema import Plan
 from agent_gateway.tools.utils import (
     CortexEndpointBuilder,
-    post_cortex_request,
     _determine_runtime,
+    post_cortex_request,
 )
 
 
