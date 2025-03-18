@@ -148,12 +148,13 @@ class CortexSearchTool(Tool):
         )
 
     def _get_search_column(self, search_service_name: str) -> List[str]:
-        return self._get_search_service_attribute(search_service_name, "search_column")
-
-    def _get_search_attributes(self, search_service_name: str) -> List[str]:
-        return self._get_search_service_attribute(
-            search_service_name, "attribute_columns"
+        column = self._get_search_service_attribute(
+            search_service_name, "search_column"
         )
+        if column is not None:
+            return column
+        else:
+            raise SnowflakeError("unable to identify index column in Cortex Search")
 
     def _get_search_service_attribute(
         self, search_service_name: str, attribute: str
@@ -164,8 +165,12 @@ class CortexSearchTool(Tool):
             .fetchall()
         )
         df = pd.DataFrame(df)
-        raw_atts = df.loc[df["name"] == search_service_name, attribute].iloc[0]
-        return raw_atts.split(",")
+
+        if not df.empty:
+            raw_atts = df.loc[df["name"] == search_service_name, attribute].iloc[0]
+            return raw_atts.split(",")
+        else:
+            return None
 
     def _get_search_table(self, search_service_name: str) -> str:
         df = (
