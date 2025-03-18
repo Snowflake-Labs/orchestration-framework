@@ -154,7 +154,9 @@ class CortexSearchTool(Tool):
         if column is not None:
             return column
         else:
-            raise SnowflakeError("unable to identify index column in Cortex Search")
+            raise SnowflakeError(
+                message="unable to identify index column in Cortex Search"
+            )
 
     def _get_search_service_attribute(
         self, search_service_name: str, attribute: str
