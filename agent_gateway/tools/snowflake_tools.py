@@ -162,7 +162,7 @@ class CortexSearchTool(Tool):
     ) -> List[str]:
         snowflake_connection = Session.builder.config(
             "connection", self.connection
-        ).getOrCreate()
+        ).create()
         df = snowflake_connection.sql("SHOW CORTEX SEARCH SERVICES")
         raw_atts = (
             df.where(col('"name"') == search_service_name)
@@ -176,7 +176,7 @@ class CortexSearchTool(Tool):
     def _get_search_table(self, search_service_name: str) -> str:
         snowflake_connection = Session.builder.config(
             "connection", self.connection
-        ).getOrCreate()
+        ).create()
         df = snowflake_connection.sql("SHOW CORTEX SEARCH SERVICES")
         table_def = (
             df.where(col('"name"') == search_service_name)
