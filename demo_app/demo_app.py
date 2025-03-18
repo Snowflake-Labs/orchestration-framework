@@ -31,14 +31,14 @@ from agent_gateway.tools import CortexAnalystTool, CortexSearchTool, PythonTool
 from agent_gateway.tools.utils import parse_log_message
 
 warnings.filterwarnings("ignore")
-load_dotenv()
-st.set_page_config(page_title="Cortex Cube")
+load_dotenv("../.env")
+st.set_page_config(page_title="Agent Gateway")
 
 connection_parameters = {
+    "host": os.getenv("SNOWFLAKE_HOST"),
     "account": os.getenv("SNOWFLAKE_ACCOUNT"),
-    "user": os.getenv("SNOWFLAKE_USER"),
-    "password": os.getenv("SNOWFLAKE_PASSWORD"),
-    "role": os.getenv("SNOWFLAKE_ROLE"),
+    "authenticator": "oauth",
+    "token": open("/snowflake/session/token", "r").read(),
     "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
     "database": os.getenv("SNOWFLAKE_DATABASE"),
     "schema": os.getenv("SNOWFLAKE_SCHEMA"),
