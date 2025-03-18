@@ -174,8 +174,7 @@ class CortexSearchTool(Tool):
             .fetch_pandas_all()
         )
         df = pd.DataFrame(df)
-        table_def = df.loc[df["name"] == search_service_name, "definition"].loc[0]
-
+        table_def = df.loc[df["name"] == search_service_name, "definition"].iloc[0]
         pattern = r"FROM\s+([\w\.]+)"
         match = re.search(pattern, table_def)
         return match[1] if match else "No match found."
