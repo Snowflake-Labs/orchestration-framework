@@ -83,7 +83,7 @@ class CortexSearchTool(Tool):
                 search_response = response_json["results"]
         except KeyError:
             raise SnowflakeError(
-                message=f"unable to parse Cortex Search response {search_response.get('message', 'Unknown error')}"
+                message=f"unable to parse Cortex Search response {response_json.get('message', 'Unknown error')}"
             )
 
         search_col = self._get_search_column(self.service_name)
