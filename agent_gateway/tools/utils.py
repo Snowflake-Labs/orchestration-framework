@@ -18,6 +18,7 @@ from collections import deque
 from textwrap import dedent
 from typing import TypedDict, Union
 from urllib.parse import urlunparse
+import importlib
 
 import aiohttp
 import pkg_resources
@@ -55,8 +56,10 @@ def _determine_runtime():
 
 
 def _should_instrument():
-    # Replace this with your own logic to determine if instrumentation should be applied
-    return True
+    required_packages = ["trulens", "trulens_connectors_snowflake"]
+    return all(
+        importlib.util.find_spec(package) is not None for package in required_packages
+    )
 
 
 def gateway_instrument(func):
