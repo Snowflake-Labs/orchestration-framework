@@ -137,12 +137,11 @@ print(answer)
 
 #### Where does the Agent Gateway run?
 
-- This library is optimized for client-side orchestration. If you prefer a managed service that does the orchestration inside of Snowflake, we recommend using the Snowflake Chat API.
+- This library is optimized for client-side orchestration. If you prefer a managed service that does the orchestration inside of Snowflake, we recommend using the Snowflake Cortex Agent API.
 
 #### Can I use the Agent Gateway within SPCS or a Snowflake Notebook?
 
-- Yes, the Agent Gateway can run in SPCS and Snowflake notebooks backed by a container
-runtime. To install the library directly from GitHub, you must enable a network rule
+- Yes, the Agent Gateway can run in SPCS and Snowflake notebooks. To install the library directly from GitHub or Pypi, you must enable a network rule
 with an external access integration. Here is an example configuration:
 
 ```sql
@@ -158,7 +157,7 @@ ENABLED = true;
 
 #### Does the Agent Gateway work with a Streamlit UI?
 
-- Yes, see the [demo app](https://github.com/Snowflake-Labs/orchestration-framework/blob/main/demo_app/demo_app.py) for an example Streamlit app that uses the Agent Gateway for orchestration across Cortex Search, Cortex Analyst, and Python tools. Note, running the gateway is not yet supported in Streamlit in Snowflake.
+- Yes, see the [demo app](https://github.com/Snowflake-Labs/orchestration-framework/blob/main/demo_app/demo_app.py) for an example Streamlit app that uses the Agent Gateway for orchestration across Cortex Search, Cortex Analyst, and Python tools. You can run the app on Streamlit in Snowflake or in SPCS.
 
 #### How does authentication work?
 
@@ -189,12 +188,15 @@ visibility into intermediary results of the tool calls, set the LOGGING_LEVEL=DE
 
 - Tools are implemented asynchronously. To validate your configuration, you can run each tool in isolation as follows:
 ```python
-tool_result = await my_cortex_search_tool("This is a sample cortex search question")
+import asyncio
+asyncio.run(my_cortex_search_tool("This is a sample cortex search question"))
 ```
+- For more detailed logging and traces for the agent's execution, consider using the native Trulens integration. You can ``pip install
 
 #### How does it work?
 
-- This framework utilizes a dedicated planner LLM to generate a sequence of tool calls that can be executed in parallel. While the orchestration is done on the client-side, Snowflake compute is leveraged for plan generation and tooling execution. We leverage the LLM Compiler architecture from Berkeley AI Research Lab. Kim, S., Moon, S., Tabrizi, R., Lee, N., Mahoney, M. W., Keutzer, K., and Gholami, A. An LLM Compiler for Parallel Function Calling, 2024.
+- This framework supports multi-hop, multi-tool workflows with parallel function calling. It utilizes a dedicated planner LLM to decompose the user's request and generate an execution plan. From there it creates a graph of tasks that will invoke the tool calls asynchronously and in parallel if possible. While the orchestration is done on the client-side, Snowflake compute is leveraged for plan generation and tooling execution.
+- We leverage the LLM Compiler architecture from Berkeley AI Research Lab. Kim, S., Moon, S., Tabrizi, R., Lee, N., Mahoney, M. W., Keutzer, K., and Gholami, A. An LLM Compiler for Parallel Function Calling, 2024.
 
 # Bug Reports, Feedback, or Other Questions
 

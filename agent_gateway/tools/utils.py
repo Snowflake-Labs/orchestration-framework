@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import io
 import json
+import typing
 from collections import deque
 from textwrap import dedent
 from typing import TypedDict, Union
@@ -98,33 +99,14 @@ class CortexEndpointBuilder:
             "Authorization": f'Snowflake Token="{token}"',
         }
 
-    def get_complete_endpoint(self):
-        URL_SUFFIX = "/api/v2/cortex/inference:complete"
-        if self.inside_snowflake:
-            return URL_SUFFIX
-        return f"{self.BASE_URL}{URL_SUFFIX}"
-
     def get_analyst_endpoint(self):
         URL_SUFFIX = "/api/v2/cortex/analyst/message"
         if self.inside_snowflake:
             return URL_SUFFIX
         return f"{self.BASE_URL}{URL_SUFFIX}"
 
-    def get_search_endpoint(self, database, schema, service_name):
-        URL_SUFFIX = f"/api/v2/databases/{database}/schemas/{schema}/cortex-search-services/{service_name}:query"
-        URL_SUFFIX = URL_SUFFIX.lower()
-        if self.inside_snowflake:
-            return URL_SUFFIX
-        return f"{self.BASE_URL}{URL_SUFFIX}"
-
-    def get_complete_headers(self) -> Headers:
-        return self.BASE_HEADERS | {"Accept": "application/json"}
-
     def get_analyst_headers(self) -> Headers:
         return self.BASE_HEADERS
-
-    def get_search_headers(self) -> Headers:
-        return self.BASE_HEADERS | {"Accept": "application/json"}
 
 
 @gateway_instrument
@@ -295,7 +277,17 @@ def get_tag(component: str) -> str:
     query_tag = {
         "origin": "sf_sit",
         "name": "orchestration-framework",
-        "version": {"major": 0, "minor": 1},
+        "version": {"major": 1, "minor": 0},
         "attributes": {"component": component},
     }
     return json.dumps(query_tag)
+
+
+def parse_complete_reponse(events: typing.Generator) -> str:
+    return "".join(
+        [
+            json.loads(e.data)["choices"][0]["delta"].get("content")
+            for e in events
+            if json.loads(e.data)["choices"][0]["delta"].get("content")
+        ]
+    )

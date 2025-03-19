@@ -5,21 +5,22 @@ import inspect
 import json
 import re
 from typing import Any, Dict, List, Type, Union, ClassVar
-import pandas as pd
 
+import pandas as pd
 from pydantic import BaseModel
-from snowflake.connector.connection import SnowflakeConnection
 from snowflake.connector import DictCursor
+from snowflake.connector.connection import SnowflakeConnection
+from snowflake.core import Root
 from snowflake.snowpark import Session
 
 from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.tools import Tool
 from agent_gateway.tools.utils import (
     CortexEndpointBuilder,
-    _get_connection,
-    post_cortex_request,
     _determine_runtime,
+    _get_connection,
     get_tag,
+    post_cortex_request,
 )
 
 from agent_gateway.tools.utils import gateway_instrument
@@ -76,22 +77,19 @@ class CortexSearchTool(Tool):
         return self.asearch(question)
 
     @gateway_instrument
-    async def asearch(self, query) -> list:
-        gateway_logger.log("DEBUG", f"Cortex Search Query:{query}")
-        headers, url, data = self._prepare_request(query=query)
-        response_text = await post_cortex_request(url=url, headers=headers, data=data)
+    async def asearch(self, query: str) -> Dict[str, Any]:
+        gateway_logger.log("DEBUG", f"Cortex Search Query: {query}")
 
-        response_json = json.loads(response_text)
+        search_service = (
+            Root(self.connection)
+            .databases[self.connection.database]
+            .schemas[self.connection.schema]
+            .cortex_search_services[self.service_name]
+        )
 
-        try:
-            if _determine_runtime():
-                search_response = json.loads(response_json["content"])["results"]
-            else:
-                search_response = response_json["results"]
-        except KeyError:
-            raise SnowflakeError(
-                message=f"unable to parse Cortex Search response {response_json.get('message', 'Unknown error')}"
-            )
+        search_response = search_service.search(
+            query, columns=self.retrieval_columns, filter={}, limit=self.k
+        ).results
 
         search_col = self._get_search_column(self.service_name)
         citations = self._get_citations(search_response, search_col)
@@ -106,23 +104,6 @@ class CortexSearchTool(Tool):
                 "metadata": citations,
             },
         }
-
-    def _prepare_request(self, query: str) -> tuple:
-        eb = CortexEndpointBuilder(self.connection)
-        headers = eb.get_search_headers()
-        url = eb.get_search_endpoint(
-            self.connection.database,
-            self.connection.schema,
-            self.service_name,
-        )
-
-        data = {
-            "query": query,
-            "columns": self.retrieval_columns,
-            "limit": self.k,
-        }
-
-        return headers, url, data
 
     def _get_citations(
         self, raw_response: List[Dict[str, Any]], search_column: List[str]
