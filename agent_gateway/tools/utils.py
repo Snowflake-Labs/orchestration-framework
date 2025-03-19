@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import io
 import json
+import typing
 from collections import deque
 from textwrap import dedent
 from typing import TypedDict, Union
@@ -255,3 +256,13 @@ def get_tag(component: str) -> str:
         "attributes": {"component": component},
     }
     return json.dumps(query_tag)
+
+
+def parse_complete_reponse(events: typing.Generator) -> str:
+    return "".join(
+        [
+            json.loads(e.data)["choices"][0]["delta"].get("content")
+            for e in events
+            if json.loads(e.data)["choices"][0]["delta"].get("content")
+        ]
+    )

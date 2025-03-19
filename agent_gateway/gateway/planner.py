@@ -16,7 +16,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import re
 from collections.abc import Sequence
 from typing import Any, Optional, Union
@@ -38,6 +37,7 @@ from agent_gateway.gateway.task_processor import Task
 from agent_gateway.tools.base import StructuredTool, Tool
 from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.schema import Plan
+from agent_gateway.tools.utils import parse_complete_reponse
 
 
 class AgentGatewayError(Exception):
@@ -220,14 +220,12 @@ class Planner:
             for message in messages
         ]
         req = CompleteRequest(model=self.llm, messages=messages)
-        res = Root(self.session.connection).cortex_inference_service.complete(req)
-        return "".join(
-            [
-                json.loads(e.data)["choices"][0]["delta"].get("content")
-                for e in res.events()
-                if json.loads(e.data)["choices"][0]["delta"].get("content")
-            ]
+        res = (
+            Root(self.session.connection)
+            .cortex_inference_service.complete(req)
+            .events()
         )
+        return parse_complete_reponse(res)
 
     async def plan(self, inputs: dict, is_replan: bool, **kwargs: Any):
         llm_response = await self.run_llm(
