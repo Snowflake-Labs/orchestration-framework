@@ -48,7 +48,7 @@ if _determine_runtime():
         "host": os.getenv("SNOWFLAKE_HOST"),
         "authenticator": "oauth",
     }
-    with open("/snowflake/session/token", "r") as token_file:
+    with open("/snowflake/session/token") as token_file:
         connection_parameters["token"] = token_file.read()
 else:
     connection_parameters = connection_parameters | {
