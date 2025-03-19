@@ -74,20 +74,11 @@ class CortexEndpointBuilder:
             "Authorization": f'Snowflake Token="{token}"',
         }
 
-    def get_complete_endpoint(self):
-        URL_SUFFIX = "/api/v2/cortex/inference:complete"
-        if self.inside_snowflake:
-            return URL_SUFFIX
-        return f"{self.BASE_URL}{URL_SUFFIX}"
-
     def get_analyst_endpoint(self):
         URL_SUFFIX = "/api/v2/cortex/analyst/message"
         if self.inside_snowflake:
             return URL_SUFFIX
         return f"{self.BASE_URL}{URL_SUFFIX}"
-
-    def get_complete_headers(self) -> Headers:
-        return self.BASE_HEADERS | {"Accept": "application/json"}
 
     def get_analyst_headers(self) -> Headers:
         return self.BASE_HEADERS

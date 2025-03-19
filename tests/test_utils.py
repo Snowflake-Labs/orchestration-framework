@@ -33,28 +33,12 @@ def session():
     return MockConnection(host="example_host", token="dummy_token")
 
 
-def test_complete_url(session):
-    eb = CortexEndpointBuilder(session)
-    url = eb.get_complete_endpoint()
-    assert url.startswith("https://")
-    assert url.endswith("/api/v2/cortex/inference:complete")
-    assert "_" not in urlparse(url).hostname
-
-
 def test_analyst_url(session):
     eb = CortexEndpointBuilder(session)
     url = eb.get_analyst_endpoint()
     assert url.startswith("https://")
     assert url.endswith("/api/v2/cortex/analyst/message")
     assert "_" not in urlparse(url).hostname
-
-
-def test_complete_headers(session):
-    eb = CortexEndpointBuilder(session)
-    headers = eb.get_complete_headers()
-    assert headers["Content-Type"] == "application/json"
-    assert headers["Authorization"] == 'Snowflake Token="dummy_token"'
-    assert headers["Accept"] == "application/json"
 
 
 def test_analyst_headers(session):

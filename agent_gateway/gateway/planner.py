@@ -21,6 +21,12 @@ import re
 from collections.abc import Sequence
 from typing import Any, Optional, Union
 
+from snowflake.core import Root
+from snowflake.core.cortex.inference_service import (
+    CompleteRequest,
+    CompleteRequestMessagesInner,
+)
+
 from agent_gateway.gateway.constants import END_OF_PLAN
 from agent_gateway.gateway.output_parser import (
     ACTION_PATTERN,
@@ -32,11 +38,6 @@ from agent_gateway.gateway.task_processor import Task
 from agent_gateway.tools.base import StructuredTool, Tool
 from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.schema import Plan
-from agent_gateway.tools.utils import (
-    CortexEndpointBuilder,
-    _determine_runtime,
-    post_cortex_request,
-)
 
 
 class AgentGatewayError(Exception):
@@ -209,63 +210,24 @@ class Planner:
             system_prompt = self.system_prompt
             human_prompt = f"Question: {inputs['input']}"
 
-        message = system_prompt + "\n\n" + human_prompt
-        headers, url, data = self._prepare_llm_request(prompt=message)
-        response_text = await post_cortex_request(url=url, headers=headers, data=data)
-
-        try:
-            if _determine_runtime():
-                response_text = json.loads(response_text).get("content")
-
-            snowflake_response = self._parse_snowflake_response(response_text)
-
-            return snowflake_response
-
-        except Exception:
-            raise AgentGatewayError(
-                message=f"Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
+        messages = [system_prompt + "\n\n" + human_prompt]
+        messages = [
+            (
+                CompleteRequestMessagesInner(content=message)
+                if isinstance(message, str)
+                else message
             )
-
-    def _prepare_llm_request(self, prompt):
-        eb = CortexEndpointBuilder(self.session)
-        url = eb.get_complete_endpoint()
-        headers = eb.get_complete_headers()
-        data = {"model": self.llm, "messages": [{"content": prompt}]}
-
-        return headers, url, data
-
-    def _parse_snowflake_response(self, data_str):
-        json_list = []
-
-        if _determine_runtime():
-            json_list = [i["data"] for i in json.loads(data_str)]
-
-        else:
-            json_objects = data_str.split("\ndata: ")
-
-            # Iterate over each object
-            for obj in json_objects:
-                obj = obj.strip()
-                if obj:
-                    # Remove the 'data: ' prefix if it exists
-                    if obj.startswith("data: "):
-                        obj = obj[6:]
-                    # Load the JSON object into a Python dictionary
-                    json_dict = json.loads(str(obj))
-                    # Append the JSON dictionary to the list
-                    json_list.append(json_dict)
-
-        completion = ""
-        choices = {}
-
-        for chunk in json_list:
-            choices = chunk["choices"][0]
-
-            if "content" in choices["delta"].keys():
-                completion += choices["delta"]["content"]
-
-        gateway_logger.log("DEBUG", f"LLM Generated Plan:\n{completion}")
-        return completion
+            for message in messages
+        ]
+        req = CompleteRequest(model=self.llm, messages=messages)
+        res = Root(self.session.connection).cortex_inference_service.complete(req)
+        return "".join(
+            [
+                json.loads(e.data)["choices"][0]["delta"].get("content")
+                for e in res.events()
+                if json.loads(e.data)["choices"][0]["delta"].get("content")
+            ]
+        )
 
     async def plan(self, inputs: dict, is_replan: bool, **kwargs: Any):
         llm_response = await self.run_llm(
