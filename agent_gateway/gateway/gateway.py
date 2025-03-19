@@ -17,7 +17,7 @@ import json
 import re
 import threading
 from collections.abc import Sequence
-from typing import Any, Dict, List, Mapping, Optional, Union, cast
+from typing import Any, Dict, List, Mapping, Optional, Union, cast, ClassVar
 
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
@@ -34,6 +34,8 @@ from agent_gateway.tools.snowflake_prompts import (
 from agent_gateway.tools.utils import (
     CortexEndpointBuilder,
     _determine_runtime,
+    _should_instrument,
+    gateway_instrument,
     post_cortex_request,
     get_tag,
 )
@@ -44,11 +46,9 @@ from agent_gateway.tools.snowflake_tools import (
     CortexSearchTool,
 )
 
-from agent_gateway.tools.utils import gateway_instrument
-from trulens.apps.custom import TruCustomApp
-from trulens.core import TruSession
-
-from typing import ClassVar
+if _should_instrument():
+    from trulens.apps.custom import TruCustomApp
+    from trulens.core import TruSession
 
 
 class AgentGatewayError(Exception):
@@ -619,22 +619,26 @@ class Agent:
             return {"output": answer, "sources": sources}
 
 
-class TruAgent:
-    def __init__(self, app_name, app_version, trulens_snowflake_connection, **kwargs):
-        self.agent = Agent(**kwargs)
-        self.tru_session = TruSession(connector=trulens_snowflake_connection)
+if _should_instrument():
 
-        self.tru_agent = TruCustomApp(
-            self.agent,
-            app_name=app_name,
-            app_version=app_version,
-        )
+    class TruAgent:
+        def __init__(
+            self, app_name, app_version, trulens_snowflake_connection, **kwargs
+        ):
+            self.agent = Agent(**kwargs)
+            self.tru_session = TruSession(connector=trulens_snowflake_connection)
 
-    def __call__(self, input):
-        with self.tru_agent:
-            output = self.agent(input)
+            self.tru_agent = TruCustomApp(
+                self.agent,
+                app_name=app_name,
+                app_version=app_version,
+            )
 
-        return output
+        def __call__(self, input):
+            with self.tru_agent:
+                output = self.agent(input)
 
-    async def acall(self, input):
-        return await self.agent.acall(input)
+            return output
+
+        async def acall(self, input):
+            return await self.agent.acall(input)

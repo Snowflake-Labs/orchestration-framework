@@ -35,10 +35,9 @@ from agent_gateway.tools.schema import Plan
 from agent_gateway.tools.utils import (
     CortexEndpointBuilder,
     _determine_runtime,
+    gateway_instrument,
     post_cortex_request,
 )
-
-from agent_gateway.tools.utils import gateway_instrument
 
 
 class AgentGatewayError(Exception):
