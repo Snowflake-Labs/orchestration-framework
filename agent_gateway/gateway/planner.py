@@ -38,7 +38,7 @@ from agent_gateway.tools.utils import (
     post_cortex_request,
 )
 
-from trulens.apps.app import instrument
+from agent_gateway.tools.utils import gateway_instrument
 
 
 class AgentGatewayError(Exception):
@@ -270,7 +270,7 @@ class Planner:
         gateway_logger.log("DEBUG", f"LLM Generated Plan:\n{completion}")
         return completion
 
-    @instrument
+    @gateway_instrument
     async def plan(
         self, inputs: dict, is_replan: bool, **kwargs: Any
     ) -> dict[str, Task]:

@@ -24,7 +24,11 @@ import pkg_resources
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
 
-from trulens.apps.app import instrument
+try:
+    from trulens.apps.app import instrument
+    from functools import wraps
+except Exception:
+    pass
 
 
 def _get_connection(
@@ -48,6 +52,21 @@ def _determine_runtime():
         return True
     except ImportError:
         return False
+
+
+def _should_instrument():
+    # Replace this with your own logic to determine if instrumentation should be applied
+    return True
+
+
+def gateway_instrument(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if _should_instrument():
+            return instrument(func)(*args, **kwargs)
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 class CortexEndpointBuilder:
@@ -105,7 +124,7 @@ class CortexEndpointBuilder:
         return self.BASE_HEADERS | {"Accept": "application/json"}
 
 
-@instrument
+@gateway_instrument
 async def post_cortex_request(url: str, headers: Headers, data: dict):
     """Submit cortex request depending on runtime"""
 

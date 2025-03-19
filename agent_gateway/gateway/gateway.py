@@ -44,7 +44,7 @@ from agent_gateway.tools.snowflake_tools import (
     CortexSearchTool,
 )
 
-from trulens.apps.app import instrument
+from agent_gateway.tools.utils import gateway_instrument
 from trulens.apps.custom import TruCustomApp
 from trulens.core import TruSession
 
@@ -68,7 +68,7 @@ class CortexCompleteAgent:
             f"alter session set query_tag='{get_tag('CortexAnalystTool')}'"
         )
 
-    @instrument
+    @gateway_instrument
     async def arun(self, prompt: str) -> str:
         """Run the LLM."""
         headers, url, data = self._prepare_llm_request(prompt=prompt)
@@ -95,7 +95,7 @@ class CortexCompleteAgent:
                 message=f"Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
             )
 
-    @instrument
+    @gateway_instrument
     def _prepare_llm_request(self, prompt):
         eb = CortexEndpointBuilder(self.session)
         url = eb.get_complete_endpoint()
@@ -104,7 +104,7 @@ class CortexCompleteAgent:
 
         return headers, url, data
 
-    @instrument
+    @gateway_instrument
     def _parse_snowflake_response(self, data_str):
         try:
             json_list = []
@@ -370,7 +370,7 @@ class Agent:
         formatted_contexts += "Current Plan:\n\n"
         return formatted_contexts
 
-    @instrument
+    @gateway_instrument
     async def fuse(
         self, input_query: str, agent_scratchpad: str, is_final: bool
     ) -> str:
@@ -472,7 +472,7 @@ class Agent:
     def _call(self, inputs):
         return self.__call__(inputs)
 
-    @instrument
+    @gateway_instrument
     def __call__(self, input: str) -> Any:
         """Calls Cortex gateway multi-agent system.
 
@@ -496,12 +496,12 @@ class Agent:
 
         return result[0]
 
-    @instrument
+    @gateway_instrument
     def handle_exception(self, loop, context):
         loop.default_exception_handler(context)
         loop.stop()
 
-    @instrument
+    @gateway_instrument
     def run_async(self, input, result, error):
         loop = asyncio.new_event_loop()
         loop.set_exception_handler(self.handle_exception)
@@ -529,7 +529,7 @@ class Agent:
             finally:
                 loop.close()
 
-    @instrument
+    @gateway_instrument
     async def acall(
         self,
         input: str,

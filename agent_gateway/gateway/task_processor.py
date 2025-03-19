@@ -20,7 +20,7 @@ from typing import Any, Callable, Dict, List, Optional
 from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.snowflake_tools import SnowflakeError
 
-from trulens.apps.app import instrument
+from agent_gateway.tools.utils import gateway_instrument
 
 SCHEDULING_INTERVAL = 0.01  # seconds
 
@@ -77,7 +77,7 @@ class Task:
     observation: Optional[str] = None
     is_fuse: bool = False
 
-    @instrument
+    @gateway_instrument
     async def __call__(self) -> Any:
         gateway_logger.log("INFO", f"running {self.name} task")
         try:
