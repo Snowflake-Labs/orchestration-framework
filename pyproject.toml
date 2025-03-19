@@ -16,16 +16,18 @@ dependencies = [
     "snowflake-snowpark-python[pandas]>=1.22.1,<2.0",
     "asyncio>=3.4.3",
     "aiohttp>=3.10.9,<4.0",
-    "pydantic>=2.9.2,<3.0",
-    "trulens>=1.4.5",
-    "trulens-connectors-snowflake",
-]
+    "pydantic>=2.9.2,<3.0"
+    ]
 
 [project.urls]
 Repository = "https://github.com/Snowflake-Labs/orchestration-framework.git"
 Issues = "https://github.com/Snowflake-Labs/orchestration-framework/issues"
 
 [project.optional-dependencies]
+trulens = [
+   "trulens>=1.4.5",
+    "trulens-connectors-snowflake"
+]
 dev = [
     "pre-commit>=4.0.1,<5.0",
     "ruff>=0.6.9,<1.0",

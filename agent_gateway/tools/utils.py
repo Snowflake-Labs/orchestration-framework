@@ -24,10 +24,10 @@ import aiohttp
 import pkg_resources
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
+from functools import wraps
 
 try:
     from trulens.apps.app import instrument
-    from functools import wraps
 except Exception:
     pass
 
@@ -56,7 +56,7 @@ def _determine_runtime():
 
 
 def _should_instrument():
-    required_packages = ["trulens", "trulens_connectors_snowflake"]
+    required_packages = ["trulens", "trulens.connectors.snowflake"]
     return all(
         importlib.util.find_spec(package) is not None for package in required_packages
     )

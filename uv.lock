@@ -2154,8 +2154,6 @@ dependencies = [
     { name = "asyncio" },
     { name = "pydantic" },
     { name = "snowflake-snowpark-python", extra = ["pandas"] },
-    { name = "trulens" },
-    { name = "trulens-connectors-snowflake" },
 ]
 
 [package.optional-dependencies]
@@ -2169,6 +2167,10 @@ dev = [
 streamlit = [
     { name = "python-dotenv" },
     { name = "streamlit" },
+]
+trulens = [
+    { name = "trulens" },
+    { name = "trulens-connectors-snowflake" },
 ]
 
 [package.metadata]
@@ -2184,8 +2186,8 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6.9,<1.0" },
     { name = "snowflake-snowpark-python", extras = ["pandas"], specifier = ">=1.22.1,<2.0" },
     { name = "streamlit", marker = "extra == 'streamlit'", specifier = ">=1.39.0,<2.0" },
-    { name = "trulens", specifier = ">=1.4.5" },
-    { name = "trulens-connectors-snowflake" },
+    { name = "trulens", marker = "extra == 'trulens'", specifier = ">=1.4.5" },
+    { name = "trulens-connectors-snowflake", marker = "extra == 'trulens'" },
 ]
 
 [[package]]
