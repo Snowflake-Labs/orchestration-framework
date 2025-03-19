@@ -235,6 +235,7 @@ class Planner:
             is_replan=is_replan,
         )
         llm_response = llm_response + "\n"
+        gateway_logger.log("DEBUG", f"Agent Execution Plan:{llm_response}")
         plan_response = self.output_parser.parse(llm_response)
         return plan_response
 
