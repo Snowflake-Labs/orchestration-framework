@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import ast
 import asyncio
-import json
 import re
 import threading
 from collections.abc import Sequence
@@ -38,6 +37,7 @@ from agent_gateway.tools.snowflake_prompts import (
 )
 from agent_gateway.tools.utils import (
     get_tag,
+    parse_complete_reponse,
 )
 
 
@@ -69,14 +69,12 @@ class CortexCompleteAgent:
             for message in messages
         ]
         req = CompleteRequest(model=self.llm, messages=messages)
-        res = Root(self.session.connection).cortex_inference_service.complete(req)
-        return "".join(
-            [
-                json.loads(e.data)["choices"][0]["delta"].get("content")
-                for e in res.events()
-                if json.loads(e.data)["choices"][0]["delta"].get("content")
-            ]
+        res = (
+            Root(self.session.connection)
+            .cortex_inference_service.complete(req)
+            .events()
         )
+        return parse_complete_reponse(res)
 
 
 class SummarizationAgent(Tool):
