@@ -377,3 +377,38 @@ class PythonTool(Tool):
         name = python_func.__name__
         signature = str(inspect.signature(python_func))
         return name + signature
+
+
+class SQLTool(Tool):
+    def __init__(
+        self,
+        sql_query: str,
+        connection: Union[Session, SnowflakeConnection],
+        tool_description: str,
+        output_description: str,
+    ) -> None:
+        self.connection = _get_connection(connection)
+        self.sql_query = sql_query
+        self.desc = self._generate_description(
+            sql_query=sql_query,
+            tool_description=tool_description,
+            output_description=output_description,
+        )
+        super().__init__(name=sql_query, func=self.asearch, description=self.desc)
+        gateway_logger.log("INFO", "SQL Tool successfully initialized")
+
+    async def asearch(self, *args):
+        return await self._run_query()
+
+    async def _run_query(self):
+        gateway_logger.log("DEBUG", f"Running SQL Query: {self.sql_query}")
+        table = self.connection.cursor().execute(self.sql_query).fetch_arrow_all()
+        gateway_logger.log("DEBUG", f"SQL Tool Response: {table}")
+        return {
+            "output": str(table.to_pydict()),
+            "sources": {
+                "tool_type": "sql_tool",
+                "tool_name": self.name,
+                "metadata": None,
+            },
+        }
