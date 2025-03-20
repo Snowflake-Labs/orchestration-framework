@@ -390,12 +390,14 @@ class SQLTool(Tool):
         self.connection = _get_connection(connection)
         self.sql_query = sql_query
         self.desc = self._generate_description(
-            sql_query=sql_query,
             tool_description=tool_description,
             output_description=output_description,
         )
         super().__init__(name=sql_query, func=self.asearch, description=self.desc)
         gateway_logger.log("INFO", "SQL Tool successfully initialized")
+
+    def __call__(self, *args):
+        return self.asearch(*args)
 
     async def asearch(self, *args):
         return await self._run_query()
@@ -412,3 +414,14 @@ class SQLTool(Tool):
                 "metadata": None,
             },
         }
+
+    def _generate_description(
+        self,
+        tool_description: str,
+        output_description: str,
+    ) -> str:
+        return (
+            f"""sql_tool() -> str:\n"""
+            f""" - Runs a SQL pipeline against source data to {tool_description}\n"""
+            f""" - Returns {output_description}\n"""
+        )
