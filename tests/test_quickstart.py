@@ -81,6 +81,36 @@ def test_analyst_tool(session, question, answer):
     assert response == answer
 
 
+def test_sql_tool(session):
+    margin_query = """SELECT
+        LONGNAME,
+        SECTOR,
+        INDUSTRY,
+        CURRENTPRICE,
+        MARKETCAP,
+        EBITDA,
+        CASE
+            WHEN MARKETCAP > 0 THEN (EBITDA * 100.0) / MARKETCAP
+            ELSE NULL
+        END AS EBITDA_Margin_Percentage
+    FROM CUBE_TESTING.PUBLIC.SP500
+    LIMIT 10;"""
+
+    sql_config = {
+        "sql_query": margin_query,
+        "connection": session,
+        "tool_description": "calculate EBITDA Margin (%) of S&p500 companies",
+        "output_description": "ebitda margin (%) metrics per company",
+    }
+
+    sql_tool = SQLTool(**sql_config)
+    response = asyncio.run(sql_tool)
+
+    from data.sql_response import SQL_RESPONSE
+
+    assert SQL_RESPONSE == response
+
+
 def test_python_tool():
     def get_news(_) -> dict:
         with open("tests/data/response.json") as f:
@@ -184,6 +214,11 @@ def test_gateway_agent(session, question, answer_contains):
             "When is Apple releasing a new chip?",
             "May 7",
             id="product_revenue",
+        ),
+        pytest.param(
+            "What is the EBITDA margin of Microsoft?",
+            " 4%",
+            id="ebitda_margin",
         ),
     ],
 )
