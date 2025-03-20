@@ -13,13 +13,17 @@ from __future__ import annotations
 
 import ast
 import asyncio
-import json
 import re
 import threading
 from collections.abc import Sequence
 from typing import Any, Dict, List, Mapping, Optional, Union, cast
 
 from snowflake.connector.connection import SnowflakeConnection
+from snowflake.core import Root
+from snowflake.core.cortex.inference_service import (
+    CompleteRequest,
+    CompleteRequestMessagesInner,
+)
 from snowflake.snowpark import Session
 
 from agent_gateway.gateway.constants import END_OF_PLAN, FUSION_REPLAN
@@ -32,10 +36,8 @@ from agent_gateway.tools.snowflake_prompts import (
     PLANNER_PROMPT as SNOWFLAKE_PLANNER_PROMPT,
 )
 from agent_gateway.tools.utils import (
-    CortexEndpointBuilder,
-    _determine_runtime,
-    post_cortex_request,
     get_tag,
+    parse_complete_reponse,
 )
 
 
@@ -56,75 +58,23 @@ class CortexCompleteAgent:
             f"alter session set query_tag='{get_tag('CortexAnalystTool')}'"
         )
 
-    async def arun(self, prompt: str) -> str:
+    async def arun(self, messages: list[str, CompleteRequestMessagesInner]) -> str:
         """Run the LLM."""
-        headers, url, data = self._prepare_llm_request(prompt=prompt)
-
-        try:
-            response_text = await post_cortex_request(
-                url=url, headers=headers, data=data
+        messages = [
+            (
+                CompleteRequestMessagesInner(content=message)
+                if isinstance(message, str)
+                else message
             )
-
-        except Exception as e:
-            raise AgentGatewayError(
-                message=f"Failed Cortex LLM Request. See details:{str(e)}"
-            ) from e
-
-        try:
-            if _determine_runtime():
-                response_text = json.loads(response_text).get("content")
-
-            snowflake_response = self._parse_snowflake_response(response_text)
-
-            return snowflake_response
-        except Exception:
-            raise AgentGatewayError(
-                message=f"Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
-            )
-
-    def _prepare_llm_request(self, prompt):
-        eb = CortexEndpointBuilder(self.session)
-        url = eb.get_complete_endpoint()
-        headers = eb.get_complete_headers()
-        data = {"model": self.llm, "messages": [{"content": prompt}]}
-
-        return headers, url, data
-
-    def _parse_snowflake_response(self, data_str):
-        try:
-            json_list = []
-
-            if _determine_runtime():
-                json_list = [i["data"] for i in json.loads(data_str)]
-
-            else:
-                json_objects = data_str.split("\ndata: ")
-
-                # Iterate over each object
-                for obj in json_objects:
-                    obj = obj.strip()
-                    if obj:
-                        # Remove the 'data: ' prefix if it exists
-                        if obj.startswith("data: "):
-                            obj = obj[6:]
-                        # Load the JSON object into a Python dictionary
-                        json_dict = json.loads(str(obj))
-                        # Append the JSON dictionary to the list
-                        json_list.append(json_dict)
-
-            completion = ""
-            choices = {}
-            for chunk in json_list:
-                choices = chunk["choices"][0]
-
-                if "content" in choices["delta"].keys():
-                    completion += choices["delta"]["content"]
-
-            return completion
-        except KeyError as e:
-            raise AgentGatewayError(
-                message=f"Missing Cortex LLM response components. {str(e)}"
-            )
+            for message in messages
+        ]
+        req = CompleteRequest(model=self.llm, messages=messages)
+        res = (
+            Root(self.session.connection)
+            .cortex_inference_service.complete(req)
+            .events()
+        )
+        return parse_complete_reponse(res)
 
 
 class SummarizationAgent(Tool):
@@ -333,7 +283,7 @@ class Agent:
             # "---\n"
         )
 
-        response = await self.agent.arun(prompt)
+        response = await self.agent.arun([prompt])
         raw_answer = cast(str, response)
         gateway_logger.log("DEBUG", "Question: \n", input_query, block=True)
         gateway_logger.log("DEBUG", "Raw Answer: \n", raw_answer, block=True)
@@ -543,6 +493,8 @@ class Agent:
             )
             if not is_replan:
                 break
+            else:
+                gateway_logger.log("INFO", "Replanning...")
 
             # Collect contexts for the subsequent replanner
             context = self._generate_context_for_replanner(
