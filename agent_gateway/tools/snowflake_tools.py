@@ -191,6 +191,7 @@ class CortexAnalystTool(Tool):
         service_topic: str,
         data_description: str,
         snowflake_connection: Union[Session, SnowflakeConnection],
+        max_results: int = None,
     ):
         """Initialize CortexAnalystTool with parameters."""
         tname = semantic_model.replace(".yaml", "") + "_" + "cortexanalyst"
@@ -207,10 +208,16 @@ class CortexAnalystTool(Tool):
         )
         self.FILE = semantic_model
         self.STAGE = stage
+        self.max_results = max_results
 
         gateway_logger.log("INFO", "Cortex Analyst Tool successfully initialized")
 
     def __call__(self, prompt: str) -> Any:
+        if self.max_results is not None:
+            prompt = (
+                prompt
+                + f" Only return up to {self.max_results} relevant records in the final results. "
+            )
         return self.asearch(query=prompt)
 
     async def asearch(self, query: str) -> Dict[str, Any]:
