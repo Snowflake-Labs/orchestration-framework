@@ -393,7 +393,7 @@ class SQLTool(Tool):
             tool_description=tool_description,
             output_description=output_description,
         )
-        super().__init__(name=sql_query, func=self.asearch, description=self.desc)
+        super().__init__(name="sql_tool", func=self.asearch, description=self.desc)
         gateway_logger.log("INFO", "SQL Tool successfully initialized")
 
     def __call__(self, *args):
@@ -404,10 +404,10 @@ class SQLTool(Tool):
 
     async def _run_query(self):
         gateway_logger.log("DEBUG", f"Running SQL Query: {self.sql_query}")
-        table = self.connection.cursor().execute(self.sql_query).fetch_arrow_all()
+        table = self.connection.cursor().execute(self.sql_query).fetch_pandas_all()
         gateway_logger.log("DEBUG", f"SQL Tool Response: {table}")
         return {
-            "output": str(table.to_pydict()),
+            "output": table,
             "sources": {
                 "tool_type": "sql_tool",
                 "tool_name": self.name,
