@@ -14,6 +14,7 @@ access pattern.
 Text2SQL access pattern.
 - **Python Tool**: For supporting custom user operations (i.e. sending API requests to
 third party services), which requires calling arbitrary python.
+- **SQL Tool**: For supporting custom SQL pipelines built by users.
 
 The Agent Gateway supports multi-step and multi-tool workflows. Users have the
 flexibility to create multiple Cortex Search and Cortex Analyst tools for use with the
@@ -65,7 +66,7 @@ tools.
 ##### Cortex Search Tool Configuration
 
 ```python
-from agent_gateway.tools import CortexSearchTool, CortexAnalystTool, PythonTool
+from agent_gateway.tools import CortexSearchTool, CortexAnalystTool, PythonTool, SQLTool
 
 # Cortex Search Service Config
 search_config = {
@@ -107,6 +108,20 @@ python_scraper_config = {
     }
 
 web_crawler = PythonTool(**python_scraper_config)
+```
+
+##### SQL Tool Configuration
+
+```python
+sql_query = '''SELECT * FROM MY_EVENTS_TABLE '''
+sql_tool_config = {
+    "tool_description": "analyzes custom user metrics",
+    "output_description": "key user metrics",
+    "sql": sql_query,
+    "connection":session
+    }
+
+custom_metrics = SQLTool(**sql_tool_config)
 ```
 
 ## Agent Configuration + Usage
