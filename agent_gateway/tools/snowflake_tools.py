@@ -1,14 +1,3 @@
-# Copyright 2025 Snowflake Inc.
-# SPDX-License-Identifier: Apache-2.0
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-# http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 import asyncio
@@ -32,6 +21,7 @@ from agent_gateway.tools.utils import (
     _get_connection,
     get_tag,
     post_cortex_request,
+    set_logging,
 )
 
 
@@ -70,9 +60,15 @@ class CortexSearchTool(Tool):
             name=tool_name, description=tool_description, func=self.asearch
         )
         self.connection = _get_connection(snowflake_connection)
-        self.connection.cursor().execute(
-            f"alter session set query_tag='{get_tag('CortexSearchTool')}'"
-        )
+        try:
+            self.connection.cursor().execute(
+                f"CALL set_query_tag('{get_tag('CortexSearchTool')}')"
+            )
+        except Exception:
+            set_logging(self.connection)
+            self.connection.cursor().execute(
+                f"CALL set_query_tag('{get_tag('CortexSearchTool')}')"
+            )
         self.k = k
         self.retrieval_columns = retrieval_columns
         self.service_name = service_name
@@ -152,7 +148,7 @@ class CortexSearchTool(Tool):
 
     def _get_search_service_attribute(
         self, search_service_name: str, attribute: str
-    ) -> list[str]:
+    ) -> List[str]:
         df = (
             self.connection.cursor(cursor_class=DictCursor)
             .execute("SHOW CORTEX SEARCH SERVICES")
@@ -213,9 +209,15 @@ class CortexAnalystTool(Tool):
 
         super().__init__(name=tname, func=self.asearch, description=tool_description)
         self.connection = _get_connection(snowflake_connection)
-        self.connection.cursor().execute(
-            f"alter session set query_tag='{get_tag('CortexAnalystTool')}'"
-        )
+        try:
+            self.connection.cursor().execute(
+                f"CALL set_query_tag('{get_tag('CortexAnalystTool')}')"
+            )
+        except Exception:
+            set_logging(self.connection)
+            self.connection.cursor().execute(
+                f"CALL set_query_tag('{get_tag('CortexAnalystTool')}')"
+            )
         self.FILE = semantic_model
         self.STAGE = stage
 
@@ -264,7 +266,7 @@ class CortexAnalystTool(Tool):
         return url, headers, data
 
     def _process_analyst_message(
-        self, response: list[dict[str, Any]]
+        self, response: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         if response and isinstance(response, list):
             gateway_logger.log("DEBUG", response)
@@ -388,3 +390,51 @@ class PythonTool(Tool):
         name = python_func.__name__
         signature = str(inspect.signature(python_func))
         return name + signature
+
+
+class SQLTool(Tool):
+    def __init__(
+        self,
+        sql_query: str,
+        connection: Union[Session, SnowflakeConnection],
+        tool_description: str,
+        output_description: str,
+    ) -> None:
+        self.connection = _get_connection(connection)
+        self.sql_query = sql_query
+        self.desc = self._generate_description(
+            tool_description=tool_description,
+            output_description=output_description,
+        )
+        super().__init__(name="sql_tool", func=self.asearch, description=self.desc)
+        gateway_logger.log("INFO", "SQL Tool successfully initialized")
+
+    def __call__(self, *args):
+        return self.asearch(*args)
+
+    async def asearch(self, *args):
+        return await self._run_query()
+
+    async def _run_query(self):
+        gateway_logger.log("DEBUG", f"Running SQL Query: {self.sql_query}")
+        table = self.connection.cursor().execute(self.sql_query).fetch_pandas_all()
+        gateway_logger.log("DEBUG", f"SQL Tool Response: {table}")
+        return {
+            "output": table,
+            "sources": {
+                "tool_type": "sql_tool",
+                "tool_name": self.name,
+                "metadata": None,
+            },
+        }
+
+    def _generate_description(
+        self,
+        tool_description: str,
+        output_description: str,
+    ) -> str:
+        return (
+            f"""sql_tool() -> str:\n"""
+            f""" - Runs a SQL pipeline against source data to {tool_description}\n"""
+            f""" - Returns {output_description}\n"""
+        )

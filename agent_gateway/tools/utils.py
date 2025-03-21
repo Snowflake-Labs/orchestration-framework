@@ -258,6 +258,21 @@ def get_tag(component: str) -> str:
     return json.dumps(query_tag)
 
 
+def set_logging(connection: SnowflakeConnection):
+    tag_fn_query = """CREATE OR REPLACE PROCEDURE set_query_tag(tag STRING)
+    RETURNS STRING
+    LANGUAGE SQL
+    EXECUTE AS CALLER
+    AS
+    $$
+    BEGIN
+        ALTER SESSION SET QUERY_TAG = tag;
+        RETURN 'Gateway logger setup succesfully';
+    END;
+    $$;"""
+    connection.cursor().execute(tag_fn_query)
+
+
 def parse_complete_reponse(events: typing.Generator) -> str:
     return "".join(
         [

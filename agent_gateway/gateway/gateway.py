@@ -38,6 +38,8 @@ from agent_gateway.tools.snowflake_prompts import (
 from agent_gateway.tools.utils import (
     get_tag,
     parse_complete_reponse,
+    set_logging,
+    _get_connection,
 )
 
 
@@ -54,9 +56,15 @@ class CortexCompleteAgent:
     def __init__(self, session, llm) -> None:
         self.llm = llm
         self.session = session
-        self.session.connection.cursor().execute(
-            f"alter session set query_tag='{get_tag('CortexAnalystTool')}'"
-        )
+        try:
+            self.session.connection.cursor().execute(
+                f"CALL  set_query_tag('{get_tag('CortexAnalystTool')}')"
+            )
+        except Exception:
+            set_logging(_get_connection(self.session))
+            self.session.connection.cursor().execute(
+                f"CALL  set_query_tag('{get_tag('CortexAnalystTool')}')"
+            )
 
     async def arun(self, messages: list[str, CompleteRequestMessagesInner]) -> str:
         """Run the LLM."""
@@ -131,6 +139,7 @@ class Agent:
             planner_stream: Whether to stream the planning.
 
         """
+
         if not planner_example_prompt_replan:
             planner_example_prompt_replan = planner_example_prompt
 
