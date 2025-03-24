@@ -8,16 +8,34 @@ use reqwest::{
 };
 use serde_json::Value;
 
+fn is_snowpark(con: &PyObject) -> Result<bool, PyErr> {
+    Ok(Python::with_gil(|py| {
+        con.getattr(py, "connection").map(|_| true).unwrap_or_else(|_| false)
+    }))
+}
+
+fn create_authorization_header(con: &PyObject, py: Python) -> Result<HeaderValue, PyErr> {
+    let token: String;
+    if is_snowpark(con)? {
+        token = con
+            .getattr(py, "connection")?
+            .getattr(py, "rest")?
+            .getattr(py, "token")?
+            .extract(py)?;
+    } else {
+        token = con.getattr(py, "rest")?.getattr(py, "token")?.extract(py)?;
+    }
+    HeaderValue::from_str(&format!("Snowflake Token=\"{}\"", token)).map_err(|_| {
+        PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid token format")
+    })
+}
+
 fn make_headers(con: &PyObject) -> Result<HeaderMap, PyErr> {
     Python::with_gil(|py| {
-        let token: String = con.getattr(py, "rest")?.getattr(py, "token")?.extract(py)?;
-
         let mut headers = HeaderMap::new();
         headers.insert(
             header::AUTHORIZATION,
-            HeaderValue::from_str(&format!("Snowflake Token=\"{}\"", token)).map_err(|_| {
-                PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid token format")
-            })?,
+            create_authorization_header(con, py)?,
         );
         headers.insert(
             header::CONTENT_TYPE,
@@ -62,8 +80,13 @@ fn extract_and_join(json_list: Vec<Value>) -> String {
 fn prepare_endpoint_url(con: PyObject, endpoint_type: &str) -> Result<String, PyErr> {
     Python::with_gil(|py| {
         let inside_snowflake = is_running_inside_stored_procedure();
-        let host: String = con.getattr(py, "host")?.extract(py)?;
-
+        let host: String = if is_snowpark(&con)? {
+            con.getattr(py, "connection")?
+                .getattr(py, "host")?
+                .extract(py)?
+        } else {
+            con.getattr(py, "host")?.extract(py)?
+        };
         let endpoint = match endpoint_type {
             "analyst" => "/api/v2/cortex/analyst/message".to_string(),
             "complete" => "/api/v2/cortex/inference:complete".to_string(),
@@ -74,7 +97,7 @@ fn prepare_endpoint_url(con: PyObject, endpoint_type: &str) -> Result<String, Py
                     "/api/v2/databases/{}/schemas/{}/cortex-search-services/",
                     database, schema
                 )
-            },
+            }
             "sql" => "/api/v2/statements".to_string(),
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -83,7 +106,6 @@ fn prepare_endpoint_url(con: PyObject, endpoint_type: &str) -> Result<String, Py
                 )))
             }
         };
-
         Ok(if inside_snowflake {
             endpoint
         } else {
@@ -100,7 +122,9 @@ fn send_request(url: &str, headers: HeaderMap, data: Value) -> Result<Value, PyE
         .json(&data)
         .send()
         .map_err(|e| handle_error("Request error", e))?;
-    let json_response: Value = response.json().map_err(|e| handle_error("Response parsing error", e))?;
+    let json_response: Value = response
+        .json()
+        .map_err(|e| handle_error("Response parsing error", e))?;
     Ok(json_response)
 }
 
@@ -199,12 +223,8 @@ fn search(
     })
 }
 
-
 #[pyfunction]
-fn sql(
-    con: PyObject,
-    statement: &str,
-) -> PyResult<Py<PyDict>> {
+fn sql(con: PyObject, statement: &str) -> PyResult<Py<PyDict>> {
     Python::with_gil(|py| {
         let url = prepare_endpoint_url(con.clone_ref(py), "sql")?;
         let mut headers = make_headers(&con.clone_ref(py))?;
@@ -212,12 +232,10 @@ fn sql(
         let token: String = con.getattr(py, "rest")?.getattr(py, "token")?.extract(py)?;
         headers.insert(
             header::AUTHORIZATION,
-            HeaderValue::from_str(&format!(
-                "Bearer {}", token
-            ))
-            .map_err(|_| PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid token format"))?,
+            HeaderValue::from_str(&format!("Bearer {}", token)).map_err(|_| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid token format")
+            })?,
         );
-
 
         let data = serde_json::json!({
             "statement": statement,
@@ -238,7 +256,6 @@ fn sql(
         Ok(py_dict.into())
     })
 }
-
 
 #[pymodule]
 fn xetroc(m: &Bound<'_, PyModule>) -> PyResult<()> {

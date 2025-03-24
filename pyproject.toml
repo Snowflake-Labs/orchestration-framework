@@ -11,6 +11,7 @@ requires-python = ">=3.11"
 dependencies = [
     "maturin>=1.8.3",
     "snowflake-connector-python>=3.14.0",
+    "snowflake-snowpark-python>=1.29.1",
 ]
 
 [dependency-groups]
