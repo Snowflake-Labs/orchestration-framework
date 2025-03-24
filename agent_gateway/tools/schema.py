@@ -10,25 +10,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Upload Python Package
+from __future__ import annotations
 
-on:
-  release:
-    types: [published]
+from pydantic import BaseModel
 
-permissions:
-  contents: read
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install uv
-      uses: astral-sh/setup-uv@v5
-    - name: Build the project
-      run: uv build
-    - name: Publish the project
-      run: uv publish
-      env:
-        UV_PUBLISH_TOKEN: ${{ secrets.UV_PUBLISH_TOKEN }}
+class Step(BaseModel):
+    """Step."""
+
+    value: str
+    """The value."""
+
+
+class Plan(BaseModel):
+    """Plan."""
+
+    steps: list[Step]
+    """The steps."""
+
+
+class StepResponse(BaseModel):
+    """Step response."""
+
+    response: str
+    """The response."""

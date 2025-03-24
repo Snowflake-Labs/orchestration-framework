@@ -1,4 +1,4 @@
-# Copyright 2024 Snowflake Inc.
+# Copyright 2025 Snowflake Inc.
 # SPDX-License-Identifier: Apache-2.0
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ if _determine_runtime():
         "host": os.getenv("SNOWFLAKE_HOST"),
         "authenticator": "oauth",
     }
-    with open("/snowflake/session/token", "r") as token_file:
+    with open("/snowflake/session/token") as token_file:
         connection_parameters["token"] = token_file.read()
 else:
     connection_parameters = connection_parameters | {
