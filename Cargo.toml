@@ -1,0 +1,18 @@
+[package]
+name = "xetrocpy"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+# The name of the native library. This is the name which will be used in Python to import the
+# library (i.e. `import string_sum`). If you change this, you must also change the name of the
+# `#[pymodule]` in `src/lib.rs`.
+name = "xetroc"
+
+# "cdylib" is necessary to produce a shared library for Python to import from.
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.24.0", features = ["extension-module"] }
+reqwest = { version = "0.12.15", features = ["blocking", "json"] }
+serde_json = "1.0.140"

@@ -1,44 +1,21 @@
-[project]
-name = "orchestration-framework"
-version = "0.1.2"
-requires-python = ">=3.9"
-description = "A multi-agent framework with native support for Snowflake services"
-authors = [
-  { name = "Alejandro Herrera", email = "alejandro.herrera@snowflake.com" },
-]
-maintainers = [
-  { name = "Alejandro Herrera", email = "alejandro.herrera@snowflake.com" },
-  { name = "Tyler White", email = "tyler.white@snowflake.com" },
-]
-readme = "README.md"
-license = {file = "LICENSE"}
-dependencies = [
-    "snowflake-snowpark-python[pandas]>=1.22.1,<2.0",
-    "asyncio>=3.4.3",
-    "aiohttp>=3.10.9,<4.0",
-    "pydantic>=2.9.2,<3.0",
-]
-
-[project.urls]
-Repository = "https://github.com/Snowflake-Labs/orchestration-framework.git"
-Issues = "https://github.com/Snowflake-Labs/orchestration-framework/issues"
-
-[project.optional-dependencies]
-dev = [
-    "pre-commit>=4.0.1,<5.0",
-    "ruff>=0.6.9,<1.0",
-    "pytest>=8.3.3,<9.0",
-    "coverage>=7.6.9,<8.0",
-    "ipython>=8.18.1",
-]
-streamlit = [
-    "streamlit>=1.39.0,<2.0",
-    "python-dotenv>=1.0.1"
-]
-
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["maturin>=1,<2"]
+build-backend = "maturin"
 
-[tool.hatch.build.targets.wheel]
-packages = ["agent_gateway"]
+[project]
+name = "xetrocpy"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "maturin>=1.8.3",
+    "snowflake-connector-python>=3.14.0",
+]
+
+[dependency-groups]
+dev = [
+    "ipython>=9.0.2",
+    "pre-commit>=4.2.0",
+    "ruff>=0.11.1",
+]
