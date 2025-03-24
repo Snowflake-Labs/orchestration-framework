@@ -1,0 +1,52 @@
+[
+    {
+        "uuid": "cdfe1e36-3493-4149-b252-005f6b001a07",
+        "title": "Apple introduces M4 chip",
+        "description": "Apple today announced M4, the latest Apple-designed silicon chip delivering phenomenal performance to the all-new iPad Pro.",
+        "keywords": "",
+        "snippet": "May 7, 2024\n\nPRESS RELEASE\n\nApple introduces M4 chip\n\nM4 enables the breakthrough design and stunning display of the new iPad Pro, while delivering a giant leap...",
+        "url": "https://www.apple.com/newsroom/2024/05/apple-introduces-m4-chip/",
+        "image_url": "https://www.apple.com/newsroom/images/2024/05/apple-introduces-m4-chip/tile/Apple-M4-chip-badge-240507.jpg.og.jpg?202405071437",
+        "language": "en",
+        "published_at": "2024-05-07T14:37:32.000000Z",
+        "source": "news.ycombinator.com",
+        "categories": [
+            "tech",
+            "general"
+        ],
+        "relevance_score": 61.916824
+    },
+    {
+        "uuid": "ee936d94-e48c-4be3-9f15-e135c2690198",
+        "title": "[M] Apple M4 Chip Benchmarked",
+        "description": "Guides and Reviews on how to get the maximum from your PC. Overclocking and Modding to the Extreme",
+        "keywords": "overclocking, overclocking amd, overclocking software, overclocking video card, overclocking p4, overclocking pentium 4, overclocking guide, overclock, cpu overclock, geforce overclock, overclock amd, case modding, modding, extreme, hu extreme, computer hardware, hardware, forum, amd, intel, nvidia, radeon, ati, news, guides",
+        "snippet": "Apple M4 Chip Benchmarked\n\nYesterday, Apple launched its next-generation M4 chip based on Apple Silicon custom design. The processor is a fourth-generation desi...",
+        "url": "http://www.madshrimps.be/news/item/229488",
+        "image_url": "http://www.madshrimps.be/favicon.ico",
+        "language": "en",
+        "published_at": "2024-05-10T04:06:49.000000Z",
+        "source": "madshrimps.be",
+        "categories": [
+            "tech"
+        ],
+        "relevance_score": 61.797195
+    },
+    {
+        "uuid": "6a36bed8-ff0d-4089-a8f2-c1a4946bd0e6",
+        "title": "Apple introduces M4 chip",
+        "description": "CUPERTINO, Calif., May 07, 2024--Apple\u00ae today announced M4, the latest chip delivering phenomenal performance to the all-new iPad Pro\u00ae. Built using second-gen...",
+        "keywords": "",
+        "snippet": "M4 is a system on a chip (SoC) that advances the industry-leading power-efficient performance of Apple silicon. (Photo: Business Wire)\n\nM4 enables the breakthro...",
+        "url": "https://finance.yahoo.com/news/apple-introduces-m4-chip-143700102.html?.tsrc=rss",
+        "image_url": "https://media.zenfs.com/en/business-wire.com/c243897e8ce5c630293e13bd5ec0e2b2",
+        "language": "en",
+        "published_at": "2024-05-07T14:37:00.000000Z",
+        "source": "finance.yahoo.com",
+        "categories": [
+            "business",
+            "tech"
+        ],
+        "relevance_score": 61.67827
+    }
+]
