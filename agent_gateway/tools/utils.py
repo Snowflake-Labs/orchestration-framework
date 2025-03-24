@@ -20,7 +20,6 @@ from textwrap import dedent
 from typing import TypedDict, Union
 from urllib.parse import urlunparse
 
-import aiohttp
 import pkg_resources
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
@@ -83,31 +82,6 @@ class CortexEndpointBuilder:
 
     def get_analyst_headers(self) -> Headers:
         return self.BASE_HEADERS
-
-
-async def post_cortex_request(url: str, headers: Headers, data: dict):
-    """Submit cortex request depending on runtime"""
-
-    if _determine_runtime():
-        import _snowflake
-
-        resp = _snowflake.send_snow_api_request(
-            "POST",
-            url,
-            {},
-            {},
-            data,
-            {},
-            30000,
-        )
-
-        return json.dumps(resp)
-    else:
-        async with aiohttp.ClientSession(
-            headers=headers,
-        ) as session:
-            async with session.post(url=url, json=data) as response:
-                return await response.text()
 
 
 def asyncify(self, sync_func):

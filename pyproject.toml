@@ -15,7 +15,6 @@ license = {file = "LICENSE"}
 dependencies = [
     "snowflake-snowpark-python[pandas]>=1.22.1,<2.0",
     "asyncio>=3.4.3",
-    "aiohttp>=3.10.9,<4.0",
     "pydantic>=2.9.2,<3.0",
     "snowflake>=1.1.0",
 ]
