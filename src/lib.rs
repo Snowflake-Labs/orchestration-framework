@@ -115,7 +115,6 @@ fn prepare_endpoint_url(con: PyObject, endpoint_type: &str) -> Result<String, Py
 fn send_request(url: &str, headers: HeaderMap, data: Value) -> Result<Value, PyErr> {
     if is_running_inside_stored_procedure() {
         Python::with_gil(|py| {
-            // Import the Snowflake API module and call the 'send_snow_api_request' function.
             let result = py
                 .import("_snowflake")
                 .and_then(|module| {
@@ -140,7 +139,6 @@ fn send_request(url: &str, headers: HeaderMap, data: Value) -> Result<Value, PyE
                 .extract::<String>()
                 .map_err(|e| handle_error("Error parsing response from Snowflake API", e));
 
-            // Return the result
             result.map(|response| {
                 serde_json::from_str(&response)
                     .map_err(|e| handle_error("Failed to parse JSON response", e))
@@ -155,7 +153,6 @@ fn send_request(url: &str, headers: HeaderMap, data: Value) -> Result<Value, PyE
             .send()
             .map_err(|e| handle_error("Request error", e))?;
 
-        // Parse and return the JSON response
         let json_response: Value = response
             .json()
             .map_err(|e| handle_error("Response parsing error", e))?;
@@ -300,4 +297,52 @@ fn xetroc(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(search, m)?)?;
     m.add_function(wrap_pyfunction!(sql, m)?)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn test_extract_and_join() {
+        // Test case 1: Valid input with content
+        let json_list = vec![
+            json!({"choices": [{"delta": {"content": "Hello "}}]}),
+            json!({"choices": [{"delta": {"content": "World"}}]}),
+        ];
+        let result = extract_and_join(json_list);
+        assert_eq!(result, "Hello World");
+
+        // Test case 2: Valid input with missing "content" in some elements
+        let json_list = vec![
+            json!({"choices": [{"delta": {"content": "Hello"}}]}),
+            json!({"choices": [{"delta": {}}]}), // No "content" field
+            json!({"choices": [{"delta": {"content": "World"}}]}),
+        ];
+        let result = extract_and_join(json_list);
+        assert_eq!(result, "HelloWorld");
+
+        // Test case 3: Empty list
+        let json_list: Vec<Value> = Vec::new();
+        let result = extract_and_join(json_list);
+        assert_eq!(result, "");
+
+        // Test case 4: List with no "choices" key
+        let json_list = vec![
+            json!({"no_choices": [{"delta": {"content": "Hello"}}]}),
+            json!({"choices": [{"delta": {"content": "World"}}]}),
+        ];
+        let result = extract_and_join(json_list);
+        assert_eq!(result, "World"); // Only the second entry will contribute
+
+        // Test case 5: "choices" but no "delta" or "content"
+        let json_list = vec![
+            json!({"choices": [{}]}),
+            json!({"choices": [{"delta": {}}]}),
+        ];
+        let result = extract_and_join(json_list);
+        assert_eq!(result, "");
+    }
 }
