@@ -82,7 +82,7 @@ class CortexSearchTool(Tool):
     async def asearch(self, query: str) -> Dict[str, Any]:
         gateway_logger.log("DEBUG", f"Cortex Search Query: {query}")
 
-        search_response = search(
+        search_resp = search(
             con=self.connection,
             service_name=self.service_name,
             prompt=query,
@@ -90,8 +90,9 @@ class CortexSearchTool(Tool):
             limit=self.k,
         )
 
+        search_response = json.loads(search_resp["results"])
         search_col = self._get_search_column(self.service_name)
-        citations = self._get_citations(search_response["results"], search_col)
+        citations = self._get_citations(search_response, search_col)
 
         gateway_logger.log("DEBUG", f"Cortex Search Response: {search_response}")
 
