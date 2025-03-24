@@ -40,3 +40,15 @@ streamlit = [
 [build-system]
 requires = ["maturin>=1,<2"]
 build-backend = "maturin"
+
+[tool.cibuildwheel]
+before-all = [
+    "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y",
+    "source $HOME/.cargo/env",
+    # Use the correct package manager based on the container
+    "if command -v apt-get >/dev/null; then apt-get update && apt-get install -y libssl-dev pkg-config; fi",
+    "if command -v dnf >/dev/null; then dnf install -y openssl-devel pkgconfig; fi",
+    "if command -v apk >/dev/null; then apk add openssl-dev pkgconfig; fi",
+    "if command -v yum >/dev/null; then yum install -y openssl-devel pkgconfig; fi"
+]
+environment = "PATH=$HOME/.cargo/bin:$PATH"
