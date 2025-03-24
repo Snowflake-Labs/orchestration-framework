@@ -8,26 +8,17 @@ use reqwest::{
 };
 use serde_json::Value;
 
-fn make_headers(con: &PyObject, header_type: String) -> Result<HeaderMap, PyErr> {
+fn make_headers(con: &PyObject) -> Result<HeaderMap, PyErr> {
     Python::with_gil(|py| {
         let token: String = con.getattr(py, "rest")?.getattr(py, "token")?.extract(py)?;
 
         let mut headers = HeaderMap::new();
-        if header_type == "sql" {
-            headers.insert(
-                header::AUTHORIZATION,
-                HeaderValue::from_str(&format!("Bearer \"{}\"", token)).map_err(|_| {
-                    PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid token format")
-                })?,
-            );
-        } else {
-            headers.insert(
-                header::CONTENT_TYPE,
-                HeaderValue::from_str(&format!("Snowflake Token=\"{}\"", token)).map_err(|_| {
-                    PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid token format")
-                })?,
-            );
-        }
+        headers.insert(
+            header::AUTHORIZATION,
+            HeaderValue::from_str(&format!("Snowflake Token=\"{}\"", token)).map_err(|_| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid token format")
+            })?,
+        );
         headers.insert(
             header::CONTENT_TYPE,
             HeaderValue::from_static("application/json"),
@@ -83,7 +74,7 @@ fn prepare_endpoint_url(con: PyObject, endpoint_type: &str) -> Result<String, Py
                     "/api/v2/databases/{}/schemas/{}/cortex-search-services/",
                     database, schema
                 )
-            }
+            },
             "sql" => "/api/v2/statements".to_string(),
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -109,9 +100,7 @@ fn send_request(url: &str, headers: HeaderMap, data: Value) -> Result<Value, PyE
         .json(&data)
         .send()
         .map_err(|e| handle_error("Request error", e))?;
-    let json_response: Value = response
-        .json()
-        .map_err(|e| handle_error("Response parsing error", e))?;
+    let json_response: Value = response.json().map_err(|e| handle_error("Response parsing error", e))?;
     Ok(json_response)
 }
 
@@ -119,7 +108,7 @@ fn send_request(url: &str, headers: HeaderMap, data: Value) -> Result<Value, PyE
 fn analyst(con: PyObject, semantic_model_file: &str, prompt: &str) -> PyResult<Py<PyDict>> {
     Python::with_gil(|py| {
         let url = prepare_endpoint_url(con.clone_ref(py), "analyst")?;
-        let headers = make_headers(&con.clone_ref(py), "analyst".to_string())?;
+        let headers = make_headers(&con.clone_ref(py))?;
 
         let data = serde_json::json!({
             "messages": [
@@ -148,7 +137,7 @@ fn analyst(con: PyObject, semantic_model_file: &str, prompt: &str) -> PyResult<P
 fn complete(con: PyObject, model: &str, prompt: &str) -> PyResult<Py<PyString>> {
     Python::with_gil(|py| -> PyResult<Py<PyString>> {
         let url = prepare_endpoint_url(con.clone_ref(py), "complete")?;
-        let headers = make_headers(&con, "complete".to_string())?;
+        let headers = make_headers(&con)?;
         let data = serde_json::json!({
             "model": model,
             "messages": [{"content": prompt}],
@@ -186,7 +175,7 @@ fn search(
     Python::with_gil(|py| {
         let url = prepare_endpoint_url(con.clone_ref(py), "search")?;
         let url = format!("{}/{}:query", url, service_name);
-        let headers = make_headers(&con.clone_ref(py), "analyst".to_string())?;
+        let headers = make_headers(&con.clone_ref(py))?;
 
         let data = serde_json::json!({
             "query": prompt,
@@ -210,11 +199,25 @@ fn search(
     })
 }
 
+
 #[pyfunction]
-fn sql(con: PyObject, statement: &str) -> PyResult<Py<PyDict>> {
+fn sql(
+    con: PyObject,
+    statement: &str,
+) -> PyResult<Py<PyDict>> {
     Python::with_gil(|py| {
         let url = prepare_endpoint_url(con.clone_ref(py), "sql")?;
-        let headers = make_headers(&con.clone_ref(py), "sql".to_string())?;
+        let mut headers = make_headers(&con.clone_ref(py))?;
+        headers.remove("AUTHORIZATION");
+        let token: String = con.getattr(py, "rest")?.getattr(py, "token")?.extract(py)?;
+        headers.insert(
+            header::AUTHORIZATION,
+            HeaderValue::from_str(&format!(
+                "Bearer {}", token
+            ))
+            .map_err(|_| PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid token format"))?,
+        );
+
 
         let data = serde_json::json!({
             "statement": statement,
@@ -235,6 +238,7 @@ fn sql(con: PyObject, statement: &str) -> PyResult<Py<PyDict>> {
         Ok(py_dict.into())
     })
 }
+
 
 #[pymodule]
 fn xetroc(m: &Bound<'_, PyModule>) -> PyResult<()> {
