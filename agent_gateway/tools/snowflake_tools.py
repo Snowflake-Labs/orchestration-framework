@@ -21,18 +21,16 @@ import pandas as pd
 from pydantic import BaseModel
 from snowflake.connector import DictCursor
 from snowflake.connector.connection import SnowflakeConnection
-from snowflake.core import Root
 from snowflake.snowpark import Session
 
 from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.tools import Tool
 from agent_gateway.tools.utils import (
-    CortexEndpointBuilder,
-    _determine_runtime,
     _get_connection,
     get_tag,
-    post_cortex_request,
 )
+
+from xetroc import analyst, search
 
 
 class SnowflakeError(Exception):
@@ -84,19 +82,16 @@ class CortexSearchTool(Tool):
     async def asearch(self, query: str) -> Dict[str, Any]:
         gateway_logger.log("DEBUG", f"Cortex Search Query: {query}")
 
-        search_service = (
-            Root(self.connection)
-            .databases[self.connection.database]
-            .schemas[self.connection.schema]
-            .cortex_search_services[self.service_name]
+        search_response = search(
+            con=self.connection,
+            service_name=self.service_name,
+            prompt=query,
+            columns=self.retrieval_columns,
+            limit=self.k,
         )
 
-        search_response = search_service.search(
-            query, columns=self.retrieval_columns, filter={}, limit=self.k
-        ).results
-
         search_col = self._get_search_column(self.service_name)
-        citations = self._get_citations(search_response, search_col)
+        citations = self._get_citations(search_response["results"], search_col)
 
         gateway_logger.log("DEBUG", f"Cortex Search Response: {search_response}")
 
@@ -226,42 +221,17 @@ class CortexAnalystTool(Tool):
 
     async def asearch(self, query: str) -> Dict[str, Any]:
         gateway_logger.log("DEBUG", f"Cortex Analyst Prompt: {query}")
-
-        url, headers, data = self._prepare_analyst_request(prompt=query)
-
-        response_text = await post_cortex_request(url=url, headers=headers, data=data)
-        json_response = json.loads(response_text)
-
-        gateway_logger.log("DEBUG", f"Cortex Analyst Raw Response: {json_response}")
+        semantic_model = f"@{self.connection.database}.{self.connection.schema}.{self.STAGE}/{self.FILE}"
+        response = analyst(
+            con=self.connection, semantic_model_file=semantic_model, prompt=query
+        )
 
         try:
-            if _determine_runtime() and isinstance(json_response["content"], str):
-                json_response["content"] = json.loads(json_response["content"])
-                query_response = self._process_analyst_message(
-                    json_response["content"]["message"]["content"]
-                )
-            else:
-                x = json_response["message"]["content"]
-                query_response = self._process_analyst_message(x)
-
-            return query_response
-
+            content = json.loads(response["message"])
+            analyst_response = self._process_analyst_message(content["content"])
+            return analyst_response
         except KeyError:
-            raise SnowflakeError(message=json_response.get("message", "Unknown error"))
-
-    def _prepare_analyst_request(self, prompt: str) -> tuple:
-        data = {
-            "messages": [
-                {"role": "user", "content": [{"type": "text", "text": prompt}]}
-            ],
-            "semantic_model_file": f"@{self.connection.database}.{self.connection.schema}.{self.STAGE}/{self.FILE}",
-        }
-
-        eb = CortexEndpointBuilder(self.connection)
-        headers = eb.get_analyst_headers()
-        url = eb.get_analyst_endpoint()
-
-        return url, headers, data
+            raise SnowflakeError(message=response.get("message", "Unknown error"))
 
     def _process_analyst_message(
         self, response: list[dict[str, Any]]

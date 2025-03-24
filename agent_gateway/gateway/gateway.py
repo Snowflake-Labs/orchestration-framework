@@ -265,7 +265,7 @@ class Agent:
             # "---\n"
         )
 
-        response = await self.agent.arun([prompt])
+        response = await self.agent.arun(prompt)
         raw_answer = cast(str, response)
         gateway_logger.log("DEBUG", "Question: \n", input_query, block=True)
         gateway_logger.log("DEBUG", "Raw Answer: \n", raw_answer, block=True)
