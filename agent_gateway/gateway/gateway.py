@@ -19,11 +19,6 @@ from collections.abc import Sequence
 from typing import Any, Dict, List, Mapping, Optional, Union, cast
 
 from snowflake.connector.connection import SnowflakeConnection
-from snowflake.core import Root
-from snowflake.core.cortex.inference_service import (
-    CompleteRequest,
-    CompleteRequestMessagesInner,
-)
 from snowflake.snowpark import Session
 
 from agent_gateway.gateway.constants import END_OF_PLAN, FUSION_REPLAN
@@ -37,8 +32,9 @@ from agent_gateway.tools.snowflake_prompts import (
 )
 from agent_gateway.tools.utils import (
     get_tag,
-    parse_complete_reponse,
 )
+
+from xetroc import complete
 
 
 class AgentGatewayError(Exception):
@@ -58,23 +54,9 @@ class CortexCompleteAgent:
             f"alter session set query_tag='{get_tag('CortexAnalystTool')}'"
         )
 
-    async def arun(self, messages: list[str, CompleteRequestMessagesInner]) -> str:
+    async def arun(self, message) -> str:
         """Run the LLM."""
-        messages = [
-            (
-                CompleteRequestMessagesInner(content=message)
-                if isinstance(message, str)
-                else message
-            )
-            for message in messages
-        ]
-        req = CompleteRequest(model=self.llm, messages=messages)
-        res = (
-            Root(self.session.connection)
-            .cortex_inference_service.complete(req)
-            .events()
-        )
-        return parse_complete_reponse(res)
+        return complete(con=self.session, model=self.llm, prompt=message)
 
 
 class SummarizationAgent(Tool):

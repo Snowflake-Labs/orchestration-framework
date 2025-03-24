@@ -20,12 +20,6 @@ import re
 from collections.abc import Sequence
 from typing import Any, Optional, Union
 
-from snowflake.core import Root
-from snowflake.core.cortex.inference_service import (
-    CompleteRequest,
-    CompleteRequestMessagesInner,
-)
-
 from agent_gateway.gateway.constants import END_OF_PLAN
 from agent_gateway.gateway.output_parser import (
     ACTION_PATTERN,
@@ -37,7 +31,8 @@ from agent_gateway.gateway.task_processor import Task
 from agent_gateway.tools.base import StructuredTool, Tool
 from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.schema import Plan
-from agent_gateway.tools.utils import parse_complete_reponse
+
+from xetroc import complete
 
 
 class AgentGatewayError(Exception):
@@ -210,22 +205,9 @@ class Planner:
             system_prompt = self.system_prompt
             human_prompt = f"Question: {inputs['input']}"
 
-        messages = [system_prompt + "\n\n" + human_prompt]
-        messages = [
-            (
-                CompleteRequestMessagesInner(content=message)
-                if isinstance(message, str)
-                else message
-            )
-            for message in messages
-        ]
-        req = CompleteRequest(model=self.llm, messages=messages)
-        res = (
-            Root(self.session.connection)
-            .cortex_inference_service.complete(req)
-            .events()
-        )
-        return parse_complete_reponse(res)
+        message = system_prompt + "\n\n" + human_prompt
+
+        return complete(con=self.session, model=self.llm, prompt=message)
 
     async def plan(self, inputs: dict, is_replan: bool, **kwargs: Any):
         llm_response = await self.run_llm(
