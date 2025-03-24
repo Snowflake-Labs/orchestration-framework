@@ -7,6 +7,8 @@ use reqwest::{
     header::{self, HeaderMap, HeaderValue},
 };
 use serde_json::Value;
+pub mod jwt;
+use crate::jwt::{JWTGenerator};
 
 fn is_snowpark(con: &PyObject) -> Result<bool, PyErr> {
     Ok(Python::with_gil(|py| {
@@ -260,12 +262,18 @@ fn search(
 fn sql(con: PyObject, statement: &str) -> PyResult<Py<PyDict>> {
     Python::with_gil(|py| {
         let url = prepare_endpoint_url(con.clone_ref(py), "sql")?;
+        let jwt = JWTGenerator::new(
+            &con.getattr(py, "account")?.extract::<String>(py)?,
+            &con.getattr(py, "user")?.extract::<String>(py)?,
+            "rsa_key.p8",
+            std::time::Duration::from_secs(3540),
+            std::time::Duration::from_secs(600),
+            );
         let mut headers = make_headers(&con.clone_ref(py))?;
         headers.remove("AUTHORIZATION");
-        let token: String = con.getattr(py, "rest")?.getattr(py, "token")?.extract(py)?;
         headers.insert(
             header::AUTHORIZATION,
-            HeaderValue::from_str(&format!("Bearer {}", token)).map_err(|_| {
+            HeaderValue::from_str(&format!("Bearer {}", jwt.get_token())).map_err(|_| {
                 PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid token format")
             })?,
         );
@@ -275,7 +283,7 @@ fn sql(con: PyObject, statement: &str) -> PyResult<Py<PyDict>> {
         });
 
         let response_json = send_request(&url, headers, data)?;
-
+        println!("{}", response_json);
         let py_dict = PyDict::new(py);
         for (key, value) in response_json.as_object().unwrap_or(&serde_json::Map::new()) {
             py_dict.set_item(key, value.to_string()).map_err(|e| {
@@ -285,7 +293,6 @@ fn sql(con: PyObject, statement: &str) -> PyResult<Py<PyDict>> {
                 ))
             })?;
         }
-
         Ok(py_dict.into())
     })
 }
