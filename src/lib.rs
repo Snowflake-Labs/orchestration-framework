@@ -10,7 +10,9 @@ use serde_json::Value;
 
 fn is_snowpark(con: &PyObject) -> Result<bool, PyErr> {
     Ok(Python::with_gil(|py| {
-        con.getattr(py, "connection").map(|_| true).unwrap_or_else(|_| false)
+        con.getattr(py, "connection")
+            .map(|_| true)
+            .unwrap_or_else(|_| false)
     }))
 }
 
@@ -25,18 +27,14 @@ fn create_authorization_header(con: &PyObject, py: Python) -> Result<HeaderValue
     } else {
         token = con.getattr(py, "rest")?.getattr(py, "token")?.extract(py)?;
     }
-    HeaderValue::from_str(&format!("Snowflake Token=\"{}\"", token)).map_err(|_| {
-        PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid token format")
-    })
+    HeaderValue::from_str(&format!("Snowflake Token=\"{}\"", token))
+        .map_err(|_| PyErr::new::<pyo3::exceptions::PyValueError, _>("Invalid token format"))
 }
 
 fn make_headers(con: &PyObject) -> Result<HeaderMap, PyErr> {
     Python::with_gil(|py| {
         let mut headers = HeaderMap::new();
-        headers.insert(
-            header::AUTHORIZATION,
-            create_authorization_header(con, py)?,
-        );
+        headers.insert(header::AUTHORIZATION, create_authorization_header(con, py)?);
         headers.insert(
             header::CONTENT_TYPE,
             HeaderValue::from_static("application/json"),
@@ -115,17 +113,52 @@ fn prepare_endpoint_url(con: PyObject, endpoint_type: &str) -> Result<String, Py
 }
 
 fn send_request(url: &str, headers: HeaderMap, data: Value) -> Result<Value, PyErr> {
-    let client = Client::new();
-    let response = client
-        .post(url)
-        .headers(headers)
-        .json(&data)
-        .send()
-        .map_err(|e| handle_error("Request error", e))?;
-    let json_response: Value = response
-        .json()
-        .map_err(|e| handle_error("Response parsing error", e))?;
-    Ok(json_response)
+    if is_running_inside_stored_procedure() {
+        Python::with_gil(|py| {
+            let result = py
+                .import("_snowflake")
+                .and_then(|module| {
+                    module.call_method1(
+                        "send_snow_api_request",
+                        (
+                            "POST",
+                            url,
+                            {},
+                            {},
+                            PyString::new(
+                                py,
+                                &serde_json::to_string(&data)
+                                    .map_err(|e| handle_error("Serialization error", e))?,
+                            ),
+                            {},
+                            30000,
+                        ),
+                    )
+                })
+                .map_err(|e| handle_error("Error calling Snowflake API", e))?
+                .extract::<String>()
+                .map_err(|e| handle_error("Error parsing response from Snowflake API", e));
+
+            result.map(|response| {
+                serde_json::from_str(&response)
+                    .map_err(|e| handle_error("Failed to parse JSON response", e))
+            })?
+        })
+    } else {
+        let client = Client::new();
+        let response = client
+            .post(url)
+            .headers(headers)
+            .json(&data)
+            .send()
+            .map_err(|e| handle_error("Request error", e))?;
+
+        let json_response: Value = response
+            .json()
+            .map_err(|e| handle_error("Response parsing error", e))?;
+
+        Ok(json_response)
+    }
 }
 
 #[pyfunction]
