@@ -209,36 +209,36 @@ class Agent:
 
         """
 
-        # hack to add tools to observability
+        # workaround to add tools to observability
         def _unused_tool():
             pass
 
-        self._search_tool_placeholder = CortexSearchTool(
-            service_name="",
-            service_topic="",
-            data_description="",
-            retrieval_columns="",
-            snowflake_connection=snowflake_connection,
-        )
-        self._analyst_tool_placeholder = CortexAnalystTool(
-            semantic_model="",
-            stage="",
-            service_topic="",
-            data_description="",
-            snowflake_connection=snowflake_connection,
-        )
-        self._python_tool_placeholder = PythonTool(
-            python_func=_unused_tool, tool_description="", output_description=""
-        )
+        if _should_instrument():
+            self._search_tool_placeholder = CortexSearchTool(
+                service_name="",
+                service_topic="",
+                data_description="",
+                retrieval_columns="",
+                snowflake_connection=snowflake_connection,
+            )
+            self._analyst_tool_placeholder = CortexAnalystTool(
+                semantic_model="",
+                stage="",
+                service_topic="",
+                data_description="",
+                snowflake_connection=snowflake_connection,
+            )
+            self._python_tool_placeholder = PythonTool(
+                python_func=_unused_tool, tool_description="", output_description=""
+            )
 
-        self._planner_placheholder = Planner(
-            session="",
-            llm="",
-            example_prompt="",
-            example_prompt_replan="",
-            tools=[self._analyst_tool_placeholder],
-            stop=["stop"],
-        ).plan(inputs={}, is_replan=False)
+            self._planner_placheholder = Planner(
+                session="",
+                llm="",
+                example_prompt="",
+                example_prompt_replan="",
+                tools=[self._analyst_tool_placeholder],
+            ).plan(inputs={}, is_replan=False)
 
         summarizer = SummarizationAgent(
             session=snowflake_connection, agent_llm=agent_llm
@@ -251,7 +251,6 @@ class Agent:
             example_prompt=planner_example_prompt,
             example_prompt_replan=planner_example_prompt_replan,
             tools=tools_with_summarizer,
-            stop=planner_stop,
         )
 
         self.agent = CortexCompleteAgent(session=snowflake_connection, llm=agent_llm)

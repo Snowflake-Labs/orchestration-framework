@@ -18,6 +18,7 @@ import pytest
 
 from agent_gateway import Agent
 from agent_gateway.tools import CortexAnalystTool, CortexSearchTool, PythonTool, SQLTool
+from tests.data.sql_response import SQL_RESPONSE
 
 
 @pytest.mark.parametrize(
@@ -105,12 +106,9 @@ def test_sql_tool(session):
     }
 
     sql_tool = SQLTool(**sql_config)
-    response = asyncio.run(sql_tool)
+    response = asyncio.run(sql_tool())
 
-    with open("tests/data/response.json") as f:
-        d = json.load(f)
-
-    assert d == response
+    assert SQL_RESPONSE == str(response)
 
 
 @pytest.mark.parametrize(

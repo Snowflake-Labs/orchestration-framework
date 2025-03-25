@@ -176,7 +176,6 @@ class Planner:
         example_prompt: str,
         example_prompt_replan: str,
         tools: Sequence[Union[Tool, StructuredTool]],
-        stop: Optional[list[str]],
     ):
         self.llm = llm
         self.session = session
@@ -195,7 +194,6 @@ class Planner:
             is_replan=True,
         )
         self.output_parser = GatewayPlanParser(tools=tools)
-        self.stop = stop
 
     async def run_llm(
         self,
