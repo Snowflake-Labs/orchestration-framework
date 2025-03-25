@@ -1,4 +1,4 @@
-# Copyright 2024 Snowflake Inc.
+# Copyright 2025 Snowflake Inc.
 # SPDX-License-Identifier: Apache-2.0
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,15 +20,17 @@ import sys
 import threading
 import uuid
 import warnings
-
 import requests
+
+from agent_gateway.tools.utils import _determine_runtime
+
 import streamlit as st
 from dotenv import load_dotenv
 from snowflake.snowpark import Session
 
 from agent_gateway import Agent
 from agent_gateway.tools import CortexAnalystTool, CortexSearchTool, PythonTool
-from agent_gateway.tools.utils import _determine_runtime, parse_log_message
+from agent_gateway.tools.utils import parse_log_message
 
 warnings.filterwarnings("ignore")
 load_dotenv()
@@ -46,7 +48,7 @@ if _determine_runtime():
         "host": os.getenv("SNOWFLAKE_HOST"),
         "authenticator": "oauth",
     }
-    with open("/snowflake/session/token", "r") as token_file:
+    with open("/snowflake/session/token") as token_file:
         connection_parameters["token"] = token_file.read()
 else:
     connection_parameters = connection_parameters | {
