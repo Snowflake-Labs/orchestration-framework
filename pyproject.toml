@@ -17,7 +17,6 @@ dependencies = [
     "asyncio>=3.4.3",
     "aiohttp>=3.10.9,<4.0",
     "pydantic>=2.9.2,<3.0",
-    "python-dotenv>=1.1.0",
 ]
 
 [project.urls]
@@ -35,6 +34,7 @@ dev = [
     "pytest>=8.3.3,<9.0",
     "coverage>=7.6.9,<8.0",
     "ipython>=8.18.1",
+    "python-dotenv>=1.1.0",
 ]
 streamlit = [
     "streamlit>=1.39.0,<2.0",
