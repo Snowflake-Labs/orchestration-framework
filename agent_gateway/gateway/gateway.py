@@ -13,17 +13,13 @@ from __future__ import annotations
 
 import ast
 import asyncio
+import json
 import re
 import threading
 from collections.abc import Sequence
-from typing import Any, Dict, List, Mapping, Optional, Union, cast
+from typing import Any, Dict, List, Mapping, Optional, Union, cast, ClassVar
 
 from snowflake.connector.connection import SnowflakeConnection
-from snowflake.core import Root
-from snowflake.core.cortex.inference_service import (
-    CompleteRequest,
-    CompleteRequestMessagesInner,
-)
 from snowflake.snowpark import Session
 
 from agent_gateway.gateway.constants import END_OF_PLAN, FUSION_REPLAN
@@ -36,11 +32,25 @@ from agent_gateway.tools.snowflake_prompts import (
     PLANNER_PROMPT as SNOWFLAKE_PLANNER_PROMPT,
 )
 from agent_gateway.tools.utils import (
+    CortexEndpointBuilder,
+    _determine_runtime,
+    post_cortex_request,
     get_tag,
-    parse_complete_reponse,
     set_logging,
     _get_connection,
+    _should_instrument,
+    gateway_instrument,
 )
+
+from agent_gateway.tools.snowflake_tools import (
+    CortexAnalystTool,
+    PythonTool,
+    CortexSearchTool,
+)
+
+if _should_instrument():
+    from trulens.apps.custom import TruCustomApp
+    from trulens.core import TruSession
 
 
 class AgentGatewayError(Exception):
@@ -66,23 +76,75 @@ class CortexCompleteAgent:
                 f"CALL  set_query_tag('{get_tag('CortexAnalystTool')}')"
             )
 
-    async def arun(self, messages: list[str, CompleteRequestMessagesInner]) -> str:
+    async def arun(self, prompt: str) -> str:
         """Run the LLM."""
-        messages = [
-            (
-                CompleteRequestMessagesInner(content=message)
-                if isinstance(message, str)
-                else message
+        headers, url, data = self._prepare_llm_request(prompt=prompt)
+
+        try:
+            response_text = await post_cortex_request(
+                url=url, headers=headers, data=data
             )
-            for message in messages
-        ]
-        req = CompleteRequest(model=self.llm, messages=messages)
-        res = (
-            Root(self.session.connection)
-            .cortex_inference_service.complete(req)
-            .events()
-        )
-        return parse_complete_reponse(res)
+
+        except Exception as e:
+            raise AgentGatewayError(
+                message=f"Failed Cortex LLM Request. See details:{str(e)}"
+            ) from e
+
+        try:
+            if _determine_runtime():
+                response_text = json.loads(response_text).get("content")
+
+            snowflake_response = self._parse_snowflake_response(response_text)
+
+            return snowflake_response
+        except Exception:
+            raise AgentGatewayError(
+                message=f"Failed Cortex LLM Request. Unable to parse response. See details:{response_text}"
+            )
+
+    def _prepare_llm_request(self, prompt):
+        eb = CortexEndpointBuilder(self.session)
+        url = eb.get_complete_endpoint()
+        headers = eb.get_complete_headers()
+        data = {"model": self.llm, "messages": [{"content": prompt}]}
+
+        return headers, url, data
+
+    def _parse_snowflake_response(self, data_str):
+        try:
+            json_list = []
+
+            if _determine_runtime():
+                json_list = [i["data"] for i in json.loads(data_str)]
+
+            else:
+                json_objects = data_str.split("\ndata: ")
+
+                # Iterate over each object
+                for obj in json_objects:
+                    obj = obj.strip()
+                    if obj:
+                        # Remove the 'data: ' prefix if it exists
+                        if obj.startswith("data: "):
+                            obj = obj[6:]
+                        # Load the JSON object into a Python dictionary
+                        json_dict = json.loads(str(obj))
+                        # Append the JSON dictionary to the list
+                        json_list.append(json_dict)
+
+            completion = ""
+            choices = {}
+            for chunk in json_list:
+                choices = chunk["choices"][0]
+
+                if "content" in choices["delta"].keys():
+                    completion += choices["delta"]["content"]
+
+            return completion
+        except KeyError as e:
+            raise AgentGatewayError(
+                message=f"Missing Cortex LLM response components. {str(e)}"
+            )
 
 
 class SummarizationAgent(Tool):
@@ -100,11 +162,18 @@ class Agent:
 
     input_key: str = "input"
     output_key: str = "output"
+    fuse: ClassVar[Any]
+    acall: ClassVar[Any]
+    handle_exception: ClassVar[Any]
+    run_async: ClassVar[Any]
+    search_tool: Optional[CortexSearchTool] = None
 
     def __init__(
         self,
         snowflake_connection: Union[Session, SnowflakeConnection],
-        tools: list[Union[Tool, StructuredTool]],
+        tools: list[
+            Union[Tool, StructuredTool, CortexAnalystTool, CortexSearchTool, PythonTool]
+        ],
         max_retries: int = 2,
         planner_llm: str = "mistral-large2",
         agent_llm: str = "mistral-large2",
@@ -140,8 +209,36 @@ class Agent:
 
         """
 
-        if not planner_example_prompt_replan:
-            planner_example_prompt_replan = planner_example_prompt
+        # hack to add tools to observability
+        def _unused_tool():
+            pass
+
+        self._search_tool_placeholder = CortexSearchTool(
+            service_name="",
+            service_topic="",
+            data_description="",
+            retrieval_columns="",
+            snowflake_connection=snowflake_connection,
+        )
+        self._analyst_tool_placeholder = CortexAnalystTool(
+            semantic_model="",
+            stage="",
+            service_topic="",
+            data_description="",
+            snowflake_connection=snowflake_connection,
+        )
+        self._python_tool_placeholder = PythonTool(
+            python_func=_unused_tool, tool_description="", output_description=""
+        )
+
+        self._planner_placheholder = Planner(
+            session="",
+            llm="",
+            example_prompt="",
+            example_prompt_replan="",
+            tools=[self._analyst_tool_placeholder],
+            stop=["stop"],
+        ).plan(inputs={}, is_replan=False)
 
         summarizer = SummarizationAgent(
             session=snowflake_connection, agent_llm=agent_llm
@@ -278,6 +375,7 @@ class Agent:
         formatted_contexts += "Current Plan:\n\n"
         return formatted_contexts
 
+    @gateway_instrument
     async def fuse(
         self, input_query: str, agent_scratchpad: str, is_final: bool
     ) -> str:
@@ -292,7 +390,7 @@ class Agent:
             # "---\n"
         )
 
-        response = await self.agent.arun([prompt])
+        response = await self.agent.arun(prompt)
         raw_answer = cast(str, response)
         gateway_logger.log("DEBUG", "Question: \n", input_query, block=True)
         gateway_logger.log("DEBUG", "Raw Answer: \n", raw_answer, block=True)
@@ -379,7 +477,8 @@ class Agent:
     def _call(self, inputs):
         return self.__call__(inputs)
 
-    def __call__(self, input: str):
+    @gateway_instrument
+    def __call__(self, input: str) -> Any:
         """Calls Cortex gateway multi-agent system.
 
         Params:
@@ -402,10 +501,12 @@ class Agent:
 
         return result[0]
 
+    @gateway_instrument
     def handle_exception(self, loop, context):
         loop.default_exception_handler(context)
         loop.stop()
 
+    @gateway_instrument
     def run_async(self, input, result, error):
         loop = asyncio.new_event_loop()
         loop.set_exception_handler(self.handle_exception)
@@ -433,6 +534,7 @@ class Agent:
             finally:
                 loop.close()
 
+    @gateway_instrument
     async def acall(
         self,
         input: str,
@@ -472,9 +574,6 @@ class Agent:
                 tasks = await self.planner.plan(
                     inputs=inputs,
                     is_replan=not is_first_iter,
-                    callbacks=(
-                        [self.planner_callback] if self.planner_callback else None
-                    ),
                 )
 
                 task_processor.set_tasks(tasks)
@@ -502,8 +601,6 @@ class Agent:
             )
             if not is_replan:
                 break
-            else:
-                gateway_logger.log("INFO", "Replanning...")
 
             # Collect contexts for the subsequent replanner
             context = self._generate_context_for_replanner(
@@ -525,3 +622,28 @@ class Agent:
             }
         else:
             return {"output": answer, "sources": sources}
+
+
+if _should_instrument():
+
+    class TruAgent:
+        def __init__(
+            self, app_name, app_version, trulens_snowflake_connection, **kwargs
+        ):
+            self.agent = Agent(**kwargs)
+            self.tru_session = TruSession(connector=trulens_snowflake_connection)
+
+            self.tru_agent = TruCustomApp(
+                self.agent,
+                app_name=app_name,
+                app_version=app_version,
+            )
+
+        def __call__(self, input):
+            with self.tru_agent:
+                output = self.agent(input)
+
+            return output
+
+        async def acall(self, input):
+            return await self.agent.acall(input)

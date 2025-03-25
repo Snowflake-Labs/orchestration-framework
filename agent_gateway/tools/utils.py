@@ -14,16 +14,22 @@ from __future__ import annotations
 import asyncio
 import io
 import json
-import typing
 from collections import deque
 from textwrap import dedent
 from typing import TypedDict, Union
 from urllib.parse import urlunparse
+import importlib
 
 import aiohttp
 import pkg_resources
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
+from functools import wraps
+
+try:
+    from trulens.apps.app import instrument
+except Exception:
+    pass
 
 
 def _get_connection(
@@ -47,6 +53,23 @@ def _determine_runtime():
         return True
     except ImportError:
         return False
+
+
+def _should_instrument():
+    required_packages = ["trulens", "trulens.connectors.snowflake"]
+    return all(
+        importlib.util.find_spec(package) is not None for package in required_packages
+    )
+
+
+def gateway_instrument(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if _should_instrument():
+            return instrument(func)(*args, **kwargs)
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 class CortexEndpointBuilder:
@@ -75,16 +98,36 @@ class CortexEndpointBuilder:
             "Authorization": f'Snowflake Token="{token}"',
         }
 
+    def get_complete_endpoint(self):
+        URL_SUFFIX = "/api/v2/cortex/inference:complete"
+        if self.inside_snowflake:
+            return URL_SUFFIX
+        return f"{self.BASE_URL}{URL_SUFFIX}"
+
     def get_analyst_endpoint(self):
         URL_SUFFIX = "/api/v2/cortex/analyst/message"
         if self.inside_snowflake:
             return URL_SUFFIX
         return f"{self.BASE_URL}{URL_SUFFIX}"
 
+    def get_search_endpoint(self, database, schema, service_name):
+        URL_SUFFIX = f"/api/v2/databases/{database}/schemas/{schema}/cortex-search-services/{service_name}:query"
+        URL_SUFFIX = URL_SUFFIX.lower()
+        if self.inside_snowflake:
+            return URL_SUFFIX
+        return f"{self.BASE_URL}{URL_SUFFIX}"
+
+    def get_complete_headers(self) -> Headers:
+        return self.BASE_HEADERS | {"Accept": "application/json"}
+
     def get_analyst_headers(self) -> Headers:
         return self.BASE_HEADERS
 
+    def get_search_headers(self) -> Headers:
+        return self.BASE_HEADERS | {"Accept": "application/json"}
 
+
+@gateway_instrument
 async def post_cortex_request(url: str, headers: Headers, data: dict):
     """Submit cortex request depending on runtime"""
 
@@ -267,17 +310,7 @@ def set_logging(connection: SnowflakeConnection):
     $$
     BEGIN
         ALTER SESSION SET QUERY_TAG = tag;
-        RETURN 'Gateway logger setup succesfully';
+        RETURN 'Gateway logger setup successfully';
     END;
     $$;"""
     connection.cursor().execute(tag_fn_query)
-
-
-def parse_complete_reponse(events: typing.Generator) -> str:
-    return "".join(
-        [
-            json.loads(e.data)["choices"][0]["delta"].get("content")
-            for e in events
-            if json.loads(e.data)["choices"][0]["delta"].get("content")
-        ]
-    )
