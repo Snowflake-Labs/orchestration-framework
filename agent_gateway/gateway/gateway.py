@@ -242,7 +242,6 @@ class Agent:
 
             instrument.method(CortexSearchTool, "asearch")
             instrument.method(CortexAnalystTool, "query")
-            instrument.method(CortexCompleteAgent, "arun")
             instrument.method(Planner, "plan")
 
         summarizer = SummarizationAgent(
