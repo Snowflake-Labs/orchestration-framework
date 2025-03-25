@@ -24,12 +24,6 @@ import aiohttp
 import pkg_resources
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
-from functools import wraps
-
-try:
-    from trulens.apps.app import instrument
-except Exception:
-    pass
 
 
 def _get_connection(
@@ -60,16 +54,6 @@ def _should_instrument():
     return all(
         importlib.util.find_spec(package) is not None for package in required_packages
     )
-
-
-def gateway_instrument(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if _should_instrument():
-            return instrument(func)(*args, **kwargs)
-        return func(*args, **kwargs)
-
-    return wrapper
 
 
 class CortexEndpointBuilder:
@@ -127,7 +111,6 @@ class CortexEndpointBuilder:
         return self.BASE_HEADERS | {"Accept": "application/json"}
 
 
-@gateway_instrument
 async def post_cortex_request(url: str, headers: Headers, data: dict):
     """Submit cortex request depending on runtime"""
 

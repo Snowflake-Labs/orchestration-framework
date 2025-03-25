@@ -237,7 +237,7 @@ class CortexAnalystTool(Tool):
         )
 
         def analyst_call(query: str):
-            return self.asearch(query)
+            return self.query(query)
 
         super().__init__(name=tname, func=analyst_call, description=tool_description)
         self.connection = _get_connection(snowflake_connection)
@@ -262,10 +262,10 @@ class CortexAnalystTool(Tool):
                 prompt
                 + f" Only return up to {self.max_results} relevant records in the final results. "
             )
-        return self.asearch(query=prompt)
+        return self.query(query=prompt)
 
     @gateway_instrument
-    async def asearch(self, query):
+    async def query(self, query):
         gateway_logger.log("DEBUG", f"Cortex Analyst Prompt:{query}")
 
         url, headers, data = self._prepare_analyst_request(prompt=query)

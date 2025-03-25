@@ -39,7 +39,6 @@ from agent_gateway.tools.utils import (
     set_logging,
     _get_connection,
     _should_instrument,
-    gateway_instrument,
 )
 
 from agent_gateway.tools.snowflake_tools import (
@@ -49,7 +48,8 @@ from agent_gateway.tools.snowflake_tools import (
 )
 
 if _should_instrument():
-    from trulens.apps.custom import TruCustomApp
+    from trulens.apps.app import TruApp
+    from trulens.apps.app import instrument
     from trulens.core import TruSession
 
 
@@ -240,6 +240,11 @@ class Agent:
                 tools=[self._analyst_tool_placeholder],
             ).plan(inputs={}, is_replan=False)
 
+            instrument.method(CortexSearchTool, "asearch")
+            instrument.method(CortexAnalystTool, "query")
+            instrument.method(CortexCompleteAgent, "arun")
+            instrument.method(Planner, "plan")
+
         summarizer = SummarizationAgent(
             session=snowflake_connection, agent_llm=agent_llm
         )
@@ -374,7 +379,6 @@ class Agent:
         formatted_contexts += "Current Plan:\n\n"
         return formatted_contexts
 
-    @gateway_instrument
     async def fuse(
         self, input_query: str, agent_scratchpad: str, is_final: bool
     ) -> str:
@@ -476,7 +480,6 @@ class Agent:
     def _call(self, inputs):
         return self.__call__(inputs)
 
-    @gateway_instrument
     def __call__(self, input: str) -> Any:
         """Calls Cortex gateway multi-agent system.
 
@@ -500,12 +503,10 @@ class Agent:
 
         return result[0]
 
-    @gateway_instrument
     def handle_exception(self, loop, context):
         loop.default_exception_handler(context)
         loop.stop()
 
-    @gateway_instrument
     def run_async(self, input, result, error):
         loop = asyncio.new_event_loop()
         loop.set_exception_handler(self.handle_exception)
@@ -533,7 +534,6 @@ class Agent:
             finally:
                 loop.close()
 
-    @gateway_instrument
     async def acall(
         self,
         input: str,
@@ -630,9 +630,14 @@ if _should_instrument():
             self, app_name, app_version, trulens_snowflake_connection, **kwargs
         ):
             self.agent = Agent(**kwargs)
+
+            instrument.method(Agent, "__call__")
+            instrument.method(Agent, "acall")
+            instrument.method(Agent, "fuse")
+
             self.tru_session = TruSession(connector=trulens_snowflake_connection)
 
-            self.tru_agent = TruCustomApp(
+            self.tru_agent = TruApp(
                 self.agent,
                 app_name=app_name,
                 app_version=app_version,
