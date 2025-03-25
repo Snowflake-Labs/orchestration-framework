@@ -24,7 +24,6 @@ LOGGING_ENABLED = os.getenv("LOGGING_ENABLED", "True").lower() in ("true", "1", 
 logging_level = os.getenv("LOGGING_LEVEL", "INFO")
 logging_level = getattr(logging, logging_level, logging.DEBUG)
 
-# logging.basicConfig(level=logging.WARNING)
 
 
 class Logger:
