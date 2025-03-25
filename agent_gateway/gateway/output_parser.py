@@ -1,4 +1,4 @@
-# Copyright 2024 Snowflake Inc.
+# Copyright 2025 Snowflake Inc.
 # SPDX-License-Identifier: Apache-2.0
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,7 +56,6 @@ class GatewayPlanParser:
             # idx = 1, function = "search", args = "Ronaldo number of kids"
             # thought will be the preceding thought, if any, otherwise an empty string
             thought, idx, tool_name, args, _ = match
-            idx = int(idx)
 
             task = instantiate_task(
                 tools=self.tools,
@@ -190,19 +189,22 @@ def _get_dependencies_from_graph(
     idx: int, tool_name: str, args: Sequence[Any]
 ) -> dict[str, list[str]]:
     """Get dependencies from a graph."""
+    int_idx = int(idx)  # parse it so we can do numeric range
     if tool_name == "fuse":
-        # depends on the previous step
-        dependencies = list(range(1, idx))
+        # depends on all previous step IDs
+        dependencies = list(range(1, int_idx))
     else:
-        # define dependencies based on the dependency rule in tool_definitions.py
-        dependencies = [i for i in range(1, idx) if default_dependency_rule(i, args)]
+        dependencies = [
+            i for i in range(1, int_idx) if default_dependency_rule(i, str(args))
+        ]
 
-    return dependencies
+    # Convert each numeric dependency to a string
+    return [str(d) for d in dependencies]
 
 
 def instantiate_task(
     tools: Sequence[Union[Tool, StructuredTool]],
-    idx: int,
+    idx: str,
     tool_name: str,
     args: str,
     thought: str,

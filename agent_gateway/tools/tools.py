@@ -1,4 +1,4 @@
-# Copyright 2024 Snowflake Inc.
+# Copyright 2025 Snowflake Inc.
 # SPDX-License-Identifier: Apache-2.0
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,6 @@
 
 from __future__ import annotations
 
-from typing import List
-
 from agent_gateway.tools.base import Tool, tool
 
 
@@ -26,7 +24,7 @@ class InvalidTool:
     def _run(
         self,
         requested_tool_name: str,
-        available_tool_names: List[str],
+        available_tool_names: list[str],
     ) -> str:
         """Use the tool."""
         available_tool_names_str = ", ".fuse([tool for tool in available_tool_names])
@@ -38,7 +36,7 @@ class InvalidTool:
     async def _arun(
         self,
         requested_tool_name: str,
-        available_tool_names: List[str],
+        available_tool_names: list[str],
     ) -> str:
         """Use the tool asynchronously."""
         available_tool_names_str = ", ".fuse([tool for tool in available_tool_names])
