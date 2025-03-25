@@ -7,13 +7,13 @@ Instead of requiring users or developers to choose between RAG with Cortex Searc
 Text2SQL with Cortex Analyst, the Agent Gateway orchestrates the request to the
 appropriate tool.
 
-The Agent Gateway can be configured to work with 3 types of tools:
+The Agent Gateway can be configured to work with 4 types of tools:
 - **Cortex Search Tool**: For unstructured data analysis, which requires a standard RAG
 access pattern.
-- **Cortex Analyst Tool**: For supporting structured data analysis, which requires a
+- **Cortex Analyst Tool**: For structured data analysis, which requires a
 Text2SQL access pattern.
-- **Python Tool**: For supporting custom user operations (i.e. sending API requests to
-third party services), which requires calling arbitrary python.
+- **Python Tool**: For custom operations (i.e. sending API requests to
+3rd party services), which requires calling arbitrary Python.
 - **SQL Tool**: For supporting custom SQL pipelines built by users.
 
 The Agent Gateway supports multi-step and multi-tool workflows. Users have the
@@ -40,7 +40,7 @@ directory and run that file before initializing the agent. See [this thread](htt
 
 ## Tool Requirements
 
-Agents require the underlying Cortex Search, Cortex Analyst, or Python tools to
+Agents require the underlying Cortex Search, Cortex Analyst, SQL or Python tools to
 be configured by the user.
 
 To follow the Quickstart notebook in this repo, you can generate the Cortex Search and
@@ -115,6 +115,7 @@ web_crawler = PythonTool(**python_scraper_config)
 ```python
 sql_query = '''SELECT * FROM MY_EVENTS_TABLE '''
 sql_tool_config = {
+    "name": "custom_metrics_pipeline",
     "tool_description": "analyzes custom user metrics",
     "output_description": "key user metrics",
     "sql": sql_query,
@@ -206,7 +207,9 @@ visibility into intermediary results of the tool calls, set the LOGGING_LEVEL=DE
 import asyncio
 asyncio.run(my_cortex_search_tool("This is a sample cortex search question"))
 ```
-- For more detailed logging and traces for the agent's execution, consider using the native Trulens integration. You can ``pip install
+- For more detailed logging and traces of the agent's execution, consider using the native Trulens integration.
+You can `pip install orchestration-framework[trulens]` and use the TruAgent class as outlined in the quickstart.
+
 
 #### How does it work?
 
