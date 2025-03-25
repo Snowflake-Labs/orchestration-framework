@@ -107,9 +107,10 @@ def test_sql_tool(session):
     sql_tool = SQLTool(**sql_config)
     response = asyncio.run(sql_tool)
 
-    from data.sql_response import SQL_RESPONSE
+    with open("tests/data/response.json") as f:
+        d = json.load(f)
 
-    assert SQL_RESPONSE == response
+    assert d == response
 
 
 @pytest.mark.parametrize(
