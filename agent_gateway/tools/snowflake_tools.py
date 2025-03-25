@@ -4,24 +4,26 @@ import asyncio
 import inspect
 import json
 import re
-from typing import Any, Dict, List, Type, Union
-
+from typing import Any, Dict, List, Type, Union, ClassVar
 import pandas as pd
+
 from pydantic import BaseModel
-from snowflake.connector import DictCursor
 from snowflake.connector.connection import SnowflakeConnection
-from snowflake.core import Root
+from snowflake.connector import DictCursor
 from snowflake.snowpark import Session
 
 from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.tools import Tool
 from agent_gateway.tools.utils import (
     CortexEndpointBuilder,
-    _determine_runtime,
     _get_connection,
-    get_tag,
     post_cortex_request,
+    set_logging,
+    _determine_runtime,
+    get_tag,
 )
+
+from agent_gateway.tools.utils import gateway_instrument
 
 
 class SnowflakeError(Exception):
@@ -38,6 +40,7 @@ class CortexSearchTool(Tool):
     retrieval_columns: List[str] = []
     service_name: str = ""
     connection: Union[Session, SnowflakeConnection] = None
+    asearch: ClassVar[Any]
 
     def __init__(
         self,
@@ -55,34 +58,47 @@ class CortexSearchTool(Tool):
             service_topic=service_topic,
             data_source_description=data_description,
         )
-        super().__init__(
-            name=tool_name, description=tool_description, func=self.asearch
-        )
+
+        def search_call(query: str):
+            return self.asearch(query)
+
+        super().__init__(name=tool_name, description=tool_description, func=search_call)
         self.connection = _get_connection(snowflake_connection)
-        self.connection.cursor().execute(
-            f"alter session set query_tag='{get_tag('CortexSearchTool')}'"
-        )
+        try:
+            self.connection.cursor().execute(
+                f"CALL set_query_tag('{get_tag('CortexSearchTool')}')"
+            )
+        except Exception:
+            set_logging(self.connection)
+            self.connection.cursor().execute(
+                f"CALL set_query_tag('{get_tag('CortexSearchTool')}')"
+            )
         self.k = k
         self.retrieval_columns = retrieval_columns
         self.service_name = service_name
         gateway_logger.log("INFO", "Cortex Search Tool successfully initialized")
 
-    def __call__(self, question: str) -> Any:
+    @gateway_instrument
+    def __call__(self, question) -> Any:
         return self.asearch(question)
 
+    @gateway_instrument
     async def asearch(self, query: str) -> Dict[str, Any]:
         gateway_logger.log("DEBUG", f"Cortex Search Query: {query}")
+        headers, url, data = self._prepare_request(query=query)
+        response_text = await post_cortex_request(url=url, headers=headers, data=data)
 
-        search_service = (
-            Root(self.connection)
-            .databases[self.connection.database]
-            .schemas[self.connection.schema]
-            .cortex_search_services[self.service_name]
-        )
+        response_json = json.loads(response_text)
 
-        search_response = search_service.search(
-            query, columns=self.retrieval_columns, filter={}, limit=self.k
-        ).results
+        try:
+            if _determine_runtime():
+                search_response = json.loads(response_json["content"])["results"]
+            else:
+                search_response = response_json["results"]
+        except KeyError:
+            raise SnowflakeError(
+                message=f"unable to parse Cortex Search response {response_json.get('message', 'Unknown error')}"
+            )
 
         search_col = self._get_search_column(self.service_name)
         citations = self._get_citations(search_response, search_col)
@@ -97,6 +113,23 @@ class CortexSearchTool(Tool):
                 "metadata": citations,
             },
         }
+
+    def _prepare_request(self, query: str) -> tuple:
+        eb = CortexEndpointBuilder(self.connection)
+        headers = eb.get_search_headers()
+        url = eb.get_search_endpoint(
+            self.connection.database,
+            self.connection.schema,
+            self.service_name,
+        )
+
+        data = {
+            "query": query,
+            "columns": self.retrieval_columns,
+            "limit": self.k,
+        }
+
+        return headers, url, data
 
     def _get_citations(
         self, raw_response: List[Dict[str, Any]], search_column: List[str]
@@ -183,6 +216,8 @@ class CortexAnalystTool(Tool):
     STAGE: str = ""
     FILE: str = ""
     connection: Union[Session, SnowflakeConnection] = None
+    asearch: ClassVar[Any]
+    _process_analyst_message: ClassVar[Any]
 
     def __init__(
         self,
@@ -191,6 +226,7 @@ class CortexAnalystTool(Tool):
         service_topic: str,
         data_description: str,
         snowflake_connection: Union[Session, SnowflakeConnection],
+        max_results: int = None,
     ):
         """Initialize CortexAnalystTool with parameters."""
         tname = semantic_model.replace(".yaml", "") + "_" + "cortexanalyst"
@@ -200,21 +236,37 @@ class CortexAnalystTool(Tool):
             data_source_description=data_description,
         )
 
-        super().__init__(name=tname, func=self.asearch, description=tool_description)
+        def analyst_call(query: str):
+            return self.asearch(query)
+
+        super().__init__(name=tname, func=analyst_call, description=tool_description)
         self.connection = _get_connection(snowflake_connection)
-        self.connection.cursor().execute(
-            f"alter session set query_tag='{get_tag('CortexAnalystTool')}'"
-        )
+        try:
+            self.connection.cursor().execute(
+                f"CALL set_query_tag('{get_tag('CortexAnalystTool')}')"
+            )
+        except Exception:
+            set_logging(self.connection)
+            self.connection.cursor().execute(
+                f"CALL set_query_tag('{get_tag('CortexAnalystTool')}')"
+            )
         self.FILE = semantic_model
         self.STAGE = stage
+        self.max_results = max_results
 
         gateway_logger.log("INFO", "Cortex Analyst Tool successfully initialized")
 
     def __call__(self, prompt: str) -> Any:
+        if self.max_results is not None:
+            prompt = (
+                prompt
+                + f" Only return up to {self.max_results} relevant records in the final results. "
+            )
         return self.asearch(query=prompt)
 
-    async def asearch(self, query: str) -> Dict[str, Any]:
-        gateway_logger.log("DEBUG", f"Cortex Analyst Prompt: {query}")
+    @gateway_instrument
+    async def asearch(self, query):
+        gateway_logger.log("DEBUG", f"Cortex Analyst Prompt:{query}")
 
         url, headers, data = self._prepare_analyst_request(prompt=query)
 
@@ -252,10 +304,9 @@ class CortexAnalystTool(Tool):
 
         return url, headers, data
 
-    def _process_analyst_message(
-        self, response: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        if response and isinstance(response, list):
+    @gateway_instrument
+    def _process_analyst_message(self, response) -> Dict[str, Any]:
+        if isinstance(response, list) and len(response) > 0:
             gateway_logger.log("DEBUG", response)
             sql_exists = any(item.get("type") == "sql" for item in response)
 
@@ -382,6 +433,7 @@ class PythonTool(Tool):
 class SQLTool(Tool):
     def __init__(
         self,
+        name: str,
         sql_query: str,
         connection: Union[Session, SnowflakeConnection],
         tool_description: str,
@@ -389,11 +441,12 @@ class SQLTool(Tool):
     ) -> None:
         self.connection = _get_connection(connection)
         self.sql_query = sql_query
+        self.name = name
         self.desc = self._generate_description(
             tool_description=tool_description,
             output_description=output_description,
         )
-        super().__init__(name="sql_tool", func=self.asearch, description=self.desc)
+        super().__init__(name=self.name, func=self.asearch, description=self.desc)
         gateway_logger.log("INFO", "SQL Tool successfully initialized")
 
     def __call__(self, *args):
@@ -409,7 +462,7 @@ class SQLTool(Tool):
         return {
             "output": table,
             "sources": {
-                "tool_type": "sql_tool",
+                "tool_type": "SQL",
                 "tool_name": self.name,
                 "metadata": None,
             },
@@ -421,7 +474,7 @@ class SQLTool(Tool):
         output_description: str,
     ) -> str:
         return (
-            f"""sql_tool() -> str:\n"""
+            f"""{self.name}() -> str:\n"""
             f""" - Runs a SQL pipeline against source data to {tool_description}\n"""
             f""" - Returns {output_description}\n"""
         )
