@@ -81,6 +81,31 @@ def test_analyst_tool(session, question, answer):
     assert response == answer
 
 
+@pytest.mark.parametrize(
+    "question, answer",
+    [
+        pytest.param(
+            "What are the top companies by market cap?",
+            "{'SHORTNAME': ['Microsoft Corporation', 'Apple Inc.', 'NVIDIA Corporation', 'Alphabet Inc.', 'Amazon.com, Inc.'], 'MARKETCAP': [3150184448000, 3019131060224, 2973639376896, 2164350779392, 1917936336896]}",
+            id="top_market_cap",
+        ),
+    ],
+)
+def test_analyst_w_max_results(session, question, answer):
+    analyst_config = {
+        "semantic_model": "sp500_semantic_model.yaml",
+        "stage": "ANALYST",
+        "service_topic": "S&P500 company and stock metrics",
+        "data_description": "a table with stock and financial metrics about S&P500 companies ",
+        "snowflake_connection": session,
+        "max_results": 5,
+    }
+    sp500 = CortexAnalystTool(**analyst_config)
+    response = asyncio.run(sp500(question)).get("output")
+
+    assert response == answer
+
+
 def test_python_tool():
     def get_news(_) -> dict:
         with open("tests/data/response.json") as f:
