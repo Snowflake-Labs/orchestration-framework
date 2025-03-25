@@ -85,17 +85,13 @@ def test_analyst_tool(session, question, answer):
 def test_sql_tool(session):
     margin_query = """SELECT
         LONGNAME,
-        SECTOR,
-        INDUSTRY,
-        CURRENTPRICE,
         MARKETCAP,
-        EBITDA,
         CASE
             WHEN MARKETCAP > 0 THEN (EBITDA * 100.0) / MARKETCAP
             ELSE NULL
         END AS EBITDA_Margin_Percentage
     FROM CUBE_TESTING.PUBLIC.SP500
-    LIMIT 10;"""
+    LIMIT 3;"""
 
     sql_config = {
         "name": "margin_eval",
