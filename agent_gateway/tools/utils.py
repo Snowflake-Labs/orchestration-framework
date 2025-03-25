@@ -295,7 +295,7 @@ def get_tag(component: str) -> str:
     query_tag = {
         "origin": "sf_sit",
         "name": "orchestration-framework",
-        "version": {"major": 0, "minor": 1},
+        "version": {"major": 1, "minor": 0},
         "attributes": {"component": component},
     }
     return json.dumps(query_tag)
