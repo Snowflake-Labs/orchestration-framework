@@ -25,7 +25,6 @@ logging_level = os.getenv("LOGGING_LEVEL", "INFO")
 logging_level = getattr(logging, logging_level, logging.DEBUG)
 
 
-
 class Logger:
     _instance = None
 
