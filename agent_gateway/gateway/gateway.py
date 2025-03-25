@@ -599,6 +599,8 @@ class Agent:
             )
             if not is_replan:
                 break
+            else:
+                gateway_logger.log("INFO", "Replanning....")
 
             # Collect contexts for the subsequent replanner
             context = self._generate_context_for_replanner(
