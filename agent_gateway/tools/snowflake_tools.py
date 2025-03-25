@@ -446,13 +446,14 @@ class SQLTool(Tool):
             tool_description=tool_description,
             output_description=output_description,
         )
-        super().__init__(name=self.name, func=self.asearch, description=self.desc)
+        super().__init__(name=self.name, func=self.query, description=self.desc)
         gateway_logger.log("INFO", "SQL Tool successfully initialized")
 
     def __call__(self, *args):
-        return self.asearch(*args)
+        return self.query(*args)
 
-    async def asearch(self, *args):
+    @gateway_instrument
+    async def query(self, *args):
         return await self._run_query()
 
     async def _run_query(self):

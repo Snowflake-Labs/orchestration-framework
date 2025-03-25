@@ -97,6 +97,7 @@ def test_sql_tool(session):
     LIMIT 10;"""
 
     sql_config = {
+        "name": "margin_eval",
         "sql_query": margin_query,
         "connection": session,
         "tool_description": "calculate EBITDA Margin (%) of S&p500 companies",
@@ -209,6 +210,7 @@ def test_gateway_agent(session, question, answer_contains):
     FROM CUBE_TESTING.PUBLIC.SP500;"""
 
     sql_config = {
+        "name": "margin_eval",
         "sql_query": margin_query,
         "connection": session,
         "tool_description": "calculate EBITDA Margin (%) of S&p500 companies",
@@ -288,6 +290,7 @@ def test_gateway_agent_without_memory(session, question, answer_contains):
     FROM CUBE_TESTING.PUBLIC.SP500;"""
 
     sql_config = {
+        "name": "margin_eval",
         "sql_query": margin_query,
         "connection": session,
         "tool_description": "calculate EBITDA Margin (%) of S&p500 companies",
