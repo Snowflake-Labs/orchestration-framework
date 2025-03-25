@@ -23,8 +23,6 @@ from agent_gateway.tools.utils import (
     get_tag,
 )
 
-from agent_gateway.tools.utils import gateway_instrument
-
 
 class SnowflakeError(Exception):
     def __init__(self, message: str):
@@ -78,11 +76,9 @@ class CortexSearchTool(Tool):
         self.service_name = service_name
         gateway_logger.log("INFO", "Cortex Search Tool successfully initialized")
 
-    @gateway_instrument
     def __call__(self, question) -> Any:
         return self.asearch(question)
 
-    @gateway_instrument
     async def asearch(self, query: str) -> Dict[str, Any]:
         gateway_logger.log("DEBUG", f"Cortex Search Query: {query}")
         headers, url, data = self._prepare_request(query=query)
@@ -264,7 +260,6 @@ class CortexAnalystTool(Tool):
             )
         return self.query(query=prompt)
 
-    @gateway_instrument
     async def query(self, query):
         gateway_logger.log("DEBUG", f"Cortex Analyst Prompt:{query}")
 
@@ -304,7 +299,6 @@ class CortexAnalystTool(Tool):
 
         return url, headers, data
 
-    @gateway_instrument
     def _process_analyst_message(self, response) -> Dict[str, Any]:
         if isinstance(response, list) and len(response) > 0:
             gateway_logger.log("DEBUG", response)
@@ -452,7 +446,6 @@ class SQLTool(Tool):
     def __call__(self, *args):
         return self.query(*args)
 
-    @gateway_instrument
     async def query(self, *args):
         return await self._run_query()
 
