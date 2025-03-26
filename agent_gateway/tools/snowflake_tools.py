@@ -18,9 +18,8 @@ from agent_gateway.tools.utils import (
     CortexEndpointBuilder,
     _get_connection,
     post_cortex_request,
-    set_logging,
     _determine_runtime,
-    get_tag,
+    set_tag,
 )
 
 
@@ -62,15 +61,7 @@ class CortexSearchTool(Tool):
 
         super().__init__(name=tool_name, description=tool_description, func=search_call)
         self.connection = _get_connection(snowflake_connection)
-        try:
-            self.connection.cursor().execute(
-                f"CALL set_query_tag('{get_tag('CortexSearchTool')}')"
-            )
-        except Exception:
-            set_logging(self.connection)
-            self.connection.cursor().execute(
-                f"CALL set_query_tag('{get_tag('CortexSearchTool')}')"
-            )
+        set_tag(self.connection, "CortexSearchTool")
         self.k = k
         self.retrieval_columns = retrieval_columns
         self.service_name = service_name
@@ -237,15 +228,7 @@ class CortexAnalystTool(Tool):
 
         super().__init__(name=tname, func=analyst_call, description=tool_description)
         self.connection = _get_connection(snowflake_connection)
-        try:
-            self.connection.cursor().execute(
-                f"CALL set_query_tag('{get_tag('CortexAnalystTool')}')"
-            )
-        except Exception:
-            set_logging(self.connection)
-            self.connection.cursor().execute(
-                f"CALL set_query_tag('{get_tag('CortexAnalystTool')}')"
-            )
+        set_tag(self.connection, "CortexAnalystTool")
         self.FILE = semantic_model
         self.STAGE = stage
         self.max_results = max_results

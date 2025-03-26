@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Mapping, Optional, Union, cast, ClassVar
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.snowpark import Session
 
-from agent_gateway.gateway.constants import END_OF_PLAN, FUSION_REPLAN
+from agent_gateway.gateway.constants import FUSION_REPLAN
 from agent_gateway.gateway.planner import Planner
 from agent_gateway.gateway.task_processor import Task, TaskProcessor
 from agent_gateway.tools.base import StructuredTool, Tool
@@ -35,9 +35,7 @@ from agent_gateway.tools.utils import (
     CortexEndpointBuilder,
     _determine_runtime,
     post_cortex_request,
-    get_tag,
-    set_logging,
-    _get_connection,
+    set_tag,
     _should_instrument,
 )
 
@@ -66,15 +64,7 @@ class CortexCompleteAgent:
     def __init__(self, session, llm) -> None:
         self.llm = llm
         self.session = session
-        try:
-            self.session.connection.cursor().execute(
-                f"CALL  set_query_tag('{get_tag('CortexAnalystTool')}')"
-            )
-        except Exception:
-            set_logging(_get_connection(self.session))
-            self.session.connection.cursor().execute(
-                f"CALL  set_query_tag('{get_tag('CortexAnalystTool')}')"
-            )
+        set_tag(self.session, "Complete")
 
     async def arun(self, prompt: str) -> str:
         """Run the LLM."""
@@ -180,10 +170,7 @@ class Agent:
         memory: bool = True,
         planner_example_prompt: str = SNOWFLAKE_PLANNER_PROMPT,
         planner_example_prompt_replan: Optional[str] = None,
-        planner_stop: Optional[list[str]] = [END_OF_PLAN],
         fusion_prompt: str = OUTPUT_PROMPT,
-        fusion_prompt_final: Optional[str] = None,
-        planner_stream: bool = False,
         **kwargs,
     ) -> None:
         """Parameters
@@ -203,13 +190,8 @@ class Agent:
                 If not assigned, default to `planner_example_prompt`.
             planner_stop: Stop tokens for planning.
             fusion_prompt: Prompt to use for fusion.
-            fusion_prompt_final: Prompt to use for fusion at the final replanning iter.
-                If not assigned, default to `fusion_prompt`.
-            planner_stream: Whether to stream the planning.
-
         """
 
-        # workaround to add tools to observability
         def _unused_tool():
             pass
 
@@ -259,8 +241,8 @@ class Agent:
 
         self.agent = CortexCompleteAgent(session=snowflake_connection, llm=agent_llm)
         self.fusion_prompt = fusion_prompt
-        self.fusion_prompt_final = fusion_prompt_final or fusion_prompt
-        self.planner_stream = planner_stream
+        self.fusion_prompt_final = fusion_prompt
+        self.planner_stream = False
         self.max_retries = max_retries
 
         # basic memory
