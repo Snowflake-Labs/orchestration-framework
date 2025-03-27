@@ -7,7 +7,7 @@ import re
 from typing import Any, Dict, List, Type, Union, ClassVar
 import pandas as pd
 
-from pydantic import BaseModel
+from pydantic import BaseModel, create_model
 from snowflake.connector.connection import SnowflakeConnection
 from snowflake.connector import DictCursor
 from snowflake.snowpark import Session
@@ -21,6 +21,9 @@ from agent_gateway.tools.utils import (
     _determine_runtime,
     set_tag,
 )
+
+from functools import partial
+from inspect import signature
 
 
 class SnowflakeError(Exception):
@@ -362,6 +365,51 @@ class CortexAnalystTool(Tool):
         return tables
 
 
+# class PythonTool(Tool):
+#     def __init__(
+#         self, python_func: callable, tool_description: str, output_description: str
+#     ) -> None:
+#         self.python_callable = self.asyncify(python_func)
+#         self.desc = self._generate_description(
+#             python_func=python_func,
+#             tool_description=tool_description,
+#             output_description=output_description,
+#         )
+#         super().__init__(
+#             name=python_func.__name__, func=self.python_callable, description=self.desc
+#         )
+#         gateway_logger.log("INFO", "Python Tool successfully initialized")
+
+#     def __call__(self, *args):
+#         return self.python_callable(*args)
+
+#     def asyncify(self, sync_func):
+#         async def async_func(*args, **kwargs):
+#             loop = asyncio.get_running_loop()
+#             result = await loop.run_in_executor(None, sync_func, *args, **kwargs)
+#             return {
+#                 "output": result,
+#                 "sources": {
+#                     "tool_type": "custom_tool",
+#                     "tool_name": sync_func.__name__,
+#                     "metadata": None,
+#                 },
+#             }
+
+#         return async_func
+
+#     def _generate_description(
+#         self, python_func: callable, tool_description: str, output_description: str
+#     ) -> str:
+#         full_sig = self._process_full_signature(python_func=python_func)
+#         return f"""{full_sig}\n - {tool_description}\n - {output_description}"""
+
+#     def _process_full_signature(self, python_func: callable) -> str:
+#         name = python_func.__name__
+#         signature = str(inspect.signature(python_func))
+#         return name + signature
+
+
 class PythonTool(Tool):
     def __init__(
         self, python_func: callable, tool_description: str, output_description: str
@@ -372,18 +420,23 @@ class PythonTool(Tool):
             tool_description=tool_description,
             output_description=output_description,
         )
+        self.args_schema = self._create_args_schema(python_func)
         super().__init__(
-            name=python_func.__name__, func=self.python_callable, description=self.desc
+            name=python_func.__name__,
+            func=self.python_callable,
+            description=self.desc,
+            args_schema=self.args_schema,
         )
         gateway_logger.log("INFO", "Python Tool successfully initialized")
 
-    def __call__(self, *args):
-        return self.python_callable(*args)
+    def __call__(self, *args, **kwargs):
+        return self.python_callable(*args, **kwargs)
 
     def asyncify(self, sync_func):
         async def async_func(*args, **kwargs):
             loop = asyncio.get_running_loop()
-            result = await loop.run_in_executor(None, sync_func, *args, **kwargs)
+            _func = partial(sync_func, *args, **kwargs)
+            result = await loop.run_in_executor(None, _func)
             return {
                 "output": result,
                 "sources": {
@@ -399,12 +452,21 @@ class PythonTool(Tool):
         self, python_func: callable, tool_description: str, output_description: str
     ) -> str:
         full_sig = self._process_full_signature(python_func=python_func)
-        return f"""{full_sig}\n - {tool_description}\n - {output_description}"""
+        return f"""{full_sig}:\n - {tool_description}\n - {output_description}"""
 
     def _process_full_signature(self, python_func: callable) -> str:
         name = python_func.__name__
         signature = str(inspect.signature(python_func))
         return name + signature
+
+    def _create_args_schema(self, func) -> Type[BaseModel]:
+        """Generate a Pydantic schema from the function's signature."""
+        params = signature(func).parameters
+        fields = {
+            name: (param.annotation if param.annotation != param.empty else Any, ...)
+            for name, param in params.items()
+        }
+        return create_model(f"{func.__name__}ArgsSchema", **fields)
 
 
 class SQLTool(Tool):

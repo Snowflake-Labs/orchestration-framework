@@ -14,11 +14,13 @@ from __future__ import annotations
 import ast
 import re
 from collections.abc import Sequence
-from typing import Any, Tuple, Union
+from typing import Any, Tuple, Union, Optional, Type, Dict
 
 from agent_gateway.gateway.task_processor import Task
 from agent_gateway.tools.base import StructuredTool, Tool
 from agent_gateway.tools.logger import gateway_logger
+
+from pydantic import BaseModel
 
 THOUGHT_PATTERN = r"Thought: ([^\n]*)"
 ACTION_PATTERN = r"\n*(\d+)\. (\w+)\((.*?)\)(\s*#\w+\n)?"
@@ -64,6 +66,9 @@ class GatewayPlanParser:
                 args=args,
                 thought=thought,
             )
+
+            gateway_logger.log("DEBUG", f"VF args:{task.args}")
+            gateway_logger.log("DEBUG", f"VF kwargs:{task.args}")
 
             graph_dict[idx] = task
             if task.is_fuse:
@@ -141,7 +146,35 @@ def _update_task_list_with_summarization(matches):
     return updated_final_matches
 
 
-def _parse_llm_compiler_action_args(args: str) -> Union[Tuple[Any, ...], Tuple[str]]:
+# def _parse_llm_compiler_action_args(args: str) -> Union[Tuple[Any, ...], Tuple[str]]:
+#     """Parse arguments from a string."""
+#     args = args.strip()
+
+#     # Remove leading/trailing quotes if present
+#     if (args.startswith('"') and args.endswith('"')) or (
+#         args.startswith("'") and args.endswith("'")
+#     ):
+#         args = args[1:-1]
+
+#     if "\n" in args:
+#         args = f'"""{args}"""'
+
+#     if args == "":
+#         return ()
+
+#     try:
+#         parsed_args = ast.literal_eval(args)
+#         if not isinstance(parsed_args, (list, tuple)):
+#             return (parsed_args,)
+#         return tuple(parsed_args)
+#     except (ValueError, SyntaxError):
+#         # If literal_eval fails, return the original string as a single-element tuple
+#         return (args,)
+
+
+def _parse_llm_compiler_action_args(
+    args: str, args_schema: Optional[Type[BaseModel]] = None
+) -> Union[Dict[str, Any], Tuple[Any, ...], Tuple[str]]:
     """Parse arguments from a string."""
     args = args.strip()
 
@@ -155,16 +188,21 @@ def _parse_llm_compiler_action_args(args: str) -> Union[Tuple[Any, ...], Tuple[s
         args = f'"""{args}"""'
 
     if args == "":
-        return ()
+        return {} if args_schema else ()
 
     try:
         parsed_args = ast.literal_eval(args)
-        if not isinstance(parsed_args, (list, tuple)):
-            return (parsed_args,)
-        return tuple(parsed_args)
     except (ValueError, SyntaxError):
         # If literal_eval fails, return the original string as a single-element tuple
-        return (args,)
+        if args_schema:
+            pattern = r'(\w+)="(.*?)"'
+            extracted_pairs = dict(re.findall(pattern, args))
+            return args_schema(**extracted_pairs).model_dump()
+        elif not isinstance(parsed_args, (list, tuple)):
+            return (parsed_args,)
+        return tuple(parsed_args)
+    gateway_logger
+    return (args,) if not args_schema else {next(iter(args_schema.model_fields)): args}
 
 
 def _find_tool(
@@ -202,6 +240,35 @@ def _get_dependencies_from_graph(
     return [str(d) for d in dependencies]
 
 
+# def instantiate_task(
+#     tools: Sequence[Union[Tool, StructuredTool]],
+#     idx: str,
+#     tool_name: str,
+#     args: str,
+#     thought: str,
+# ) -> Task:
+#     dependencies = _get_dependencies_from_graph(idx, tool_name, args)
+#     args = _parse_llm_compiler_action_args(args)
+#     if tool_name == "fuse":
+#         # fuse does not have a tool
+#         tool_func = lambda x: None  # noqa: E731
+#         stringify_rule = None
+#     else:
+#         tool = _find_tool(tool_name, tools)
+#         tool_func = tool.func
+#         stringify_rule = tool.stringify_rule
+#     return Task(
+#         idx=idx,
+#         name=tool_name,
+#         tool=tool_func,
+#         args=args,
+#         dependencies=dependencies,
+#         stringify_rule=stringify_rule,
+#         thought=thought,
+#         is_fuse=tool_name == "fuse",
+#     )
+
+
 def instantiate_task(
     tools: Sequence[Union[Tool, StructuredTool]],
     idx: str,
@@ -209,23 +276,44 @@ def instantiate_task(
     args: str,
     thought: str,
 ) -> Task:
+    gateway_logger.log("DEBUG", f"TOOL:{tool_name}")
     dependencies = _get_dependencies_from_graph(idx, tool_name, args)
-    args = _parse_llm_compiler_action_args(args)
+
     if tool_name == "fuse":
-        # fuse does not have a tool
         tool_func = lambda x: None  # noqa: E731
         stringify_rule = None
+        args_schema = None
+        kwargs = None
+
     else:
         tool = _find_tool(tool_name, tools)
         tool_func = tool.func
         stringify_rule = tool.stringify_rule
+        args_schema = getattr(tool, "args_schema", None)
+        args = _parse_llm_compiler_action_args(args, args_schema=args_schema)
+        # Parse kwargs from args
+        kwargs = {}
+        for arg in args:
+            if isinstance(arg, dict):
+                kwargs.update(arg)
+
+    gateway_logger.log("DEBUG", f"pre init parsed args:{args}")
+
+    gateway_logger.log("DEBUG", f"pre init parsed TASK args:{args}")
+    gateway_logger.log(
+        "DEBUG",
+        f"pre init parsed TASK args:{tuple(arg for arg in args if not isinstance(arg, dict))}",
+    )
+
     return Task(
         idx=idx,
         name=tool_name,
         tool=tool_func,
         args=args,
+        kwargs=kwargs,
         dependencies=dependencies,
         stringify_rule=stringify_rule,
         thought=thought,
         is_fuse=tool_name == "fuse",
+        args_schema=args_schema,  # Add this line
     )

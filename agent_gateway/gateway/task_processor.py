@@ -15,10 +15,13 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Collection
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Type
 
 from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.snowflake_tools import SnowflakeError
+
+from pydantic import BaseModel
+
 
 SCHEDULING_INTERVAL = 0.01  # seconds
 
@@ -70,15 +73,20 @@ class Task:
     tool: Callable
     args: Collection[Any]
     dependencies: Collection[str]  # list of string IDs
+    kwargs: Dict[str, Any] = None
     stringify_rule: Optional[Callable] = None
     thought: Optional[str] = None
     observation: Optional[str] = None
     is_fuse: bool = False
+    args_schema: Optional[Type[BaseModel]] = None
 
     async def __call__(self) -> Any:
         gateway_logger.log("INFO", f"running {self.name} task")
+
         try:
-            x = await self.tool(*self.args)
+            gateway_logger.log("DEBUG", f"INPUTS:{self.args}")
+            gateway_logger.log("DEBUG", f"KWARG INPUTS:{self.kwargs}")
+            x = await self.tool(*self.args, **self.kwargs)
             gateway_logger.log("DEBUG", "task successfully completed")
             return x
         except SnowflakeError as e:
@@ -150,17 +158,47 @@ class TaskProcessor:
         ]
 
     def _preprocess_args(self, task: Task):
-        # Replace placeholders in each arg with the actual observation from dependencies
-        new_args = []
-        for arg in task.args:
-            arg = _replace_arg_mask_with_real_value(
-                arg, list(task.dependencies), self.tasks
+        gateway_logger.log("DEBUG", f"pre-processing{task.name}")
+        if task.args_schema is not None:
+            gateway_logger.log("DEBUG", f"HAS ARGS SCHEMA: {task.args_schema}")
+            # Combine all kwargs dictionaries
+            gateway_logger.log("DEBUG", f"kwargs {task.kwargs}")
+            parsed_args = task.args_schema(**task.kwargs)
+            gateway_logger.log("DEBUG", f"parsed_args: {parsed_args}")
+            task.kwargs = parsed_args.model_dump()
+        else:
+            gateway_logger.log("DEBUG", f"no schema{task.args}")
+            task.args = _replace_arg_mask_with_real_value(
+                task.args, list(task.dependencies), self.tasks
             )
-            new_args.append(arg)
-        task.args = new_args
+            gateway_logger.log("DEBUG", f"no schema{task.args}")
+
+        gateway_logger.log("DEBUG", "pREPROCESSCOMPLETE")
+
+    # def _preprocess_args(self, task: Task):
+    #     if hasattr(task.tool, 'args_schema'):
+    #         gateway_logger.log("DEBUG",f"HASS ARGS SCHEMA{task.tool.args_schema}")
+    #         # Combine all kwargs dictionaries
+    #         combined_kwargs = {}
+    #         for kwarg_dict in task.kwargs.values():
+    #             combined_kwargs.update(kwarg_dict)
+
+    #         parsed_args = task.tool.args_schema(**combined_kwargs)
+    #         gateway_logger.log("DEBUG",f'parsed_args:{parsed_args}')
+    #         task.kwargs = parsed_args.dict()
+    #     else:
+    #         task.args = _replace_arg_mask_with_real_value(task.args, list(task.dependencies), self.tasks)
+    #         if task.kwargs:
+    #             task.kwargs = _replace_arg_mask_with_real_value(task.kwargs, list(task.dependencies), self.tasks)
 
     async def _run_task(self, task: Task):
+        gateway_logger.log("DEBUG", f"running _run_task{task.name}")
+        gateway_logger.log(
+            "DEBUG", f"pre pre processing running with args:{task.args, task.kwargs}"
+        )
         self._preprocess_args(task)
+        gateway_logger.log("DEBUG", f"running with args:{task.args}")
+        gateway_logger.log("DEBUG", f"running with kwargs:{task.kwargs}")
         if not task.is_fuse:
             try:
                 observation = await task()
