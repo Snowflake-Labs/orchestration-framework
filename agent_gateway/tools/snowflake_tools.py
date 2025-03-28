@@ -458,7 +458,7 @@ class SQLTool(Tool):
             "sources": {
                 "tool_type": "SQL",
                 "tool_name": self.name,
-                "metadata": [[{"sql_tool": f"{self.name} tool"}]],
+                "metadata": [{"sql_tool": f"{self.name} tool"}],
             },
         }
 

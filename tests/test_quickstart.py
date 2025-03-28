@@ -145,7 +145,7 @@ def test_python_tool():
     }
     news_search = PythonTool(**python_config)
     response = asyncio.run(news_search()).get("output")
-    assert get_news(None) == response
+    assert get_news() == response
 
 
 @pytest.mark.parametrize(
