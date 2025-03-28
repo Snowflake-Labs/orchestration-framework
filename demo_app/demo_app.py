@@ -68,7 +68,6 @@ python_crawler_config = {
     "python_func": html_crawl,
 }
 
-
 if "prompt_history" not in st.session_state:
     st.session_state["prompt_history"] = {}
 
@@ -94,13 +93,14 @@ if "snowpark" not in st.session_state or st.session_state.snowpark is None:
     }
 
     # Tools Config
-    st.session_state.google_news = PythonTool(**python_crawler_config)
+    st.session_state.crawler = PythonTool(**python_crawler_config)
     st.session_state.search = CortexSearchTool(**search_config)
     st.session_state.analyst = CortexAnalystTool(**analyst_config)
 
     st.session_state.snowflake_tools = [
         st.session_state.search,
         st.session_state.analyst,
+        st.session_state.crawler,
     ]
 
 if "agent" not in st.session_state:
@@ -301,21 +301,39 @@ with st.container(border=False):
                 )
                 # Add sources section aligned to the right
                 if current_prompt.get("sources") is not None:
-                    sources = []
                     citations_metadata = [
                         source["metadata"] for source in current_prompt.get("sources")
                     ]
-                    for i in citations_metadata:
-                        sources.append(list(i[0].values())[0])
+
+                    sources = []
+                    for item in citations_metadata:
+                        if (
+                            item is not None
+                            and isinstance(item, list)
+                            and len(item) > 0
+                        ):
+                            first_element = item[0]
+                            if (
+                                isinstance(first_element, dict)
+                                and len(first_element) > 0
+                            ):
+                                sources.append(next(iter(first_element.values())))
+
+                    # Filter out None values in sources list
+                    sources = [source for source in sources if source is not None]
+
+                    # Determine the sources to display
+                    sources_display = ", ".join(sources) if sources else "N/A"
 
                     st.markdown(
-                        """
+                        f"""
                         <div style="text-align: right; font-size: 0.8em; font-style: italic; margin-top: 5px;">
-                            <b>Sources</b>: {sources}
+                            <b>Sources</b>: {sources_display}
                         </div>
-                        """.format(sources=", ".join(sources)),
+                        """,
                         unsafe_allow_html=True,
                     )
+
 
 st.chat_input(
     "Ask Anything", on_submit=create_prompt, key="chat_input", args=["chat_input"]

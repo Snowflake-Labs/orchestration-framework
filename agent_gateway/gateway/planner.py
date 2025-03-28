@@ -179,7 +179,6 @@ class Planner:
         self.llm = llm
         self.session = session
         self.tools = tools
-
         tools_without_summarizer = [i for i in self.tools if (i.name != "summarize")]
 
         self.system_prompt = generate_gateway_prompt(
