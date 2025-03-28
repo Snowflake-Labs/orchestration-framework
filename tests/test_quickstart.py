@@ -133,7 +133,7 @@ def test_analyst_w_max_results(session, question, answer):
 
 
 def test_python_tool():
-    def get_news(_) -> dict:
+    def get_news() -> dict:
         with open("tests/data/response.json") as f:
             d = json.load(f)
         return d
@@ -144,9 +144,7 @@ def test_python_tool():
         "python_func": get_news,
     }
     news_search = PythonTool(**python_config)
-    response = asyncio.run(news_search("When is Apple releasing a new chip?")).get(
-        "output"
-    )
+    response = asyncio.run(news_search()).get("output")
     assert get_news(None) == response
 
 
@@ -181,7 +179,7 @@ def test_gateway_agent(session, question, answer_contains):
         "snowflake_connection": session,
     }
 
-    def get_news(_) -> dict:
+    def get_news() -> dict:
         with open("tests/data/response.json") as f:
             d = json.load(f)
         return d
@@ -260,7 +258,7 @@ def test_gateway_agent_without_memory(session, question, answer_contains):
         "snowflake_connection": session,
     }
 
-    def get_news(_) -> dict:
+    def get_news() -> dict:
         with open("tests/data/response.json") as f:
             d = json.load(f)
         return d
