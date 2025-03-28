@@ -23,8 +23,11 @@ from pydantic import BaseModel
 
 from ast import literal_eval
 
+# THOUGHT_PATTERN = r"Thought: ([^\n]*)"
+# ACTION_PATTERN = r"\n*(\d+)\. (\w+)\((.*?)\)(\s*#\w+\n)?"
+# ID_PATTERN = r"\$\{?(\d+)\}?"
 THOUGHT_PATTERN = r"Thought: ([^\n]*)"
-ACTION_PATTERN = r"\n*(\d+)\. (\w+)\((.*?)\)(\s*#\w+\n)?"
+ACTION_PATTERN = r"\n*?(\d+)\. (\w+)\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)"
 ID_PATTERN = r"\$\{?(\d+)\}?"
 
 
@@ -49,16 +52,20 @@ class GatewayPlanParser:
         self.tools = tools
 
     def parse(self, text: str) -> list[str]:
+        gateway_logger.log("DEBUG", f"pre match input:{text}")
         pattern = rf"(?:{THOUGHT_PATTERN}\n)?{ACTION_PATTERN}"
         matches = re.findall(pattern, text, re.DOTALL)
+        gateway_logger.log("DEBUG", f"final matches:{matches}")
         final_matches = _update_task_list_with_summarization(matches)
 
         graph_dict = {}
-
+        gateway_logger.log("DEBUG", f"final matches:{final_matches}")
         for match in final_matches:
             # idx = 1, function = "search", args = "Ronaldo number of kids"
             # thought will be the preceding thought, if any, otherwise an empty string
             thought, idx, tool_name, args, _ = match
+
+            gateway_logger.log("DEBUG", f"input inst task args:{args}")
 
             task = instantiate_task(
                 tools=self.tools,
@@ -147,6 +154,7 @@ def _update_task_list_with_summarization(matches):
 def _parse_llm_compiler_action_args(args: str, args_schema: BaseModel = None):
     """Parse arguments from a string with proper quote handling."""
     args = args.strip()
+    gateway_logger.log("DEBUG", f"rawinput args:{args}")
 
     try:  # First try Python's native literal evaluation
         parsed = literal_eval(args)
@@ -167,7 +175,7 @@ def _parse_llm_compiler_action_args(args: str, args_schema: BaseModel = None):
 
     if args_schema:
         # Map to schema fields in order
-        fields = list(args_schema.__fields__.keys())
+        fields = list(args_schema.model_fields.keys())
         return args_schema(**dict(zip(fields, parsed))).model_dump()
 
     return tuple(parsed)
@@ -229,7 +237,9 @@ def instantiate_task(
         stringify_rule = tool.stringify_rule
         args_schema = getattr(tool, "args_schema", None)
         args = _parse_llm_compiler_action_args(args, args_schema=args_schema)
-        # Parse kwargs from args
+        # Parse kwargs from args\
+        gateway_logger.log("DEBUG", f"clean args:{args}")
+        gateway_logger.log("DEBUG", f"clean args:{type(args)}")
         kwargs = {}
 
         if isinstance(args, dict):
