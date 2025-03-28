@@ -15,10 +15,13 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Collection
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Type
 
 from agent_gateway.tools.logger import gateway_logger
 from agent_gateway.tools.snowflake_tools import SnowflakeError
+
+from pydantic import BaseModel
+
 
 SCHEDULING_INTERVAL = 0.01  # seconds
 
@@ -70,15 +73,18 @@ class Task:
     tool: Callable
     args: Collection[Any]
     dependencies: Collection[str]  # list of string IDs
+    kwargs: Dict[str, Any] = None
     stringify_rule: Optional[Callable] = None
     thought: Optional[str] = None
     observation: Optional[str] = None
     is_fuse: bool = False
+    args_schema: Optional[Type[BaseModel]] = None
 
     async def __call__(self) -> Any:
         gateway_logger.log("INFO", f"running {self.name} task")
+
         try:
-            x = await self.tool(*self.args)
+            x = await self.tool(*self.args, **self.kwargs)
             gateway_logger.log("DEBUG", "task successfully completed")
             return x
         except SnowflakeError as e:
@@ -150,17 +156,17 @@ class TaskProcessor:
         ]
 
     def _preprocess_args(self, task: Task):
-        # Replace placeholders in each arg with the actual observation from dependencies
-        new_args = []
-        for arg in task.args:
-            arg = _replace_arg_mask_with_real_value(
-                arg, list(task.dependencies), self.tasks
+        if task.args_schema is not None:
+            parsed_args = task.args_schema(**task.kwargs)
+            task.kwargs = parsed_args.model_dump()
+        else:
+            task.args = _replace_arg_mask_with_real_value(
+                task.args, list(task.dependencies), self.tasks
             )
-            new_args.append(arg)
-        task.args = new_args
 
     async def _run_task(self, task: Task):
         self._preprocess_args(task)
+
         if not task.is_fuse:
             try:
                 observation = await task()

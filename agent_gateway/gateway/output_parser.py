@@ -11,17 +11,23 @@
 # limitations under the License.
 from __future__ import annotations
 
-import ast
+
 import re
 from collections.abc import Sequence
-from typing import Any, Tuple, Union
+from typing import Any, Union
 
 from agent_gateway.gateway.task_processor import Task
 from agent_gateway.tools.base import StructuredTool, Tool
 from agent_gateway.tools.logger import gateway_logger
+from pydantic import BaseModel
 
+from ast import literal_eval
+
+# THOUGHT_PATTERN = r"Thought: ([^\n]*)"
+# ACTION_PATTERN = r"\n*(\d+)\. (\w+)\((.*?)\)(\s*#\w+\n)?"
+# ID_PATTERN = r"\$\{?(\d+)\}?"
 THOUGHT_PATTERN = r"Thought: ([^\n]*)"
-ACTION_PATTERN = r"\n*(\d+)\. (\w+)\((.*?)\)(\s*#\w+\n)?"
+ACTION_PATTERN = r"\n*?(\d+)\. (\w+)\(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)"
 ID_PATTERN = r"\$\{?(\d+)\}?"
 
 
@@ -46,16 +52,20 @@ class GatewayPlanParser:
         self.tools = tools
 
     def parse(self, text: str) -> list[str]:
+        gateway_logger.log("DEBUG", f"pre match input:{text}")
         pattern = rf"(?:{THOUGHT_PATTERN}\n)?{ACTION_PATTERN}"
         matches = re.findall(pattern, text, re.DOTALL)
+        gateway_logger.log("DEBUG", f"final matches:{matches}")
         final_matches = _update_task_list_with_summarization(matches)
 
         graph_dict = {}
-
+        gateway_logger.log("DEBUG", f"final matches:{final_matches}")
         for match in final_matches:
             # idx = 1, function = "search", args = "Ronaldo number of kids"
             # thought will be the preceding thought, if any, otherwise an empty string
             thought, idx, tool_name, args, _ = match
+
+            gateway_logger.log("DEBUG", f"input inst task args:{args}")
 
             task = instantiate_task(
                 tools=self.tools,
@@ -141,30 +151,34 @@ def _update_task_list_with_summarization(matches):
     return updated_final_matches
 
 
-def _parse_llm_compiler_action_args(args: str) -> Union[Tuple[Any, ...], Tuple[str]]:
-    """Parse arguments from a string."""
+def _parse_llm_compiler_action_args(args: str, args_schema: BaseModel = None):
+    """Parse arguments from a string with proper quote handling."""
     args = args.strip()
+    gateway_logger.log("DEBUG", f"rawinput args:{args}")
 
-    # Remove leading/trailing quotes if present
-    if (args.startswith('"') and args.endswith('"')) or (
-        args.startswith("'") and args.endswith("'")
-    ):
-        args = args[1:-1]
-
-    if "\n" in args:
-        args = f'"""{args}"""'
-
-    if args == "":
-        return ()
-
-    try:
-        parsed_args = ast.literal_eval(args)
-        if not isinstance(parsed_args, (list, tuple)):
-            return (parsed_args,)
-        return tuple(parsed_args)
+    try:  # First try Python's native literal evaluation
+        parsed = literal_eval(args)
+        if isinstance(parsed, (list, tuple)):
+            parsed = tuple(parsed)
+        else:
+            parsed = (parsed,)
     except (ValueError, SyntaxError):
-        # If literal_eval fails, return the original string as a single-element tuple
-        return (args,)
+        # Regex-based parsing for comma-separated quoted/non-quoted values
+        parsed = [
+            m.group(1) or m.group(2) or m.group(3)
+            for m in re.finditer(
+                r'"((?:[^"]|\\")*)"|\'((?:[^\']|\\\')*)\'|([^,]+)', args
+            )
+        ]
+        # Clean whitespace and quotes
+        parsed = [p.strip().strip("'\"") for p in parsed if p.strip()]
+
+    if args_schema:
+        # Map to schema fields in order
+        fields = list(args_schema.model_fields.keys())
+        return args_schema(**dict(zip(fields, parsed))).model_dump()
+
+    return tuple(parsed)
 
 
 def _find_tool(
@@ -210,22 +224,38 @@ def instantiate_task(
     thought: str,
 ) -> Task:
     dependencies = _get_dependencies_from_graph(idx, tool_name, args)
-    args = _parse_llm_compiler_action_args(args)
+
     if tool_name == "fuse":
-        # fuse does not have a tool
         tool_func = lambda x: None  # noqa: E731
         stringify_rule = None
+        args_schema = None
+        kwargs = None
+
     else:
         tool = _find_tool(tool_name, tools)
         tool_func = tool.func
         stringify_rule = tool.stringify_rule
+        args_schema = getattr(tool, "args_schema", None)
+        args = _parse_llm_compiler_action_args(args, args_schema=args_schema)
+        # Parse kwargs from args\
+        gateway_logger.log("DEBUG", f"clean args:{args}")
+        gateway_logger.log("DEBUG", f"clean args:{type(args)}")
+        kwargs = {}
+
+        if isinstance(args, dict):
+            kwargs = args
+
     return Task(
         idx=idx,
         name=tool_name,
         tool=tool_func,
-        args=args,
+        args=args
+        if not isinstance(args, dict)
+        else tuple(arg for arg in args.values() if isinstance(arg, dict)),
+        kwargs=kwargs,
         dependencies=dependencies,
         stringify_rule=stringify_rule,
         thought=thought,
         is_fuse=tool_name == "fuse",
+        args_schema=args_schema,  # Add this line
     )
