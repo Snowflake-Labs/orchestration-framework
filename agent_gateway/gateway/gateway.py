@@ -37,6 +37,7 @@ from agent_gateway.tools.utils import (
     post_cortex_request,
     set_tag,
     _should_instrument,
+    _parse_snowflake_response,
 )
 
 from agent_gateway.tools.snowflake_tools import (
@@ -84,7 +85,7 @@ class CortexCompleteAgent:
             if _determine_runtime():
                 response_text = json.loads(response_text).get("content")
 
-            snowflake_response = self._parse_snowflake_response(response_text)
+            snowflake_response = _parse_snowflake_response(response_text)
 
             return snowflake_response
         except Exception:
@@ -99,42 +100,6 @@ class CortexCompleteAgent:
         data = {"model": self.llm, "messages": [{"content": prompt}]}
 
         return headers, url, data
-
-    def _parse_snowflake_response(self, data_str):
-        try:
-            json_list = []
-
-            if _determine_runtime():
-                json_list = [i["data"] for i in json.loads(data_str)]
-
-            else:
-                json_objects = data_str.split("\ndata: ")
-
-                # Iterate over each object
-                for obj in json_objects:
-                    obj = obj.strip()
-                    if obj:
-                        # Remove the 'data: ' prefix if it exists
-                        if obj.startswith("data: "):
-                            obj = obj[6:]
-                        # Load the JSON object into a Python dictionary
-                        json_dict = json.loads(str(obj))
-                        # Append the JSON dictionary to the list
-                        json_list.append(json_dict)
-
-            completion = ""
-            choices = {}
-            for chunk in json_list:
-                choices = chunk["choices"][0]
-
-                if "content" in choices["delta"].keys():
-                    completion += choices["delta"]["content"]
-
-            return completion
-        except KeyError as e:
-            raise AgentGatewayError(
-                message=f"Missing Cortex LLM response components. {str(e)}"
-            )
 
 
 class SummarizationAgent(Tool):

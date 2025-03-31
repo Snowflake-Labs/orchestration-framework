@@ -312,3 +312,36 @@ def set_tag(connection, name):
             con.cursor().execute(f"CALL set_query_tag('{get_tag(name)}')")
         except Exception:
             pass
+
+
+def _parse_snowflake_response(data_str):
+    json_list = []
+
+    if _determine_runtime():
+        json_list = [i["data"] for i in json.loads(data_str)]
+
+    else:
+        json_objects = data_str.split("\ndata: ")
+
+        # Iterate over each object
+        for obj in json_objects:
+            obj = obj.strip()
+            if obj:
+                # Remove the 'data: ' prefix if it exists
+                if obj.startswith("data: "):
+                    obj = obj[6:]
+                # Load the JSON object into a Python dictionary
+                json_dict = json.loads(str(obj))
+                # Append the JSON dictionary to the list
+                json_list.append(json_dict)
+
+    completion = ""
+    choices = {}
+
+    for chunk in json_list:
+        choices = chunk["choices"][0]
+
+        if "content" in choices["delta"].keys():
+            completion += choices["delta"]["content"]
+
+    return completion
