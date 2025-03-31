@@ -36,6 +36,7 @@ from agent_gateway.tools.utils import (
     CortexEndpointBuilder,
     _determine_runtime,
     post_cortex_request,
+    _parse_snowflake_response,
 )
 
 
@@ -215,7 +216,7 @@ class Planner:
             if _determine_runtime():
                 response_text = json.loads(response_text).get("content")
 
-            snowflake_response = self._parse_snowflake_response(response_text)
+            snowflake_response = _parse_snowflake_response(response_text)
 
             return snowflake_response
 
@@ -231,39 +232,6 @@ class Planner:
         data = {"model": self.llm, "messages": [{"content": prompt}]}
 
         return headers, url, data
-
-    def _parse_snowflake_response(self, data_str):
-        json_list = []
-
-        if _determine_runtime():
-            json_list = [i["data"] for i in json.loads(data_str)]
-
-        else:
-            json_objects = data_str.split("\ndata: ")
-
-            # Iterate over each object
-            for obj in json_objects:
-                obj = obj.strip()
-                if obj:
-                    # Remove the 'data: ' prefix if it exists
-                    if obj.startswith("data: "):
-                        obj = obj[6:]
-                    # Load the JSON object into a Python dictionary
-                    json_dict = json.loads(str(obj))
-                    # Append the JSON dictionary to the list
-                    json_list.append(json_dict)
-
-        completion = ""
-        choices = {}
-
-        for chunk in json_list:
-            choices = chunk["choices"][0]
-
-            if "content" in choices["delta"].keys():
-                completion += choices["delta"]["content"]
-
-        gateway_logger.log("DEBUG", f"LLM Generated Plan:\n{completion}")
-        return completion
 
     async def plan(
         self, inputs: dict, is_replan: bool, **kwargs: Any
