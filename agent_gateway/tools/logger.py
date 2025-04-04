@@ -40,14 +40,9 @@ class Logger:
         self.logger.level = logging_level
 
         if not self.logger.handlers:
-            self.file_handler = logging.FileHandler("logs.log", mode="a")
-            self.file_handler.level = logging_level
-
             formatter = logging.Formatter(
                 "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
             )
-            self.file_handler.setFormatter(formatter)
-            self.logger.addHandler(self.file_handler)
 
             if not _determine_runtime():
                 self.stream_handler = logging.StreamHandler(sys.stdout)
