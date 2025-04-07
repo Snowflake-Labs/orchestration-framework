@@ -274,12 +274,11 @@ def teardown_demo_services(session: Session) -> str:
     return "Demo objects have been dropped."
 
 
-def get_tag(component: str) -> str:
+def get_tag() -> str:
     query_tag = {
         "origin": "sf_sit",
         "name": "orchestration-framework",
         "version": {"major": 1, "minor": 0},
-        "attributes": {"component": component},
     }
     return json.dumps(query_tag)
 
@@ -293,7 +292,8 @@ def _set_logging(connection: SnowflakeConnection):
         AS
         $$
         BEGIN
-            ALTER SESSION SET QUERY_TAG = tag;
+            EXECUTE IMMEDIATE 'ALTER SESSION SET QUERY_TAG = '''||tag||'''';
+            SELECT 1;
             RETURN 'Gateway logger setup successfully';
         END;
         $$;"""
@@ -302,13 +302,14 @@ def _set_logging(connection: SnowflakeConnection):
         pass
 
 
-def set_tag(connection, name):
+def set_tag(connection):
     con = _get_connection(connection)
+    set_query = f"CALL set_query_tag('{get_tag()}')"
     try:
-        con.cursor().execute(f"CALL set_query_tag('{get_tag(name)}')")
+        con.cursor().execute(set_query)
     except Exception:
         try:
             _set_logging(con)
-            con.cursor().execute(f"CALL set_query_tag('{get_tag(name)}')")
+            con.cursor().execute(set_query)
         except Exception:
             pass

@@ -64,7 +64,6 @@ class CortexCompleteAgent:
     def __init__(self, session, llm) -> None:
         self.llm = llm
         self.session = session
-        set_tag(self.session, "Complete")
 
     async def arun(self, prompt: str) -> str:
         """Run the LLM."""
@@ -194,6 +193,10 @@ class Agent:
 
         def _unused_tool():
             pass
+
+        set_tag(
+            connection=snowflake_connection,
+        )
 
         if _should_instrument():
             self._search_tool_placeholder = CortexSearchTool(

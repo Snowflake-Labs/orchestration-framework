@@ -19,7 +19,6 @@ from agent_gateway.tools.utils import (
     _get_connection,
     post_cortex_request,
     _determine_runtime,
-    set_tag,
 )
 
 from functools import partial
@@ -64,7 +63,6 @@ class CortexSearchTool(Tool):
 
         super().__init__(name=tool_name, description=tool_description, func=search_call)
         self.connection = _get_connection(snowflake_connection)
-        set_tag(self.connection, "CortexSearchTool")
         self.k = k
         self.retrieval_columns = retrieval_columns
         self.service_name = service_name
@@ -231,7 +229,6 @@ class CortexAnalystTool(Tool):
 
         super().__init__(name=tname, func=analyst_call, description=tool_description)
         self.connection = _get_connection(snowflake_connection)
-        set_tag(self.connection, "CortexAnalystTool")
         self.FILE = semantic_model
         self.STAGE = stage
         self.max_results = max_results
@@ -248,7 +245,6 @@ class CortexAnalystTool(Tool):
 
     async def query(self, query):
         gateway_logger.log("DEBUG", f"Cortex Analyst Prompt:{query}")
-
         url, headers, data = self._prepare_analyst_request(prompt=query)
 
         response_text = await post_cortex_request(url=url, headers=headers, data=data)
