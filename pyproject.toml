@@ -40,6 +40,9 @@ streamlit = [
     "streamlit>=1.39.0,<2.0",
     "python-dotenv>=1.0.1"
 ]
+fastmcp = [
+  "fastmcp >=2.3.0"
+]
 
 [build-system]
 requires = ["hatchling"]
