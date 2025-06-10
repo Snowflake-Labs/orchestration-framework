@@ -227,6 +227,7 @@ class Agent:
 
             instrument.method(CortexSearchTool, "asearch")
             instrument.method(CortexAnalystTool, "query")
+            instrument.method(CortexAnalystTool, "_process_analyst_message")
             instrument.method(Planner, "plan")
 
         summarizer = SummarizationAgent(
@@ -631,9 +632,8 @@ if _should_instrument():
 
         def __call__(self, input):
             with self.tru_agent:
-                output = self.agent(input)
-
-            return output
+                return self.agent(input)
 
         async def acall(self, input):
-            return await self.agent.acall(input)
+            with self.tru_agent:
+                return await self.agent.acall(input)

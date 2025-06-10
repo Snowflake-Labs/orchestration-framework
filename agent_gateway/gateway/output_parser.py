@@ -184,7 +184,9 @@ def _find_tool(
         Tool or StructuredTool.
 
     """
+    gateway_logger.log("DEBUG", tools)
     for tool in tools:
+        gateway_logger.log("DEBUG", tool.name)
         if tool.name == tool_name:
             return tool
     raise AgentGatewayError(message=f"Tool {tool_name} not found.")

@@ -167,6 +167,9 @@ def parse_log_message(log_message):
 
             return f"Running {tool_name} {tool_type} Tool..."
 
+        elif "Replanning" in task_info:
+            return "Replanning..."
+
 
 def generate_demo_services(session: Session) -> str:
     # Snowflake changes context after creation of a database or schema. This can cause

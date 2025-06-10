@@ -14,6 +14,7 @@ from agent_gateway.tools.snowflake_tools import (
     CortexSearchTool,
     PythonTool,
     SQLTool,
+    MCPTool,
 )
 
-__all__ = ["CortexAnalystTool", "CortexSearchTool", "PythonTool", "SQLTool"]
+__all__ = ["CortexAnalystTool", "CortexSearchTool", "PythonTool", "SQLTool", "MCPTool"]
