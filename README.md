@@ -7,7 +7,7 @@ Instead of requiring users or developers to choose between RAG with Cortex Searc
 Text2SQL with Cortex Analyst, the Agent Gateway orchestrates the request to the
 appropriate tool.
 
-The Agent Gateway can be configured to work with 4 types of tools:
+The Agent Gateway can be configured to work with 5 types of tools:
 - **Cortex Search Tool**: For unstructured data analysis, which requires a standard RAG
 access pattern.
 - **Cortex Analyst Tool**: For structured data analysis, which requires a
@@ -15,10 +15,11 @@ Text2SQL access pattern.
 - **Python Tool**: For custom operations (i.e. sending API requests to
 3rd party services), which requires calling arbitrary Python.
 - **SQL Tool**: For supporting custom SQL pipelines built by users.
+- **MCP Tool**: For custom MCP server interactions.
 
 The Agent Gateway supports multi-step and multi-tool workflows. Users have the
 flexibility to create multiple Cortex Search and Cortex Analyst tools for use with the
-Agent Gateway. For a walkthrough of how to configure and run a system with all 3 types
+Agent Gateway. For a walkthrough of how to configure and run a system with all 5 types
 of tools, see the [Quickstart](Quickstart.ipynb) notebook.
 
 # Getting Started
